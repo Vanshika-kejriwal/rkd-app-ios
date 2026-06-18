@@ -1,0 +1,327 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:business_app/constants.dart';
+import 'package:business_app/models/leads.dart';
+import 'package:business_app/models/utils.dart';
+import 'package:business_app/services/network_provider.dart';
+import 'package:business_app/widgets/background.dart';
+import 'package:business_app/widgets/input_field.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:flutter_native_contact_picker/model/contact.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class InstDetail extends StatefulWidget {
+  PendingInst? currentinst;
+  InstDetail({super.key, this.currentinst});
+
+  @override
+  State<InstDetail> createState() => _InstDetailState();
+}
+
+class _InstDetailState extends State<InstDetail> {
+  bool _isdataLoaded = false;
+  List<InsDetail> meeting = [];
+  Timer? _reloadTimer;
+  final _mobcontroller = TextEditingController();
+  String _name = '';
+  String _ownermobile = '';
+  String _add1 = '';
+  String _add2 = '';
+  // Removed unused _pin field
+  String _state = '';
+  String _city = '';
+  String _district = '';
+  String _mobile1 = '';
+  String _mobile2 = '';
+  bool _isAdmin = false;
+  final FlutterNativeContactPicker _contactPicker =
+      FlutterNativeContactPicker();
+   String? _selectedPhoneNumber;
+
+
+  Future<void> getmeetingdetail() async {
+    String pjc = widget.currentinst!.pjc;
+    final connectivityProvider =
+        Provider.of<NetworkProvider>(context, listen: false);
+    var sharedpref = await SharedPreferences.getInstance();
+      var ut = sharedpref.getString('UT');
+    try {
+      final response =
+          await http.get(Uri.parse('$baseuri/api/ins_detail/?pjc=$pjc'));
+      final body = json.decode(response.body);
+      if (kDebugMode) {
+        print(body);
+      }
+      if (response.statusCode == 200) {
+        if (body.isEmpty) {
+          setState(() {
+            meeting = [];
+          });
+        } else {
+          setState(() {
+            meeting.clear();
+            body.forEach((meet) {
+              meeting.add(InsDetail(
+                  ino: meet["INO"],
+                  idatec: meet["IDATEC"],
+                  ibyour: meet["IBYOUR"] ?? '',
+                  products: meet["Products"]));
+            });
+          });
+          // print(meeting);
+        }
+      } else {
+        meeting = [];
+      }
+      setState(() {
+         _isAdmin = ut == 'ADMIN';
+        _isdataLoaded = true;
+      });
+    } on SocketException catch (_) {
+      connectivityProvider.setConnected(false);
+    } on http.ClientException catch (_) {
+      connectivityProvider.setConnected(false);
+    }
+  }
+
+  Future<void> getprojdetail(pjc) async {
+    final response =
+        await http.get(Uri.parse('$baseuri/api/projectdetail/$pjc/'));
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      setState(() {
+        _name = body["CONTP"];
+        _ownermobile = body["OMOBILE"];
+        _add1 = body["ADD1"];
+        _add2 = body["ADD2"];
+        // Removed _pin assignment
+        _state = body["STATE"];
+        _city = body["CITY"];
+        _district = body["DIST"];
+        _mobile1 = body["MOBILE1"];
+        _mobile2 = body["MOBILE2"];
+
+        // _formkey.currentState?.validate();
+      });
+      // print("Pincode doesnt exists");
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Get the current connectivity status using listen: true
+    // This tells Flutter to call didChangeDependencies when the provider changes
+    final isConnected = Provider.of<NetworkProvider>(context).isOnline;
+
+    // Condition to restart API call:
+    // 1. Internet is currently connected
+    // 2. The previous state was NOT connected
+    // 3. We are not in the middle of a fetch
+    if (isConnected && !_isdataLoaded) {
+      _reloadTimer?.cancel();
+
+      // Start a new timer to delay the API call
+      _reloadTimer = Timer(const Duration(seconds: 2), () {
+        getmeetingdetail();
+        getprojdetail(widget.currentinst!.pjc);
+      });
+    }
+
+    // Update the previous state for the next check
+    // _lastConnectivityStatus = isConnected;
+
+    // If we lose connection, reset _dataLoaded so it will fetch again
+    if (!isConnected) {
+      _reloadTimer?.cancel();
+      setState(() {
+        _isdataLoaded = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // It's crucial to cancel the timer when the widget is disposed
+    _reloadTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Background(
+        appbar: true,
+        childs: !_isdataLoaded
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : ListView.builder(
+                itemCount: meeting.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 5),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                                flex: 1,
+                                child: Text("Ino: ${meeting[index].ino}")),
+                            Expanded(
+                                flex: 2,
+                                child: Text("Date: ${meeting[index].idatec}")),
+                            Expanded(
+                                flex: 2,
+                                child: Text(
+                                  "Installed By: ${meeting[index].ibyour}",
+                                ))
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 5,
+                        ),
+                        const Text("Products:"),
+                        for (var product in meeting[index].products)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                  flex: 1, child: Text(product['LEADFORP'])),
+                              Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    product['ITEM'],
+                                  )),
+                                  Expanded(
+                                  flex: 1, child: Text("Qty: ${product['QTY']}")),
+                            ],
+                          ),
+                        const SizedBox(
+                          height: 5,
+                        ),
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color.fromRGBO(252, 101, 8, 1),
+                                foregroundColor: Colors.white),
+                            onPressed: () async {
+                              var mob = await openDialog(
+                                  "Send installation Report", "Mobile Number");
+                              var ino = meeting[index].ino;
+                              if ((mob != null) && (mob.isNotEmpty)) {
+                                if (context.mounted) {
+                                  QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.loading,
+                                      title: "Sending Message",
+                                      barrierDismissible: false);
+                                }
+                                String queryparam = "ino=$ino&mob=$mob";
+                                var respcode = await http.get(Uri.parse(
+                                    '$baseuri/api/ins_report/?$queryparam'));
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                                if (respcode.statusCode == 200 ||
+                                    respcode.statusCode == 201) {
+                                  if (context.mounted) {
+                                    QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.success,
+                                        title: "Message Sent",
+                                        text: "Successfully sent Message");
+                                  }
+                                  _mobcontroller.clear();
+                                  //successfully sent message
+                                } else {
+                                  //something went wrong
+                                  if (context.mounted) {
+                                    QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.error,
+                                        title: "Could not send Message",
+                                        text: "Something went Wrong");
+                                  }
+                                }
+                              }
+                            },
+                            child: Text(
+                                "Send Message for Ino ${meeting[index].ino}")),
+                        const Divider(
+                          thickness: 2.0,
+                        )
+                      ],
+                    ),
+                  );
+                }),
+        appbartitle: GestureDetector(
+            onTap: () {
+              showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                        title: Text(widget.currentinst!.pname),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SelectableText("Owner Name - $_name"),
+                            SelectableText(
+                                "Owner Mobile Number - $_ownermobile"),
+                            SelectableText("Mobile 1 - $_mobile1"),
+                            SelectableText("Mobile 2 - $_mobile2"),
+                            SelectableText(
+                                "Address - $_add1 $_add2 $_city $_district $_state")
+                          ],
+                        ),
+                      ));
+            },
+            child: Text(widget.currentinst!.pname),
+          ),
+        appbaractions: const []);
+  }
+
+  Future<String?> openDialog(title, lablel) => showDialog(
+        // barrierDismissible: false,
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: InputField(label: lablel, controller: _mobcontroller, sufficon: IconButton(
+                          onPressed: () async {
+                            Contact? contact =
+                                await _contactPicker.selectPhoneNumber();
+                            setState(() {
+                              _selectedPhoneNumber =
+                                  contact?.selectedPhoneNumber;
+                              if (_selectedPhoneNumber != null) {
+                                var phno =
+                                    _selectedPhoneNumber!.replaceAll(" ", "");
+                                _mobcontroller.text =
+                                    phno.substring(phno.length - 10);
+
+                                _selectedPhoneNumber = null;
+                              }
+                            });
+                            
+                          },
+                          icon: const Icon(Icons.contacts))),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(_mobcontroller.text);
+                },
+                child: const Text("SUBMIT"))
+          ],
+        ),
+      );
+}
