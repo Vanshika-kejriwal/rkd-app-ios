@@ -20,8 +20,8 @@ jobs:
       # 1. REMOVED the manual 'pod repo update' step from here.
       # Flutter will run CocoaPods automatically during the build phase below.
       - name: Repair and Generate Flutter iOS Scaffolding
-        run: flutter create . --platforms=ios
-        
+        run: flutter precache --ios
+
       - name: Build iOS Frameworks
         run: flutter build ios --release --no-codesign
         env:
