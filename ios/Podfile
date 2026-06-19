@@ -1,4 +1,4 @@
-platform :ios, '13.0'
+platform :ios, '15.0'
 
 # 1. First, check for the local file path
 flutter_install_from_path = File.join(File.dirname(File.expand_path(__FILE__)), 'Flutter', 'podhelper.rb')
