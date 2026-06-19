@@ -1,16 +1,14 @@
-# Set the global deployment target matching your project configuration
 platform :ios, '13.0'
 
-# Securely locate and evaluate the Flutter dependency helper script
-flutter_install_from_path = File.join(File.dirname(__file__), 'Flutter', 'podhelper.rb')
+# Absolute path fallback helper for Flutter plugins
+flutter_install_from_path = File.join(File.dirname(File.expand_path(__FILE__)), 'Flutter', 'podhelper.rb')
 require flutter_install_from_path
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # This is the correct Flutter helper method that dynamically links your plugins
-  flutter_install_all_ios_pods File.dirname(__file__)
+  flutter_install_all_ios_pods File.dirname(File.expand_path(__FILE__))
 end
 
 post_install do |installer|
@@ -18,7 +16,6 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     
     target.build_configurations.each do |config|
-      # Force deployment uniformity across all packages
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
   end
