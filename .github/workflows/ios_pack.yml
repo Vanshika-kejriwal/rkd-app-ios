@@ -14,23 +14,26 @@ jobs:
         with:
           channel: 'stable'
           architecture: x64
+          
       - run: flutter pub get
-      
 
-      - run: pod repo update
-        working-directory: ios
+      # 1. REMOVED the manual 'pod repo update' step from here.
+      # Flutter will run CocoaPods automatically during the build phase below.
 
-      - run: flutter build ios --release --no-codesign
+      - name: Build iOS Frameworks
+        run: flutter build ios --release --no-codesign
         env:
           FLUTTER_SUPPRESS_ANALYTICS: "true"
 
-      - run: mkdir Payload
+      - name: Create Payload Directory
+        run: mkdir Payload
         working-directory: build/ios/iphoneos
 
-      - run: mv Runner.app/ Payload
+      - name: Move App to Payload
+        run: mv Runner.app Payload/
         working-directory: build/ios/iphoneos
 
-      - name: Zip output
+      - name: Zip output into IPA
         run: zip -qq -r -9 FlutterIpaExport.ipa Payload
         working-directory: build/ios/iphoneos
 
