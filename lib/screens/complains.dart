@@ -7,7 +7,6 @@ import 'package:business_app/screens/project_registration.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart';

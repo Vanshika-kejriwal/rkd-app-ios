@@ -1,0 +1,30 @@
+# Set the platform deployment target globally
+platform :ios, '13.0'
+
+# CocoaPods analytics configuration
+plugin 'cocoapods-disable-podfile-checksum' if respond_to?(:plugin)
+
+# Flutter internal framework linkage
+target 'Runner' do
+  use_frameworks!
+  use_native_modules!
+  
+  # Framework configuration flags
+  config = use_native_modules!
+end
+
+# Post-install script to optimize compiler configurations for all plugins
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    
+    target.build_configurations.each do |config|
+      # Fix Deployment Target matching across all dependencies
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      
+      # Fix Xcode 15+ compilation flags
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'COCOAPODS=1'
+    end
+  end
+end
