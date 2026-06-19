@@ -20,7 +20,9 @@ jobs:
       - run: pod repo update
         working-directory: ios
 
-      - run: flutter build ios --release --no-codesign --no-pub --disable-swift-package-manager-integration
+      - run: flutter build ios --release --no-codesign --no-pub
+        env:
+          FLUTTER_SUPPRESS_ANALYTICS: "true"
 
       - run: mkdir Payload
         working-directory: build/ios/iphoneos
