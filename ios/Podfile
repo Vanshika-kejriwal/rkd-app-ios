@@ -1,7 +1,13 @@
 platform :ios, '13.0'
 
-# Absolute path fallback helper for Flutter plugins
+# 1. First, check for the local file path
 flutter_install_from_path = File.join(File.dirname(File.expand_path(__FILE__)), 'Flutter', 'podhelper.rb')
+
+# 2. Dynamic Fallback: If it's a clean cloud run, read directly from the machine's Flutter SDK
+if !File.exist?(flutter_install_from_path) && ENV['FLUTTER_ROOT']
+  flutter_install_from_path = File.join(ENV['FLUTTER_ROOT'], 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
+end
+
 require flutter_install_from_path
 
 target 'Runner' do
