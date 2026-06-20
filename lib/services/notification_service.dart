@@ -65,7 +65,7 @@ class NotificationService {
     var initializationSetting = InitializationSettings(
         android: androidInitializationSettings, iOS: iosInitializationSettings);
 
-    await _flutterLocalNotificationsPlugin.initialize(initializationSetting,
+    await _flutterLocalNotificationsPlugin.initialize(settings: initializationSetting,
         onDidReceiveNotificationResponse: (payload) {
       // handle interaction when app is active for android
       handleMessage(context, message);
@@ -159,10 +159,10 @@ class NotificationService {
 
     Future.delayed(Duration.zero, () {
       _flutterLocalNotificationsPlugin.show(
-        Random().nextInt(100000000),
-        message.notification!.title.toString(),
-        message.notification!.body.toString(),
-        notificationDetails,
+        id:Random().nextInt(100000000),
+        title: message.notification!.title.toString(),
+        body: message.notification!.body.toString(),
+        notificationDetails: notificationDetails,
         payload: 'my_data',
       );
     });

@@ -308,20 +308,20 @@ class _CompletedServiceState extends State<CompletedService> {
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<String>(
                               // enabled: _isenabled,
-                              popupProps: const PopupPropsMultiSelection.dialog(
+                              popupProps: const PopupProps.dialog(
                                   showSelectedItems: true, showSearchBox: true),
                               // mode: Mode.dialog,
                               // showSelectedItems: true,
-                              items: _admins,
-                              dropdownDecoratorProps:
+                              items: (filter, infiniteScrollProps)=>_admins,
+                              decoratorProps:
                                   const DropDownDecoratorProps(
-                                dropdownSearchDecoration: InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: "Share with Admin",
                                   hintText: "Select an Admin",
                                 ),
                               ),
 
-                              onChanged: (value) {
+                              onSelected: (value) {
                                 sharestate(() {
                                   _selectedadmin = value;
                                 });
@@ -469,18 +469,18 @@ class _CompletedServiceState extends State<CompletedService> {
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProducts,
                                   items: filters["Product"],
-                                  onChanged: (value) {
+                                  onSelected: (value) {
                                     setstate(() {
                                       filteredProducts = value;
                                     });
                                   },
                                   popupProps:
-                                      const PopupPropsMultiSelection.dialog(
+                                      const MultiSelectionPopupProps.dialog(
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  dropdownDecoratorProps:
+                                  decoratorProps:
                                       const DropDownDecoratorProps(
-                                    dropdownSearchDecoration: InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText: "Product Type",
                                       hintText: "Select Product Type",
                                     ),
@@ -500,18 +500,18 @@ class _CompletedServiceState extends State<CompletedService> {
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProjects,
                                   items: filters["Project"],
-                                  onChanged: (value) {
+                                  onSelected: (value) {
                                     setstate(() {
                                       filteredProjects = value;
                                     });
                                   },
                                   popupProps:
-                                      const PopupPropsMultiSelection.dialog(
+                                      const MultiSelectionPopupProps.dialog(
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  dropdownDecoratorProps:
+                                  decoratorProps:
                                       const DropDownDecoratorProps(
-                                    dropdownSearchDecoration: InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText: "Project",
                                       hintText: "Select Project",
                                     ),

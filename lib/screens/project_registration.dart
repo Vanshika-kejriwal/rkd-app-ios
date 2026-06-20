@@ -582,7 +582,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
 
-                                      items: _projects,
+                                      items: (filter, infiniteScrollProps) => _projects,
                                       itemAsString: (item) {
                                         return "${item.pname} (${item.custtype})";
                                       },
@@ -601,9 +601,9 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                                 .toLowerCase()
                                                 .contains(filter.toLowerCase());
                                       },
-                                      dropdownDecoratorProps:
+                                      decoratorProps:
                                           const DropDownDecoratorProps(
-                                        dropdownSearchDecoration:
+                                        decoration:
                                             InputDecoration(
                                           labelText: "Project*",
                                           hintText: "Select a Project",
@@ -622,7 +622,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       // hintText: "country in menu mode",
                                       // ),
                                       // popupItemDisabled: isItemDisabled,
-                                      onChanged: (data) {
+                                      onSelected: (data) {
                                         if (data!.pname == "Add New") {
                                           setState(() {
                                             _pnamecontroller.text =
@@ -667,7 +667,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         snapshot.data != null) {
                                       return DropdownSearch<String>(
                                         enabled: _editmode,
-                                        items: snapshot.data!,
+                                        items: (filter, infiniteScrollProps) => snapshot.data!,
                                         // itemAsString: (item) {
                                         //   return item.pname;
                                         // },
@@ -692,7 +692,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         },
                                         popupProps: PopupProps.dialog(
                                           itemBuilder:
-                                              (context, item, isSelected) {
+                                              (context, item, isSelected, onTap) {
                                             return ListTile(
                                               title: Text(item),
                                             );
@@ -729,16 +729,16 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                           //   }
                                           // },
                                         ),
-                                        onChanged: (data) {
+                                        onSelected: (data) {
                                           setState(() {
                                             _selectedut = data;
                                           });
                                           // getprojdetail(data);
                                         },
                                         selectedItem: _selectedut,
-                                        dropdownDecoratorProps:
+                                        decoratorProps:
                                             const DropDownDecoratorProps(
-                                          dropdownSearchDecoration:
+                                          decoration:
                                               InputDecoration(
                                             labelText: "Select an item",
                                           ),
@@ -1130,7 +1130,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       snapshot.data != null) {
                                     return DropdownSearch<String>(
                                       enabled: _editmode,
-                                      items: snapshot.data!,
+                                      items: (filter, infiniteScrollProps) => snapshot.data!,
                                       // itemAsString: (item) {
                                       //   return item.pname;
                                       // },
@@ -1155,14 +1155,14 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       },
                                       popupProps: PopupProps.dialog(
                                         itemBuilder:
-                                            (context, item, isSelected) {
+                                            (context, item, isSelected, onTap) {
                                           return ListTile(
                                             title: Text(item),
                                           );
                                         },
                                         showSearchBox: true,
                                       ),
-                                      onChanged: (data) {
+                                      onSelected: (data) {
                                         setState(() {
                                           _districts.clear();
                                           _selectedState = data;
@@ -1171,9 +1171,9 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         // getprojdetail(data);
                                       },
                                       selectedItem: _selectedState,
-                                      dropdownDecoratorProps:
+                                      decoratorProps:
                                           const DropDownDecoratorProps(
-                                        dropdownSearchDecoration:
+                                        decoration:
                                             InputDecoration(
                                           labelText: "Select a State",
                                         ),
@@ -1200,16 +1200,16 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                     showSearchBox: true),
                                 // mode: Mode.dialog,
                                 // showSelectedItems: true,
-                                items: _districts,
-                                dropdownDecoratorProps:
+                                items: (filter, infiniteScrollProps) => _districts,
+                                decoratorProps:
                                     const DropDownDecoratorProps(
-                                  dropdownSearchDecoration: InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: "District*",
                                     hintText: "Select a District",
                                   ),
                                 ),
 
-                                onChanged: (value) {
+                                onSelected: (value) {
                                   setState(() {
                                     // _company.clear();
                                     _selectedDistrict = value;

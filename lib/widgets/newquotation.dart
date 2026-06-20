@@ -94,16 +94,16 @@ class _NewQuotationState extends State<NewQuotation> {
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
-                                    dropdownDecoratorProps:
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Next Follow-up By",
                                         hintText: "Select a Name",
                                       ),
                                     ),
 
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setState(() {
                                         _selectedfilter1 = value;
                                       });
@@ -130,16 +130,16 @@ class _NewQuotationState extends State<NewQuotation> {
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
-                                    dropdownDecoratorProps:
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Next Follow-up By",
                                         hintText: "Select a Name",
                                       ),
                                     ),
 
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setState(() {
                                         _selectedfilter2 = value;
                                       });
@@ -174,16 +174,16 @@ class _NewQuotationState extends State<NewQuotation> {
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
-                                    dropdownDecoratorProps:
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Next Follow-up By",
                                         hintText: "Select a Name",
                                       ),
                                     ),
 
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setState(() {
                                         _selectedfilter3 = value;
                                       });
@@ -210,16 +210,16 @@ class _NewQuotationState extends State<NewQuotation> {
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
-                                    dropdownDecoratorProps:
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Next Follow-up By",
                                         hintText: "Select a Name",
                                       ),
                                     ),
 
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setState(() {
                                         _selectedfilter4 = value;
                                       });

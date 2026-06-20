@@ -278,10 +278,10 @@ class _UserRegistrationState extends State<UserRegistration> {
                                     showSearchBox: true),
                                 // mode: Mode.dialog,
                                 // showSelectedItems: true,
-                                items: snapshot.data!,
-                                dropdownDecoratorProps:
+                                items: (filter, infiniteScrollProps) => snapshot.data!,
+                                decoratorProps:
                                     const DropDownDecoratorProps(
-                                  dropdownSearchDecoration: InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: "User Type",
                                     hintText: "Select a User Type",
                                   ),
@@ -299,7 +299,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                                 // hintText: "country in menu mode",
                                 // ),
                                 // popupItemDisabled: isItemDisabled,
-                                onChanged: (value) {
+                                onSelected: (value) {
                                   setState(() {
                                     _company.clear();
                                     _selectedcomp = '';
@@ -327,10 +327,10 @@ class _UserRegistrationState extends State<UserRegistration> {
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _company,
-                            dropdownDecoratorProps:
+                            items: (filter, infiniteScrollProps) => _company,
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Category",
                                 hintText: "Select a Category",
                               ),
@@ -348,7 +348,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                             // hintText: "country in menu mode",
                             // ),
                             // popupItemDisabled: isItemDisabled,
-                            onChanged: (value) async {
+                            onSelected: (value) async {
                               if (value == "Add New") {
                                 var result = await openAddNewDialog();
                                 setState(() {
@@ -379,10 +379,10 @@ class _UserRegistrationState extends State<UserRegistration> {
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _suppliercompany,
-                            dropdownDecoratorProps:
+                            items: (filter, infiniteScrollProps) => _suppliercompany,
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Company",
                                 hintText: "Select a Company",
                               ),
@@ -400,7 +400,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                             // hintText: "country in menu mode",
                             // ),
                             // popupItemDisabled: isItemDisabled,
-                            onChanged: (value) async {
+                            onSelected: (value) async {
                               if (value == "Add New") {
                                 setState(() {
                                   _newproductcontroller.text = _selectedcomp;
@@ -463,7 +463,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                             if (snapshot.hasData && snapshot.data != null) {
                               return DropdownSearch<String>(
                                 // enabled: _editmode,
-                                items: snapshot.data!,
+                                items: (filter, infiniteScrollProps) => snapshot.data!,
                                 // itemAsString: (item) {
                                 //   return item.pname;
                                 // },
@@ -487,14 +487,14 @@ class _UserRegistrationState extends State<UserRegistration> {
                                   return null;
                                 },
                                 popupProps: PopupProps.dialog(
-                                  itemBuilder: (context, item, isSelected) {
+                                  itemBuilder: (context, item, isSelected, onTap) {
                                     return ListTile(
                                       title: Text(item),
                                     );
                                   },
                                   showSearchBox: true,
                                 ),
-                                onChanged: (data) {
+                                onSelected: (data) {
                                   setState(() {
                                     _districts.clear();
                                     _selectedState = data;
@@ -503,9 +503,9 @@ class _UserRegistrationState extends State<UserRegistration> {
                                   // getprojdetail(data);
                                 },
                                 selectedItem: _selectedState,
-                                dropdownDecoratorProps:
+                                decoratorProps:
                                     const DropDownDecoratorProps(
-                                  dropdownSearchDecoration: InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: "Select a State",
                                   ),
                                 ),
@@ -530,15 +530,15 @@ class _UserRegistrationState extends State<UserRegistration> {
                               showSelectedItems: true, showSearchBox: true),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
-                          items: _districts,
-                          dropdownDecoratorProps: const DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
+                          items: (filter, infiniteScrollProps) => _districts,
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration : InputDecoration(
                               labelText: "District",
                               hintText: "Select a District",
                             ),
                           ),
 
-                          onChanged: (value) {
+                          onSelected: (value) {
                             setState(() {
                               // _company.clear();
                               _selectedDistrict = value;

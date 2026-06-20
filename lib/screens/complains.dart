@@ -257,7 +257,7 @@ class _ComplainState extends State<Complain> {
                                     // },
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
                                     itemAsString: (item) {
                                       if (item.pname == "Add New") {
                                         return item.pname;
@@ -265,9 +265,9 @@ class _ComplainState extends State<Complain> {
                                         return "${item.pname} (${item.custtype})";
                                       }
                                     },
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Project*",
                                         hintText: "Select a Project",
                                       ),
@@ -277,7 +277,7 @@ class _ComplainState extends State<Complain> {
                                     // hintText: "country in menu mode",
                                     // ),
                                     // popupItemDisabled: isItemDisabled,
-                                    onChanged: (value) async {
+                                    onSelected: (value) async {
                                       setState(() {
                                         // _projects.clear();
                                         _selectedproject = value;
@@ -371,20 +371,20 @@ class _ComplainState extends State<Complain> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<String>(
                             enabled: _isenabled,
-                            popupProps: const PopupPropsMultiSelection.dialog(
+                            popupProps: const PopupProps.dialog(
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _products,
-                            dropdownDecoratorProps:
+                            items: (filter, infiniteScrollProps) => _products,
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Product",
                                 hintText: "Select a Product",
                               ),
                             ),
 
-                            onChanged: (value) {
+                            onSelected: (value) {
                               setState(() {
                                 _company.clear();
                                 _selectedproduct = value;
@@ -397,24 +397,24 @@ class _ComplainState extends State<Complain> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<LeadProduct>(
                             enabled: _isenabled,
-                            popupProps: const PopupPropsMultiSelection.dialog(
+                            popupProps: const PopupProps.dialog(
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _company,
+                            items: (filter, infiniteScrollProps) => _company,
                             itemAsString: (item) {
                               return "${item.company} (${item.product})";
                             },
-                            dropdownDecoratorProps:
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Company",
                                 hintText: "Select a Company",
                               ),
                             ),
 
-                            onChanged: (value) {
+                            onSelected: (value) {
                               setState(() {
                                 _selectedcomp = value;
                               });
@@ -435,10 +435,10 @@ class _ComplainState extends State<Complain> {
                                           showSearchBox: true),
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
-                                      items: snapshot.data!,
-                                      dropdownDecoratorProps:
+                                      items: (filter, infiniteScrollProps) => snapshot.data!,
+                                      decoratorProps:
                                           const DropDownDecoratorProps(
-                                        dropdownSearchDecoration:
+                                        decoration:
                                             InputDecoration(
                                           labelText: "Lead To Name",
                                           hintText: "Select Lead To Name",
@@ -449,7 +449,7 @@ class _ComplainState extends State<Complain> {
                                       // hintText: "country in menu mode",
                                       // ),
                                       // popupItemDisabled: isItemDisabled,
-                                      onChanged: (value) {
+                                      onSelected: (value) {
                                         setState(() {
                                           _selectedleadton = value!;
                                         });
@@ -495,24 +495,24 @@ class _ComplainState extends State<Complain> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<String>(
                             enabled: _isenabled,
-                            popupProps: const PopupPropsMultiSelection.dialog(
+                            popupProps: const PopupProps.dialog(
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: const [
+                            items: (filter, infiniteScrollProps) => [
                               "Under AMC",
                               "Paid Basis",
                               "Free Service as per Installation Agreement"
                             ],
-                            dropdownDecoratorProps:
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Category",
                                 hintText: "Select a category",
                               ),
                             ),
 
-                            onChanged: (value) {
+                            onSelected: (value) {
                               setState(() {
                                 // _company.clear();
                                 _selectedcategory = value;

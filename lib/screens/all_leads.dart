@@ -17,7 +17,8 @@ class AllLeads extends StatefulWidget {
   final Widget? child;
   final Function(dynamic assignExisting, dynamic leadinfo)? assignlead;
 
-  const AllLeads({super.key, required this.leadtype, this.child, this.assignlead});
+  const AllLeads(
+      {super.key, required this.leadtype, this.child, this.assignlead});
 
   @override
   State<AllLeads> createState() => _AllLeadsState();
@@ -60,7 +61,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
 
   Future<void> getnames() async {
     var usr = await loggedInUser();
-    final response = await http.get(Uri.parse('$baseuri/api/leadnames/?leadslist=true'));
+    final response =
+        await http.get(Uri.parse('$baseuri/api/leadnames/?leadslist=true'));
     final body = json.decode(response.body);
     final Set<String> names = {};
     // List<String> names = [];
@@ -115,92 +117,91 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
         Column(
           children: [
             if (_type != "Unassigned")
-            Container(
-              padding: const EdgeInsets.all(0.5),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(1.0),
-                      child: DropdownSearch<String>.multiSelection(
-                        
-                        selectedItems: _selectedItemsassignedby,
-                        items: _empnames,
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.error,
-                                title: "No name Selected",
-                                text: "Please select atleast one name.");
-                          }
-                          setState(() {
-                            _selectedItemsassignedby = value;
-                          });
-                        },
-                        popupProps: const PopupPropsMultiSelection.dialog(
-                            showSelectedItems: true, showSearchBox: true),
-                        dropdownDecoratorProps: const DropDownDecoratorProps(
-                          dropdownSearchDecoration: InputDecoration(
-                              labelText: "Leads Assigned By*",
-                              labelStyle: TextStyle(fontSize: 12),
-                              hintText: "Select Employee",
-                              contentPadding:
-                                  EdgeInsets.fromLTRB(12, 12, 12, 0)),
+              Container(
+                padding: const EdgeInsets.all(0.5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(1.0),
+                        child: DropdownSearch<String>.multiSelection(
+                          selectedItems: _selectedItemsassignedby,
+                          items: (filter, infiniteScrollProps) => _empnames,
+                          onSelected: (value) {
+                            if (value.isEmpty) {
+                              QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: "No name Selected",
+                                  text: "Please select atleast one name.");
+                            }
+                            setState(() {
+                              _selectedItemsassignedby = value;
+                            });
+                          },
+                          popupProps: const MultiSelectionPopupProps.dialog(
+                              showSelectedItems: true, showSearchBox: true),
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
+                                labelText: "Leads Assigned By*",
+                                labelStyle: TextStyle(fontSize: 12),
+                                hintText: "Select Employee",
+                                contentPadding:
+                                    EdgeInsets.fromLTRB(12, 12, 12, 0)),
+                          ),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Please select an emplyee name';
+                            }
+                            return null;
+                          },
+                          autoValidateMode: AutovalidateMode.onUserInteraction,
                         ),
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Please select an emplyee name';
-                          }
-                          return null;
-                        },
-                        autoValidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(1.0),
-                      child: DropdownSearch<String>.multiSelection(
-                        selectedItems: _selectedItemsassignedto,
-                        items: _empnames,
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.error,
-                                title: "No name Selected",
-                                text: "Please select atleast one name.");
-                          }
-                          setState(() {
-                            _selectedItemsassignedto = value;
-                          });
-                        },
-                        popupProps: const PopupPropsMultiSelection.dialog(
-                            showSelectedItems: true, showSearchBox: true),
-                        dropdownDecoratorProps: const DropDownDecoratorProps(
-                          dropdownSearchDecoration: InputDecoration(
-                              labelText: "Leads Assigned To*",
-                              labelStyle: TextStyle(fontSize: 12),
-                              hintText: "Select Employee",
-                              contentPadding:
-                                  EdgeInsets.fromLTRB(12, 12, 12, 0)),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(1.0),
+                        child: DropdownSearch<String>.multiSelection(
+                          selectedItems: _selectedItemsassignedto,
+                          items: (filter, infiniteScrollProps) => _empnames,
+                          onSelected: (value) {
+                            if (value.isEmpty) {
+                              QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: "No name Selected",
+                                  text: "Please select atleast one name.");
+                            }
+                            setState(() {
+                              _selectedItemsassignedto = value;
+                            });
+                          },
+                          popupProps: const MultiSelectionPopupProps.dialog(
+                              showSelectedItems: true, showSearchBox: true),
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
+                                labelText: "Leads Assigned To*",
+                                labelStyle: TextStyle(fontSize: 12),
+                                hintText: "Select Employee",
+                                contentPadding:
+                                    EdgeInsets.fromLTRB(12, 12, 12, 0)),
+                          ),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Please select an emplyee name';
+                            }
+                            return null;
+                          },
+                          autoValidateMode: AutovalidateMode.onUserInteraction,
                         ),
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Please select an emplyee name';
-                          }
-                          return null;
-                        },
-                        autoValidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             Expanded(
               child: ListLeads(
                 leadtype: _type,
@@ -212,7 +213,7 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                   if (mounted) {
                     setState(() {
                       // filters = value;
-                       _listcount = count;
+                      _listcount = count;
                     });
                   }
                 },
@@ -232,14 +233,14 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
         appbartitle: const Text("Leads"),
         appbaractions: [
           if (_listcount != 0)
-          Badge(
-            largeSize: 25,
-            label: Text(
-              '$_listcount',
-              style: const TextStyle(color: Colors.black, fontSize: 14),
+            Badge(
+              largeSize: 25,
+              label: Text(
+                '$_listcount',
+                style: const TextStyle(color: Colors.black, fontSize: 14),
+              ),
+              backgroundColor: Colors.white,
             ),
-           backgroundColor: Colors.white,
-          ),
           IconButton(
               onPressed: () async {
                 List<String> filteredProjects = _filteredProjects;
@@ -262,18 +263,18 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProducts,
                                     items: filters["Product"],
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setstate(() {
                                         filteredProducts = value;
                                       });
                                     },
                                     popupProps:
-                                        const PopupPropsMultiSelection.dialog(
+                                        const MultiSelectionPopupProps.dialog(
                                             showSelectedItems: true,
                                             showSearchBox: true),
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Product Type",
                                         hintText: "Select Product Type",
                                       ),
@@ -293,18 +294,18 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProjects,
                                     items: filters["Project"],
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setstate(() {
                                         filteredProjects = value;
                                       });
                                     },
                                     popupProps:
-                                        const PopupPropsMultiSelection.dialog(
+                                        const MultiSelectionPopupProps.dialog(
                                             showSelectedItems: true,
                                             showSearchBox: true),
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Project",
                                         hintText: "Select Project",
                                       ),
@@ -324,18 +325,18 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredLeadtypes,
                                     items: filters["Leadtype"],
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setstate(() {
                                         filteredLeadtypes = value;
                                       });
                                     },
                                     popupProps:
-                                        const PopupPropsMultiSelection.dialog(
+                                        const MultiSelectionPopupProps.dialog(
                                             showSelectedItems: true,
                                             showSearchBox: true),
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Lead Type",
                                         hintText: "Select Lead Type",
                                       ),

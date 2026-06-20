@@ -192,19 +192,19 @@ class _OsListState extends State<OsList> {
                                     padding: const EdgeInsets.all(5.0),
                                     child: DropdownSearch<String>.multiSelection(
                                       selectedItems: filteredProducts,
-                                      items: leads.map((e) => e.sm ?? "Unknown").toSet().toList(),
-                                      onChanged: (value) {
+                                      items: (filter, infiniteScrollProps) => leads.map((e) => e.sm ?? "Unknown").toSet().toList(),
+                                      onSelected: (value) {
                                         setstate(() {
                                           filteredProducts = value;
                                         });
                                       },
                                       popupProps:
-                                          const PopupPropsMultiSelection.dialog(
+                                          const MultiSelectionPopupProps.dialog(
                                               showSelectedItems: true,
                                               showSearchBox: true),
-                                      dropdownDecoratorProps:
+                                      decoratorProps:
                                           const DropDownDecoratorProps(
-                                        dropdownSearchDecoration: InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Salesman",
                                           hintText: "Select Salesman",
                                         ),

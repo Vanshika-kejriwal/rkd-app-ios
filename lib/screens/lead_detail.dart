@@ -996,11 +996,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                           true),
                                                                   // mode: Mode.dialog,
                                                                   // showSelectedItems: true,
-                                                                  items: snapshot
+                                                                  items: (filter, infiniteScrollProps) => snapshot
                                                                       .data!,
-                                                                  dropdownDecoratorProps:
+                                                                  decoratorProps:
                                                                       const DropDownDecoratorProps(
-                                                                    dropdownSearchDecoration:
+                                                                    decoration:
                                                                         InputDecoration(
                                                                       labelText:
                                                                           "Lead Type",
@@ -1009,7 +1009,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                     ),
                                                                   ),
 
-                                                                  onChanged:
+                                                                  onSelected:
                                                                       (value) {
                                                                     setstate(
                                                                         () {
@@ -1059,7 +1059,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                         return item.product;
                                                       },
                                                       popupProps:
-                                                          const PopupPropsMultiSelection
+                                                          const MultiSelectionPopupProps
                                                               .dialog(
                                                               // showSelectedItems:
                                                               //     true,
@@ -1067,10 +1067,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   true),
                                                       // mode: Mode.dialog,
                                                       // showSelectedItems: true,
-                                                      items: filterproducts,
-                                                      dropdownDecoratorProps:
+                                                      items: (filter, infiniteScrollProps) => filterproducts,
+                                                      decoratorProps:
                                                           const DropDownDecoratorProps(
-                                                        dropdownSearchDecoration:
+                                                        decoration:
                                                             InputDecoration(
                                                           labelText:
                                                               "Follow-up For Product",
@@ -1078,7 +1078,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               "Select a Product",
                                                         ),
                                                       ),
-                                                      onChanged: (value) async {
+                                                      onSelected: (value) async {
                                                         setstate(() {
                                                           _selectedfollowupproduct =
                                                               value;
@@ -1116,7 +1116,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   false),
                                                       // mode: Mode.dialog,
                                                       // showSelectedItems: true,
-                                                      items:
+                                                      items: (filter, infiniteScrollProps) => 
                                                           _selectedleadtype ==
                                                                   "INSTALLATION"
                                                               ? [
@@ -1127,9 +1127,9 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   "Job Completed ",
                                                                   "Job Not Completed"
                                                                 ],
-                                                      dropdownDecoratorProps:
+                                                      decoratorProps:
                                                           const DropDownDecoratorProps(
-                                                        dropdownSearchDecoration:
+                                                        decoration:
                                                             InputDecoration(
                                                           labelText:
                                                               "Lead Status",
@@ -1137,7 +1137,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               "Select status",
                                                         ),
                                                       ),
-                                                      onChanged: (value) {
+                                                      onSelected: (value) {
                                                         setstate(() {
                                                           _category.clear();
                                                           _selectedstatus =
@@ -1226,7 +1226,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                             return DropdownSearch<
                                                                 InvItem>.multiSelection(
                                                               // enabled: !_resendotp,
-                                                              popupProps: const PopupPropsMultiSelection
+                                                              popupProps: const MultiSelectionPopupProps
                                                                   .dialog(
                                                                   showSelectedItems:
                                                                       true,
@@ -1234,7 +1234,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       true),
                                                               // mode: Mode.dialog,
                                                               // showSelectedItems: true,
-                                                              items: snapshot
+                                                              items: (filter, infiniteScrollProps) => snapshot
                                                                   .data!,
                                                               itemAsString:
                                                                   (item) =>
@@ -1243,9 +1243,9 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       item2) =>
                                                                   item1.id ==
                                                                   item2.id,
-                                                              dropdownDecoratorProps:
+                                                              decoratorProps:
                                                                   const DropDownDecoratorProps(
-                                                                dropdownSearchDecoration:
+                                                                decoration:
                                                                     InputDecoration(
                                                                   labelText:
                                                                       "Select Products",
@@ -1254,7 +1254,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                 ),
                                                               ),
 
-                                                              onChanged:
+                                                              onSelected:
                                                                   (value) {
                                                                 setstate(() {
                                                                   _selectedinstallationitems =
@@ -1290,10 +1290,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   true),
                                                       // mode: Mode.dialog,
                                                       // showSelectedItems: true,
-                                                      items: _category,
-                                                      dropdownDecoratorProps:
+                                                      items: (filter, infiniteScrollProps) => _category,
+                                                      decoratorProps:
                                                           const DropDownDecoratorProps(
-                                                        dropdownSearchDecoration:
+                                                        decoration:
                                                             InputDecoration(
                                                           labelText:
                                                               "Reason/Category",
@@ -1302,7 +1302,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                         ),
                                                       ),
 
-                                                      onChanged: (value) {
+                                                      onSelected: (value) {
                                                         setstate(() {
                                                           // _company.clear();
                                                           _selectedcategory =
@@ -1439,11 +1439,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       true),
                                                               // mode: Mode.dialog,
                                                               // showSelectedItems: true,
-                                                              items: snapshot
+                                                              items: (filter, infiniteScrollProps) => snapshot
                                                                   .data!,
-                                                              dropdownDecoratorProps:
+                                                              decoratorProps:
                                                                   const DropDownDecoratorProps(
-                                                                dropdownSearchDecoration:
+                                                                decoration:
                                                                     InputDecoration(
                                                                   labelText:
                                                                       "GST %",
@@ -1467,7 +1467,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               // hintText: "country in menu mode",
                                                               // ),
                                                               // popupItemDisabled: isItemDisabled,
-                                                              onChanged:
+                                                              onSelected:
                                                                   (value) {
                                                                 setstate(() {
                                                                   _selectedgst =
@@ -1619,11 +1619,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                         true),
                                                                 // mode: Mode.dialog,
                                                                 // showSelectedItems: true,
-                                                                items: snapshot
+                                                                items: (filter, infiniteScrollProps) => snapshot
                                                                     .data!,
-                                                                dropdownDecoratorProps:
+                                                                decoratorProps:
                                                                     const DropDownDecoratorProps(
-                                                                  dropdownSearchDecoration:
+                                                                  decoration:
                                                                       InputDecoration(
                                                                     labelText:
                                                                         "Installation by Our",
@@ -1632,7 +1632,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   ),
                                                                 ),
 
-                                                                onChanged:
+                                                                onSelected:
                                                                     (value) {
                                                                   setstate(() {
                                                                     _selectedinsbyour =
@@ -1669,15 +1669,15 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       false),
                                                           // mode: Mode.dialog,
                                                           // showSelectedItems: true,
-                                                          items: const [
+                                                          items:  (filter, infiniteScrollProps)=>const [
                                                             "6 Months",
                                                             "12 Months",
                                                             "24 Months",
                                                             "36 Months"
                                                           ],
-                                                          dropdownDecoratorProps:
+                                                          decoratorProps:
                                                               DropDownDecoratorProps(
-                                                            dropdownSearchDecoration:
+                                                            decoration:
                                                                 InputDecoration(
                                                               labelText:
                                                                   "Waranty Period for ${product.product}",
@@ -1685,7 +1685,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   "Select waranty period",
                                                             ),
                                                           ),
-                                                          onChanged: (value) {
+                                                          onSelected: (value) {
                                                             product.wpm = value;
                                                           },
                                                           selectedItem:
@@ -1773,11 +1773,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                             true),
                                                                     // mode: Mode.dialog,
                                                                     // showSelectedItems: true,
-                                                                    items: snapshot
+                                                                    items: (filter, infiniteScrollProps) => snapshot
                                                                         .data!,
-                                                                    dropdownDecoratorProps:
+                                                                    decoratorProps:
                                                                         const DropDownDecoratorProps(
-                                                                      dropdownSearchDecoration:
+                                                                      decoration:
                                                                           InputDecoration(
                                                                         labelText:
                                                                             "Next Follow-up By",
@@ -1786,7 +1786,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       ),
                                                                     ),
 
-                                                                    onChanged:
+                                                                    onSelected:
                                                                         (value) {
                                                                       setstate(
                                                                           () {

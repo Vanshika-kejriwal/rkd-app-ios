@@ -510,7 +510,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                             // },
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _projects,
+                            items: (filter, infiniteScrollProps) => _projects,
                             itemAsString: (item) {
                               if (item.pname == "Add New") {
                                 return item.pname;
@@ -520,9 +520,9 @@ class _ServiceEditState extends State<ServiceEdit> {
                                 return "${item.pname} (${item.custtype})";
                               }
                             },
-                            dropdownDecoratorProps:
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Project*",
                                 hintText: "Select a Project",
                               ),
@@ -532,7 +532,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                             // hintText: "country in menu mode",
                             // ),
                             // popupItemDisabled: isItemDisabled,
-                            onChanged: (value) async {
+                            onSelected: (value) async {
                               setState(() {
                                 // _projects.clear();
                                 _selectedproject = value;
@@ -638,7 +638,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                       //         ),
                       //       ),
 
-                      //       onChanged: (value) {
+                      //       onSelected: (value) {
                       //         setState(() {
                       //           _company.clear();
                       //           _selectedproduct = value;
@@ -661,24 +661,24 @@ class _ServiceEditState extends State<ServiceEdit> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<LeadProduct>.multiSelection(
                             // enabled: _isenabled,
-                            popupProps: const PopupPropsMultiSelection.dialog(
+                            popupProps: const MultiSelectionPopupProps.dialog(
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _company,
+                            items: (filter, infiniteScrollProps) => _company,
                             itemAsString: (item) {
                               return "${item.product} - ${item.company}";
                             },
-                            dropdownDecoratorProps:
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Product",
                                 hintText: "Select a Product",
                               ),
                             ),
 
-                            onChanged: (value) {
+                            onSelected: (value) {
                               setState(() {
                                 _selectedcomp = value;
                               });

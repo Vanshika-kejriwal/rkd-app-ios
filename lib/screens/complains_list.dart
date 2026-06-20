@@ -163,18 +163,18 @@ class _ComplainsListState extends State<ComplainsList> with TickerProviderStateM
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProducts,
                                     items: filters["Product"],
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setstate(() {
                                         filteredProducts = value;
                                       });
                                     },
                                     popupProps:
-                                        const PopupPropsMultiSelection.dialog(
+                                        const MultiSelectionPopupProps.dialog(
                                             showSelectedItems: true,
                                             showSearchBox: true),
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Product Type",
                                         hintText: "Select Product Type",
                                       ),
@@ -194,18 +194,18 @@ class _ComplainsListState extends State<ComplainsList> with TickerProviderStateM
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProjects,
                                     items: filters["Project"],
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setstate(() {
                                         filteredProjects = value;
                                       });
                                     },
                                     popupProps:
-                                        const PopupPropsMultiSelection.dialog(
+                                        const MultiSelectionPopupProps.dialog(
                                             showSelectedItems: true,
                                             showSearchBox: true),
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Project",
                                         hintText: "Select Project",
                                       ),

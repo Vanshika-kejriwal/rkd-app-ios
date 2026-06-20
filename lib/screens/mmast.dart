@@ -309,7 +309,7 @@ class _MmastState extends State<Mmast> {
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
                                   
-                                      items: comp,
+                                      items: (filter, infiniteScrollProps) => comp,
                                       itemAsString: (item) {
                                         return item.company;
                                       },
@@ -324,9 +324,9 @@ class _MmastState extends State<Mmast> {
                                                 .toLowerCase()
                                                 .contains(filter.toLowerCase());
                                       },
-                                      dropdownDecoratorProps:
+                                      decoratorProps:
                                           const DropDownDecoratorProps(
-                                        dropdownSearchDecoration:
+                                        decoration:
                                             InputDecoration(
                                           labelText: "Company*",
                                           hintText: "Select a Company",
@@ -345,7 +345,7 @@ class _MmastState extends State<Mmast> {
                                       // hintText: "country in menu mode",
                                       // ),
                                       // popupItemDisabled: isItemDisabled,
-                                      onChanged: (data) {
+                                      onSelected: (data) {
                                         if (data!.company == "Add New") {
                                           setState(() {
                                             _compnamecontroller.text =
@@ -413,7 +413,7 @@ class _MmastState extends State<Mmast> {
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
                                   
-                                      items:product,
+                                      items: (filter, infiniteScrollProps) => product,
                                       itemAsString: (item) {
                                         return item.product;
                                       },
@@ -428,9 +428,9 @@ class _MmastState extends State<Mmast> {
                                                 .toLowerCase()
                                                 .contains(filter.toLowerCase());
                                       },
-                                      dropdownDecoratorProps:
+                                      decoratorProps:
                                           const DropDownDecoratorProps(
-                                        dropdownSearchDecoration:
+                                        decoration:
                                             InputDecoration(
                                           labelText: "Product*",
                                           hintText: "Select a Product",
@@ -449,7 +449,7 @@ class _MmastState extends State<Mmast> {
                                       // hintText: "country in menu mode",
                                       // ),
                                       // popupItemDisabled: isItemDisabled,
-                                      onChanged: (data) {
+                                      onSelected: (data) {
                                         if (data!.product == "Add New") {
                                           setState(() {
                                             _productnamecontroller.text =

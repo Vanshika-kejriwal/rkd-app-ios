@@ -467,7 +467,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                     // },
                     // mode: Mode.dialog,
                     // showSelectedItems: true,
-                    items: _projects,
+                    items:  (filter, infiniteScrollProps) =>_projects,
                     itemAsString: (item) {
                       if (item.name == "Add New") {
                         return item.name;
@@ -475,8 +475,8 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                         return "${item.name} (${item.ac})";
                       }
                     },
-                    dropdownDecoratorProps: const DropDownDecoratorProps(
-                      dropdownSearchDecoration: InputDecoration(
+                    decoratorProps: const DropDownDecoratorProps(
+                      decoration: InputDecoration(
                         labelText: "Project*",
                         hintText: "Select a Project",
                       ),
@@ -486,7 +486,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                     // hintText: "country in menu mode",
                     // ),
                     // popupItemDisabled: isItemDisabled,
-                    onChanged: (value) async {
+                    onSelected: (value) async {
                       setState(() {
                         // _projects.clear();
                         _selectedproject = value;
@@ -685,7 +685,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           child: DropdownSearch<Amast>.multiSelection(
                                             // key: _projectkey,
 
-                                            popupProps: PopupPropsMultiSelection.dialog(
+                                            popupProps: MultiSelectionPopupProps.dialog(
                                                 title: Padding(
                                                   padding:
                                                       const EdgeInsets.all(1.0),
@@ -734,7 +734,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                             // },
                                             // mode: Mode.dialog,
                                             // showSelectedItems: true,
-                                            items: _company,
+                                            items: (filter, infiniteScrollProps) => _company,
                                             itemAsString: (item) {
                                               if (item.name == "Add New") {
                                                 return item.name;
@@ -742,9 +742,9 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                                 return item.name;
                                               }
                                             },
-                                            dropdownDecoratorProps:
+                                            decoratorProps:
                                                 const DropDownDecoratorProps(
-                                              dropdownSearchDecoration:
+                                              decoration:
                                                   InputDecoration(
                                                 labelText: "Company",
                                                 hintText: "Select a Company",
@@ -755,7 +755,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                             // hintText: "country in menu mode",
                                             // ),
                                             // popupItemDisabled: isItemDisabled,
-                                            onChanged: (value) async {
+                                            onSelected: (value) async {
                                               setState(() {
                                                 // _projects.clear();
                                                 _selectedcompany = value;
@@ -781,7 +781,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           // key: _projectkey,
 
                                           popupProps:
-                                              PopupPropsMultiSelection.dialog(
+                                              MultiSelectionPopupProps.dialog(
                                                   title: Padding(
                                                     padding:
                                                         const EdgeInsets.all(
@@ -827,7 +827,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           // },
                                           // mode: Mode.dialog,
                                           // showSelectedItems: true,
-                                          items: _hilightitems,
+                                          items: (filter, infiniteScrollProps) => _hilightitems,
                                           itemAsString: (item) {
                                             if (item.name == "Add New") {
                                               return item.name;
@@ -835,20 +835,20 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                               return item.name;
                                             }
                                           },
-                                          dropdownDecoratorProps:
+                                          decoratorProps:
                                               const DropDownDecoratorProps(
-                                            dropdownSearchDecoration:
+                                            decoration:
                                                 InputDecoration(
                                               labelText: "Select Items",
                                               hintText: "Select an Item",
                                             ),
                                           ),
-                                          // dropdownSearchDecoration: const InputDecoration(
+                                          // decoration: const InputDecoration(
                                           // labelText: "Menu mode",
                                           // hintText: "country in menu mode",
                                           // ),
                                           // popupItemDisabled: isItemDisabled,
-                                          onChanged: (value) async {
+                                          onSelected: (value) async {
                                             setState(() {
                                               // _projects.clear();
                                               _selectedhilightitems = value;

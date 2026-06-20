@@ -337,7 +337,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                     // },
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
                                     itemAsString: (item) {
                                       if (item.pname == "Add New") {
                                         return item.pname;
@@ -345,9 +345,9 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                         return "${item.pname} (${item.custtype})";
                                       }
                                     },
-                                    dropdownDecoratorProps:
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Project*",
                                         hintText: "Select a Project",
                                       ),
@@ -357,7 +357,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                     // hintText: "country in menu mode",
                                     // ),
                                     // popupItemDisabled: isItemDisabled,
-                                    onChanged: (value) async {
+                                    onSelected: (value) async {
                                       setState(() {
                                         // _projects.clear();
                                         _selectedproject = value;
@@ -443,20 +443,20 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<String>.multiSelection(
                             // enabled: _isenabled,
-                            popupProps: const PopupPropsMultiSelection.dialog(
+                            popupProps: const MultiSelectionPopupProps.dialog(
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _products,
-                            dropdownDecoratorProps:
+                            items: (filter, infiniteScrollProps) => _products,
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Product",
                                 hintText: "Select a Product",
                               ),
                             ),
 
-                            onChanged: (value) {
+                            onSelected: (value) {
                               setState(() {
                                 _company.clear();
                                 _selectedproduct = value;
@@ -469,24 +469,24 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<LeadProduct>.multiSelection(
                             // enabled: _isenabled,
-                            popupProps: const PopupPropsMultiSelection.dialog(
+                            popupProps: const MultiSelectionPopupProps.dialog(
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: _company,
+                            items: (filter, infiniteScrollProps) => _company,
                             itemAsString: (item) {
                               return "${item.company} (${item.product})";
                             },
-                            dropdownDecoratorProps:
+                            decoratorProps:
                                 const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: "Company",
                                 hintText: "Select a Company",
                               ),
                             ),
 
-                            onChanged: (value) {
+                            onSelected: (value) {
                               setState(() {
                                 _selectedcomp = value;
                               });
@@ -505,10 +505,10 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: snapshot.data!,
-                                    dropdownDecoratorProps:
+                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    decoratorProps:
                                         const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
+                                      decoration: InputDecoration(
                                         labelText: "Lead To Name",
                                         hintText: "Select Lead To Name",
                                       ),
@@ -518,7 +518,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                     // hintText: "country in menu mode",
                                     // ),
                                     // popupItemDisabled: isItemDisabled,
-                                    onChanged: (value) {
+                                    onSelected: (value) {
                                       setState(() {
                                         _selectedleadton = value;
                                       });

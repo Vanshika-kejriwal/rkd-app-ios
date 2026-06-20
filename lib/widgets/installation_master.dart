@@ -101,7 +101,7 @@ class _InstMastState extends State<InstMast> {
                                         // mode: Mode.dialog,
                                         // showSelectedItems: true,
 
-                                        items: asyncSnapshot.data ?? [],
+                                        items: (filter, infiniteScrollProps) => asyncSnapshot.data ?? [],
                                         // itemAsString: (item) {
                                         //   return "${item.pname} (${item.custtype})";
                                         // },
@@ -115,9 +115,9 @@ class _InstMastState extends State<InstMast> {
                                               item.toLowerCase().contains(
                                                   filter.toLowerCase());
                                         },
-                                        dropdownDecoratorProps:
+                                        decoratorProps:
                                             const DropDownDecoratorProps(
-                                          dropdownSearchDecoration:
+                                          decoration:
                                               InputDecoration(
                                             labelText: "Product",
                                             hintText: "Select a Product",
@@ -136,7 +136,7 @@ class _InstMastState extends State<InstMast> {
                                         // hintText: "country in menu mode",
                                         // ),
                                         // popupItemDisabled: isItemDisabled,
-                                        onChanged: (data) {
+                                        onSelected: (data) {
                                           if (data == "Add New") {
                                             // Handle the "Add New" option here
                                             // For example, you can show a dialog to enter a new product name
@@ -158,10 +158,10 @@ class _InstMastState extends State<InstMast> {
                                                             asyncSnapshot) {
                                                           return DropdownSearch<
                                                               String>(
-                                                            items: asyncSnapshot
+                                                            items: (filter, infiniteScrollProps) => asyncSnapshot
                                                                     .data ??
                                                                 [],
-                                                            onChanged: (value) {
+                                                            onSelected: (value) {
                                                               if (value !=
                                                                   null) {
                                                                 newProductController =
@@ -234,7 +234,7 @@ class _InstMastState extends State<InstMast> {
                               padding: const EdgeInsets.all(5.0),
                               child: DropdownSearch<Amast>(
                                 // enabled: _editmode,
-                                items: _company,
+                                items: (filter, infiniteScrollProps) => _company,
                                 itemAsString: (item) {
                                   return item.name;
                                 },
@@ -258,7 +258,7 @@ class _InstMastState extends State<InstMast> {
                                   return null;
                                 },
                                 popupProps: PopupProps.dialog(
-                                  itemBuilder: (context, item, isSelected) {
+                                  itemBuilder: (context, item, isSelected, selectedItems) {
                                     return ListTile(
                                       title: Text(item.name),
                                     );
@@ -295,7 +295,7 @@ class _InstMastState extends State<InstMast> {
                                   //   }
                                   // },
                                 ),
-                                onChanged: (data) {
+                                onSelected: (data) {
                                   if (data!.name == "Add New") {
                                     // Handle the "Add New" option here
                                     // For example, you can show a dialog to enter a new company name
@@ -315,8 +315,8 @@ class _InstMastState extends State<InstMast> {
                                               builder: (context, asyncSnapshot) {
                                                 return DropdownSearch<Amast>(
                                                   itemAsString: (item) => item.name,
-                                                  items: asyncSnapshot.data ?? [],
-                                                  onChanged: (value) {
+                                                  items: (filter, infiniteScrollProps) => asyncSnapshot.data ?? [],
+                                                  onSelected: (value) {
                                                     if (value != null) {
                                                       newCompany = value;
                                                     }
@@ -370,9 +370,9 @@ class _InstMastState extends State<InstMast> {
                                   }
                                 },
                                 selectedItem: _selectedcompany,
-                                dropdownDecoratorProps:
+                                decoratorProps:
                                     const DropDownDecoratorProps(
-                                  dropdownSearchDecoration: InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: "Select a Company",
                                   ),
                                 ),
@@ -428,7 +428,7 @@ class _InstMastState extends State<InstMast> {
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<Institem>.multiSelection(
                               enabled: !widget.service,
-                              items: _items,
+                              items: (filter, infiniteScrollProps) => _items,
                               itemAsString: (item) {
                                 return item.item;
                               },
@@ -441,24 +441,24 @@ class _InstMastState extends State<InstMast> {
                               validator: (value) {
                                 return null;
                               },
-                              popupProps: PopupPropsMultiSelection.dialog(
-                                itemBuilder: (context, item, isSelected) {
+                              popupProps:MultiSelectionPopupProps.dialog(
+                                itemBuilder: (context, item, isSelected, selectedItems) {
                                   return ListTile(
                                     title: Text(item.item),
                                   );
                                 },
                                 showSearchBox: true,
                               ),
-                              onChanged: (data) {
+                              onSelected: (data) {
                                 setState(() {
                                   _selecteditem = data;
                                   _serviceitems = _items.where((item) => !_selecteditem.contains(item)).toList();
                                 });
                               },
                               selectedItems: _selecteditem,
-                              dropdownDecoratorProps:
+                              decoratorProps:
                                   const DropDownDecoratorProps(
-                                dropdownSearchDecoration: InputDecoration(
+                                decoration: InputDecoration(
                                     labelText:
                                         "Select an Item to remove from installation",
                                     labelStyle: TextStyle(fontSize: 12)),
@@ -469,7 +469,7 @@ class _InstMastState extends State<InstMast> {
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<Institem>.multiSelection(
                               enabled: widget.service,
-                              items: _serviceitems,
+                              items: (filter, infiniteScrollProps) => _serviceitems,
                               itemAsString: (item) {
                                 return item.item;
                               },
@@ -482,23 +482,23 @@ class _InstMastState extends State<InstMast> {
                               validator: (value) {
                                 return null;
                               },
-                              popupProps: PopupPropsMultiSelection.dialog(
-                                itemBuilder: (context, item, isSelected) {
+                              popupProps:MultiSelectionPopupProps.dialog(
+                                itemBuilder: (context, item, isSelected, selectedItems) {
                                   return ListTile(
                                     title: Text(item.item),
                                   );
                                 },
                                 showSearchBox: true,
                               ),
-                              onChanged: (data) {
+                              onSelected: (data) {
                                 setState(() {
                                   _selectedxserviceitem = data;
                                 });
                               },
                               selectedItems: _selectedxserviceitem,
-                              dropdownDecoratorProps:
+                              decoratorProps:
                                   const DropDownDecoratorProps(
-                                dropdownSearchDecoration: InputDecoration(
+                                decoration: InputDecoration(
                                     labelText:
                                         "Select an Item to remove from Service",
                                     labelStyle: TextStyle(fontSize: 12)),

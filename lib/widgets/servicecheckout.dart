@@ -591,20 +591,20 @@ class _ServicecheckoutState extends State<Servicecheckout> {
           const SizedBox(height: 8),
           if (item['type'] == 'dropdown')
             DropdownSearch<String>(
-              items: const ["Yes", "No", "Not Applicable"],
+              items: (filter, infiniteScrollProps)=>const ["Yes", "No", "Not Applicable"],
               selectedItem:
                   _answers[item['q']] != "" ? _answers[item['q']] : null,
               popupProps: const PopupProps.dialog(
                   // showSelectedItems:
                   //     true,
                   showSearchBox: true),
-              dropdownDecoratorProps: DropDownDecoratorProps(
-                dropdownSearchDecoration: InputDecoration(
+              decoratorProps: DropDownDecoratorProps(
+                decoration: InputDecoration(
                   labelText: item['q'],
                   hintText: "Select an option",
                 ),
               ),
-              onChanged: (val) {
+              onSelected: (val) {
                 setState(() {
                   _answers[item['q']] = val ?? '';
                 });
@@ -718,14 +718,14 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               showSearchBox: true),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
-                          items: widget.products,
-                          dropdownDecoratorProps: const DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
+                          items: (filter, infiniteScrollProps)=>widget.products,
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
                               labelText: "Follow-up For Product",
                               hintText: "Select a Product",
                             ),
                           ),
-                          onChanged: (value) async {
+                          onSelected: (value) async {
                             setState(() {
                               _resendotp = false;
                               _selectedfollowupproduct = value;
@@ -763,14 +763,14 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               showSelectedItems: true, showSearchBox: false),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
-                          items: const ["Job Completed ", "Job Not Completed"],
-                          dropdownDecoratorProps: const DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
+                          items: (filter, infiniteScrollProps)=>const ["Job Completed ", "Job Not Completed"],
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
                               labelText: "Lead Status",
                               hintText: "Select status",
                             ),
                           ),
-                          onChanged: (value) {
+                          onSelected: (value) {
                             setState(() {
                               _category.clear();
                               _selectedstatus = value!;
@@ -852,24 +852,24 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                 return DropdownSearch<InvItem>.multiSelection(
                                   // enabled: !_resendotp,
                                   popupProps:
-                                      const PopupPropsMultiSelection.dialog(
+                                      const MultiSelectionPopupProps.dialog(
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   // mode: Mode.dialog,
                                   // showSelectedItems: true,
-                                  items: snapshot.data!,
+                                  items: (filter, infiniteScrollProps)=>snapshot.data!,
                                   itemAsString: (item) => item.name,
                                   compareFn: (item1, item2) =>
                                       item1.id == item2.id,
-                                  dropdownDecoratorProps:
+                                  decoratorProps:
                                       const DropDownDecoratorProps(
-                                    dropdownSearchDecoration: InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText: "Select Products",
                                       hintText: "Select a Product",
                                     ),
                                   ),
 
-                                  onChanged: (value) {
+                                  onSelected: (value) {
                                     setState(() {
                                       _selectedinstallationitems = value;
                                     });
@@ -894,15 +894,15 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               showSelectedItems: true, showSearchBox: true),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
-                          items: _category,
-                          dropdownDecoratorProps: const DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
+                          items: (filter, infiniteScrollProps)=>_category,
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
                               labelText: "Reason/Category",
                               hintText: "Select an option",
                             ),
                           ),
 
-                          onChanged: (value) {
+                          onSelected: (value) {
                             setState(() {
                               // _company.clear();
                               _selectedcategory = value!;
@@ -999,10 +999,10 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                       showSearchBox: true),
                                   // mode: Mode.dialog,
                                   // showSelectedItems: true,
-                                  items: snapshot.data!,
-                                  dropdownDecoratorProps:
+                                  items: (filter, infiniteScrollProps) => snapshot.data!,
+                                  decoratorProps:
                                       const DropDownDecoratorProps(
-                                    dropdownSearchDecoration: InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText: "GST %",
                                       hintText: "Select a GST %",
                                     ),
@@ -1020,7 +1020,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   // hintText: "country in menu mode",
                                   // ),
                                   // popupItemDisabled: isItemDisabled,
-                                  onChanged: (value) {
+                                  onSelected: (value) {
                                     setState(() {
                                       _selectedgst = value!;
                                     });
@@ -1516,17 +1516,17 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                             showSearchBox: true),
                                         // mode: Mode.dialog,
                                         // showSelectedItems: true,
-                                        items: snapshot.data!,
-                                        dropdownDecoratorProps:
+                                        items: (filter, infiniteScrollProps) => snapshot.data!,
+                                        decoratorProps:
                                             const DropDownDecoratorProps(
-                                          dropdownSearchDecoration:
+                                          decoration:
                                               InputDecoration(
                                             labelText: "Next Follow-up By",
                                             hintText: "Select a Name",
                                           ),
                                         ),
 
-                                        onChanged: (value) {
+                                        onSelected: (value) {
                                           setState(() {
                                             _selectedfollowupby = value;
                                           });

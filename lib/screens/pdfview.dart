@@ -59,7 +59,7 @@ class _PdfviewState extends State<Pdfview> {
 
     try {
       // 3. Trigger the native save dialog using the readStream
-      String? path = await FilePicker.platform.saveFile(
+      String? path = await FilePicker.saveFile(
         dialogTitle: 'Save PDF Document',
         fileName: suggestedFileName,
         // *** Use readStream instead of bytes ***
