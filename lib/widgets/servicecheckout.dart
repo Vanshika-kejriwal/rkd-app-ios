@@ -1368,7 +1368,8 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                           ),
                         ),
                       ),
-                    Padding(
+                    if (_leadstat != 1)
+                      Padding(
                         padding: const EdgeInsets.all(5),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
