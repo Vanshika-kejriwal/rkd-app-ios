@@ -569,6 +569,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                   : DropdownSearch<Project>(
                                       key: _projectkey,
                                       // controller
+                                      compareFn: (item1, item2) => item1.pjc == item2.pjc,
                                       popupProps: PopupProps.dialog(
                                         // showSelectedItems: true,
                                         showSearchBox: true,

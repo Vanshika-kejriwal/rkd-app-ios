@@ -283,7 +283,7 @@ class _PendingInsState extends State<PendingIns> {
                                 padding: const EdgeInsets.all(1.0),
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProducts,
-                                  items: filters["Product"],
+                                  items: (filter, infiniteScrollProps) => filters["Product"],
                                   onSelected: (value) {
                                     setstate(() {
                                       filteredProducts = value;
@@ -314,7 +314,7 @@ class _PendingInsState extends State<PendingIns> {
                                 padding: const EdgeInsets.all(1.0),
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProjects,
-                                  items: filters["Project"],
+                                  items: (filter, infiniteScrollProps) => filters["Project"],
                                   onSelected: (value) {
                                     setstate(() {
                                       filteredProjects = value;

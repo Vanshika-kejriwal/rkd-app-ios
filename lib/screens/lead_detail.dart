@@ -950,25 +950,31 @@ class _LeadDetailState extends State<LeadDetail> {
                                                   child: Row(
                                                     mainAxisAlignment:
                                                         MainAxisAlignment
-                                                            .center,
+                                                      .spaceBetween,
                                                     children: [
-                                                      Text(
-                                                        _pname,
-                                                        style: const TextStyle(
-                                                            fontSize: 18,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
+                                                      Expanded(
+                                                        flex:4,
+                                                        child: Text(
+                                                          _pname,
+                                                          style: const TextStyle(
+                                                              fontSize: 18,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
                                                       ),
                                                       const Spacer(),
-                                                      IconButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.close))
+                                                      Expanded(
+                                                        flex: 1,
+                                                        child: IconButton(
+                                                            onPressed: () {
+                                                              Navigator.of(
+                                                                      context)
+                                                                  .pop();
+                                                            },
+                                                            icon: const Icon(
+                                                                Icons.close)),
+                                                      )
                                                     ],
                                                   ),
                                                 ),
@@ -996,8 +1002,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                           true),
                                                                   // mode: Mode.dialog,
                                                                   // showSelectedItems: true,
-                                                                  items: (filter, infiniteScrollProps) => snapshot
-                                                                      .data!,
+                                                                  items: (filter,
+                                                                          infiniteScrollProps) =>
+                                                                      snapshot
+                                                                          .data!,
                                                                   decoratorProps:
                                                                       const DropDownDecoratorProps(
                                                                     decoration:
@@ -1054,6 +1062,12 @@ class _LeadDetailState extends State<LeadDetail> {
                                                             5.0),
                                                     child: DropdownSearch<
                                                         Product>.multiSelection(
+                                                      compareFn: (Product item1,
+                                                          Product item2) {
+                                                        return item1.leadid ==
+                                                            item2
+                                                                .leadid; // Or whatever unique property your Product model uses
+                                                      },
                                                       itemAsString:
                                                           (Product item) {
                                                         return item.product;
@@ -1067,7 +1081,9 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   true),
                                                       // mode: Mode.dialog,
                                                       // showSelectedItems: true,
-                                                      items: (filter, infiniteScrollProps) => filterproducts,
+                                                      items: (filter,
+                                                              infiniteScrollProps) =>
+                                                          filterproducts,
                                                       decoratorProps:
                                                           const DropDownDecoratorProps(
                                                         decoration:
@@ -1078,7 +1094,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               "Select a Product",
                                                         ),
                                                       ),
-                                                      onSelected: (value) async {
+                                                      onSelected:
+                                                          (value) async {
                                                         setstate(() {
                                                           _selectedfollowupproduct =
                                                               value;
@@ -1108,15 +1125,15 @@ class _LeadDetailState extends State<LeadDetail> {
                                                   child: DropdownSearch<String>(
                                                       enabled: !_resendotp,
                                                       popupProps:
-                                                          const PopupProps
-                                                              .dialog(
+                                                          const PopupProps.dialog(
                                                               showSelectedItems:
                                                                   true,
                                                               showSearchBox:
                                                                   false),
                                                       // mode: Mode.dialog,
                                                       // showSelectedItems: true,
-                                                      items: (filter, infiniteScrollProps) => 
+                                                      items: (filter,
+                                                              infiniteScrollProps) =>
                                                           _selectedleadtype ==
                                                                   "INSTALLATION"
                                                               ? [
@@ -1234,8 +1251,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       true),
                                                               // mode: Mode.dialog,
                                                               // showSelectedItems: true,
-                                                              items: (filter, infiniteScrollProps) => snapshot
-                                                                  .data!,
+                                                              items: (filter,
+                                                                      infiniteScrollProps) =>
+                                                                  snapshot
+                                                                      .data!,
                                                               itemAsString:
                                                                   (item) =>
                                                                       item.name,
@@ -1290,7 +1309,9 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   true),
                                                       // mode: Mode.dialog,
                                                       // showSelectedItems: true,
-                                                      items: (filter, infiniteScrollProps) => _category,
+                                                      items: (filter,
+                                                              infiniteScrollProps) =>
+                                                          _category,
                                                       decoratorProps:
                                                           const DropDownDecoratorProps(
                                                         decoration:
@@ -1439,8 +1460,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       true),
                                                               // mode: Mode.dialog,
                                                               // showSelectedItems: true,
-                                                              items: (filter, infiniteScrollProps) => snapshot
-                                                                  .data!,
+                                                              items: (filter,
+                                                                      infiniteScrollProps) =>
+                                                                  snapshot
+                                                                      .data!,
                                                               decoratorProps:
                                                                   const DropDownDecoratorProps(
                                                                 decoration:
@@ -1619,8 +1642,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                         true),
                                                                 // mode: Mode.dialog,
                                                                 // showSelectedItems: true,
-                                                                items: (filter, infiniteScrollProps) => snapshot
-                                                                    .data!,
+                                                                items: (filter,
+                                                                        infiniteScrollProps) =>
+                                                                    snapshot
+                                                                        .data!,
                                                                 decoratorProps:
                                                                     const DropDownDecoratorProps(
                                                                   decoration:
@@ -1669,12 +1694,14 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       false),
                                                           // mode: Mode.dialog,
                                                           // showSelectedItems: true,
-                                                          items:  (filter, infiniteScrollProps)=>const [
-                                                            "6 Months",
-                                                            "12 Months",
-                                                            "24 Months",
-                                                            "36 Months"
-                                                          ],
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              const [
+                                                                "6 Months",
+                                                                "12 Months",
+                                                                "24 Months",
+                                                                "36 Months"
+                                                              ],
                                                           decoratorProps:
                                                               DropDownDecoratorProps(
                                                             decoration:
@@ -1773,8 +1800,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                             true),
                                                                     // mode: Mode.dialog,
                                                                     // showSelectedItems: true,
-                                                                    items: (filter, infiniteScrollProps) => snapshot
-                                                                        .data!,
+                                                                    items: (filter,
+                                                                            infiniteScrollProps) =>
+                                                                        snapshot
+                                                                            .data!,
                                                                     decoratorProps:
                                                                         const DropDownDecoratorProps(
                                                                       decoration:
@@ -2917,7 +2946,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                               ],
                                             ),
                                             if (index == meeting.length - 1)
-                                            const SizedBox(height: 40.0),
+                                              const SizedBox(height: 40.0),
                                           ],
                                         )
                                       : Text(

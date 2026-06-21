@@ -237,6 +237,7 @@ class _ComplainState extends State<Complain> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<Project>(
                                     enabled: _isenabled,
+                                    compareFn: (item1, item2) => item1.pjc == item2.pjc,
                                     popupProps: const PopupProps.dialog(
                                         // showSelectedItems: true,
                                         showSearchBox: true),
@@ -396,6 +397,9 @@ class _ComplainState extends State<Complain> {
                       Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<LeadProduct>(
+                            compareFn: (item1, item2) =>
+                                item1.company == item2.company &&
+                                item1.product == item2.product,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
                                 // showSelectedItems: true,

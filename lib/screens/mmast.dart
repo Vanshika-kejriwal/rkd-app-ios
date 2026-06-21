@@ -296,6 +296,7 @@ class _MmastState extends State<Mmast> {
                                   : DropdownSearch<LeadProduct>(
                                       // key: _projectkey,
                                       // controller
+                                      compareFn: (item1, item2) => item1.mc == item2.mc,
                                       popupProps: PopupProps.dialog(
                                         // showSelectedItems: true,
                                         showSearchBox: true,
@@ -400,6 +401,7 @@ class _MmastState extends State<Mmast> {
                                   : DropdownSearch<LeadProduct>(
                                       // key: _projectkey,
                                       // controller
+                                      compareFn: (item1, item2) => item1.mc == item2.mc,
                                       popupProps: PopupProps.dialog(
                                         // showSelectedItems: true,
                                         showSearchBox: true,
@@ -497,6 +499,7 @@ class _MmastState extends State<Mmast> {
                           ),
                           Padding(padding: const EdgeInsets.all(5.0),
                           child: CheckboxListTile(title: const Text('Show in App'),
+                          enabled: _editmode,
                             value: _online, onChanged: (val){
                               setState(() {
                                 _online = val!;
@@ -505,6 +508,7 @@ class _MmastState extends State<Mmast> {
                           ,),
                           Padding(padding: const EdgeInsets.all(5.0),
                           child: CheckboxListTile(title: const Text('GST included in Rates'),
+                          enabled: _editmode,
                             value: _gstless, onChanged: (val){
                               setState(() {
                                 _gstless = val!;
@@ -513,6 +517,7 @@ class _MmastState extends State<Mmast> {
                           ,),
                           Padding(padding: const EdgeInsets.all(5.0),
                           child: CheckboxListTile(title: const Text('Include for Installation Creation'),
+                          enabled: _editmode,
                             value: _instc, onChanged: (val){
                               setState(() {
                                 _instc = val!;
@@ -521,6 +526,7 @@ class _MmastState extends State<Mmast> {
                           ,),
                           Padding(padding: const EdgeInsets.all(5.0),
                           child: CheckboxListTile(title: const Text('Include for Service Creation'),
+                            enabled: _editmode,
                             value: _servc, onChanged: (val){
                               setState(() {
                                 _servc = val!;

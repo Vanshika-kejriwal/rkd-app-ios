@@ -238,6 +238,7 @@ class _InstMastState extends State<InstMast> {
                                 itemAsString: (item) {
                                   return item.name;
                                 },
+                                compareFn: (item1, item2) => item1.ac == item2.ac,
                                 autoValidateMode:
                                     AutovalidateMode.onUserInteraction,
                                 // filterFn: (item, filter) {
@@ -427,6 +428,7 @@ class _InstMastState extends State<InstMast> {
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<Institem>.multiSelection(
+                              compareFn: (item1, item2) => item1.code == item2.code,
                               enabled: !widget.service,
                               items: (filter, infiniteScrollProps) => _items,
                               itemAsString: (item) {
@@ -468,6 +470,7 @@ class _InstMastState extends State<InstMast> {
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<Institem>.multiSelection(
+                              compareFn: (item1, item2) => item1.code == item2.code,
                               enabled: widget.service,
                               items: (filter, infiniteScrollProps) => _serviceitems,
                               itemAsString: (item) {

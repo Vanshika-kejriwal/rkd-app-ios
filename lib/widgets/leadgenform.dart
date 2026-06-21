@@ -516,6 +516,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                       Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<Project>(
+                            compareFn: (item1, item2) => item1.pjc == item2.pjc,
                             key: _projectkey,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
@@ -688,6 +689,9 @@ class _NewLeadFormState extends State<NewLeadForm> {
                       Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<LeadProduct>.multiSelection(
+                            compareFn: (item1, item2) =>
+                                item1.company == item2.company &&
+                                item1.product == item2.product,
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
                                 // showSelectedItems: true,

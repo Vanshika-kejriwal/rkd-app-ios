@@ -262,7 +262,7 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.all(1.0),
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProducts,
-                                    items: filters["Product"],
+                                    items: (filter, infiniteScrollProps)=>filters["Product"],
                                     onSelected: (value) {
                                       setstate(() {
                                         filteredProducts = value;
@@ -293,7 +293,7 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.all(1.0),
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProjects,
-                                    items: filters["Project"],
+                                    items: (filter, infiniteScrollProps)=>filters["Project"],
                                     onSelected: (value) {
                                       setstate(() {
                                         filteredProjects = value;
@@ -324,7 +324,7 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.all(1.0),
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredLeadtypes,
-                                    items: filters["Leadtype"],
+                                    items: (filter, infiniteScrollProps)=>filters["Leadtype"],
                                     onSelected: (value) {
                                       setstate(() {
                                         filteredLeadtypes = value;
