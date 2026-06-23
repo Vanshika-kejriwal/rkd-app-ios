@@ -60,7 +60,7 @@ jobs:
           flutter build ipa --release \
             --export-options-plist=ios/Runner/ExportOptions.plist \
             --build-number=${{ github.run_number }} \
-            --no-sound-null-safety
+            --code-sign-style=Manual
 
       - name: Upload Signed Artifact to GitHub (For Manual Backup)
         uses: actions/upload-artifact@v4
