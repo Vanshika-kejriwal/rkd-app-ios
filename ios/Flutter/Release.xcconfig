@@ -3,3 +3,4 @@
 CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM = A843G3K53B
 PRODUCT_BUNDLE_IDENTIFIER = com.rkdistributorvns.businessapp
+PROVISIONING_PROFILE_SPECIFIER = app store provision profile RKD

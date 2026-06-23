@@ -56,7 +56,11 @@ jobs:
 
       - name: Build Official Signed IPA Container
         # We removed the manual zipping step. Flutter now builds a genuine, certified .ipa file natively.
-        run: flutter build ipa --release --export-options-plist=ios/Runner/ExportOptions.plist
+        run:  |
+          flutter build ipa --release \
+            --export-options-plist=ios/Runner/ExportOptions.plist \
+            --build-number=${{ github.run_number }} \
+            --no-sound-null-safety
 
       - name: Upload Signed Artifact to GitHub (For Manual Backup)
         uses: actions/upload-artifact@v4
