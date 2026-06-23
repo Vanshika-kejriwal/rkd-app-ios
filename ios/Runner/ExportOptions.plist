@@ -11,7 +11,7 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>com.rkdistributorvns.businessapp</key> <!-- Your Bundle ID -->
-        <key>app_store_provision_profile_RKD</key> <!-- The exact name of your profile file -->
+        <key>app store provision profile RKD</key> <!-- The exact name of your profile file -->
     </dict>
 </dict>
 </plist>
