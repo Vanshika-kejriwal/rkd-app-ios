@@ -76,8 +76,15 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          # Use Apple's command-line verification engine to push the package straight to TestFlight
+          # 1. Create the specific hidden folder structure Apple expects
+          mkdir -p ~/.appstoreconnect/private_keys
+
+          # 2. Write your secret .p8 file key into that directory, naming it exactly as required
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
+
+          # 3. Use Apple's command-line verification engine to push the package straight to TestFlight
           xcrun altool --upload-app --type ios \
             -f build/ios/ipa/*.ipa \
             --apiKey "$APP_STORE_CONNECT_KEY_ID" \
             --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+
