@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string> <!-- Options: app-store, ad-hoc, development -->
+    <key>teamID</key>
+    <string>A843G3K53B</string> <!-- Found on the top-right of your Apple Developer Account Page -->
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.rkdistributorvns.businessapp</key> <!-- Your Bundle ID -->
+        <keyapp store provision profile RKD</key> <!-- The exact name of your profile file -->
+    </dict>
+</dict>
+</plist>
