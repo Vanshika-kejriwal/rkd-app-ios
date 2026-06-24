@@ -291,6 +291,7 @@ class _PendingInsState extends State<PendingIns> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   decoratorProps:
@@ -322,6 +323,7 @@ class _PendingInsState extends State<PendingIns> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
+                                          dialogProps: DialogProps(barrierDismissible: true,),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   decoratorProps:

@@ -520,6 +520,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                             key: _projectkey,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
+                              dialogProps: DialogProps(barrierDismissible: true,),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             filterFn: (item, filter) {
@@ -655,6 +656,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                           child: DropdownSearch<String>.multiSelection(
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
+                              dialogProps: DialogProps(barrierDismissible: true,),
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
@@ -694,6 +696,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 item1.product == item2.product,
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
+                              dialogProps: DialogProps(barrierDismissible: true,),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
@@ -731,6 +734,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,

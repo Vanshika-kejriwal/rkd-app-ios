@@ -996,6 +996,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                     String>(
                                                                   popupProps: const PopupProps
                                                                       .dialog(
+                                                                        dialogProps: DialogProps(barrierDismissible: true,),
                                                                       showSelectedItems:
                                                                           true,
                                                                       showSearchBox:
@@ -1075,6 +1076,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                       popupProps:
                                                           const MultiSelectionPopupProps
                                                               .dialog(
+                                                                dialogProps: DialogProps(barrierDismissible: true,),
                                                               // showSelectedItems:
                                                               //     true,
                                                               showSearchBox:
@@ -1126,6 +1128,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                       enabled: !_resendotp,
                                                       popupProps:
                                                           const PopupProps.dialog(
+                                                              dialogProps: DialogProps(barrierDismissible: true,),
                                                               showSelectedItems:
                                                                   true,
                                                               showSearchBox:
@@ -1245,6 +1248,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               // enabled: !_resendotp,
                                                               popupProps: const MultiSelectionPopupProps
                                                                   .dialog(
+                                                                    dialogProps: DialogProps(barrierDismissible: true,),
                                                                   showSelectedItems:
                                                                       true,
                                                                   showSearchBox:
@@ -1303,6 +1307,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                       popupProps:
                                                           const PopupProps
                                                               .dialog(
+                                                                dialogProps: DialogProps(barrierDismissible: true,),
                                                               showSelectedItems:
                                                                   true,
                                                               showSearchBox:
@@ -1454,6 +1459,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   !_resendotp,
                                                               popupProps: const PopupProps
                                                                   .dialog(
+                                                                    dialogProps: DialogProps(barrierDismissible: true,),
                                                                   showSelectedItems:
                                                                       true,
                                                                   showSearchBox:
@@ -1636,6 +1642,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   String>(
                                                                 popupProps: const PopupProps
                                                                     .dialog(
+                                                                      dialogProps: DialogProps(barrierDismissible: true,),
                                                                     showSelectedItems:
                                                                         true,
                                                                     showSearchBox:
@@ -1688,6 +1695,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           popupProps:
                                                               const PopupProps
                                                                   .dialog(
+                                                                    dialogProps: DialogProps(barrierDismissible: true,),
                                                                   showSelectedItems:
                                                                       true,
                                                                   showSearchBox:
@@ -1794,6 +1802,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       String>(
                                                                     popupProps: const PopupProps
                                                                         .dialog(
+                                                                          dialogProps: DialogProps(barrierDismissible: true,),
                                                                         showSelectedItems:
                                                                             true,
                                                                         showSearchBox:

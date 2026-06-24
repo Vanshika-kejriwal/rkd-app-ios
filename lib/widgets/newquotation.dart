@@ -90,6 +90,7 @@ class _NewQuotationState extends State<NewQuotation> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
+                                      dialogProps: DialogProps(barrierDismissible: true,),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
@@ -126,6 +127,7 @@ class _NewQuotationState extends State<NewQuotation> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
@@ -170,6 +172,7 @@ class _NewQuotationState extends State<NewQuotation> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
@@ -206,6 +209,7 @@ class _NewQuotationState extends State<NewQuotation> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,

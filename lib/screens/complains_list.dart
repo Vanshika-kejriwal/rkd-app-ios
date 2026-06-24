@@ -170,6 +170,7 @@ class _ComplainsListState extends State<ComplainsList> with TickerProviderStateM
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
+                                          dialogProps: DialogProps(barrierDismissible: true,),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:
@@ -201,6 +202,7 @@ class _ComplainsListState extends State<ComplainsList> with TickerProviderStateM
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
+                                            dialogProps: DialogProps(barrierDismissible: true,),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:

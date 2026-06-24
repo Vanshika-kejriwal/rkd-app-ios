@@ -142,6 +142,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                             });
                           },
                           popupProps: const MultiSelectionPopupProps.dialog(
+                            dialogProps: DialogProps(
+                              barrierDismissible: true,),
                               showSelectedItems: true, showSearchBox: true),
                           decoratorProps: const DropDownDecoratorProps(
                             decoration: InputDecoration(
@@ -180,6 +182,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                             });
                           },
                           popupProps: const MultiSelectionPopupProps.dialog(
+                            dialogProps: DialogProps(
+                              barrierDismissible: true,),
                               showSelectedItems: true, showSearchBox: true),
                           decoratorProps: const DropDownDecoratorProps(
                             decoration: InputDecoration(
@@ -270,6 +274,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:
@@ -301,6 +307,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:
@@ -332,6 +340,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
+                                            dialogProps: DialogProps(
+                                              barrierDismissible: true,),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:

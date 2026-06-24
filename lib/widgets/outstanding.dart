@@ -200,6 +200,7 @@ class _OsListState extends State<OsList> {
                                       },
                                       popupProps:
                                           const MultiSelectionPopupProps.dialog(
+                                            dialogProps: DialogProps(barrierDismissible: true,),
                                               showSelectedItems: true,
                                               showSearchBox: true),
                                       decoratorProps:

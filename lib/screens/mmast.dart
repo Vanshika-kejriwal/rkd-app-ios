@@ -298,6 +298,7 @@ class _MmastState extends State<Mmast> {
                                       // controller
                                       compareFn: (item1, item2) => item1.mc == item2.mc,
                                       popupProps: PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         // showSelectedItems: true,
                                         showSearchBox: true,
                                         searchFieldProps: TextFieldProps(
@@ -403,6 +404,7 @@ class _MmastState extends State<Mmast> {
                                       // controller
                                       compareFn: (item1, item2) => item1.mc == item2.mc,
                                       popupProps: PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         // showSelectedItems: true,
                                         showSearchBox: true,
                                         searchFieldProps: TextFieldProps(

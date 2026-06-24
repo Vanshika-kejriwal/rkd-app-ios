@@ -571,6 +571,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       // controller
                                       compareFn: (item1, item2) => item1.pjc == item2.pjc,
                                       popupProps: PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         // showSelectedItems: true,
                                         showSearchBox: true,
                                         searchFieldProps: TextFieldProps(
@@ -692,6 +693,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                           return null;
                                         },
                                         popupProps: PopupProps.dialog(
+                                          dialogProps: DialogProps(barrierDismissible: true,),
                                           itemBuilder:
                                               (context, item, isSelected, onTap) {
                                             return ListTile(
@@ -1155,6 +1157,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         return null;
                                       },
                                       popupProps: PopupProps.dialog(
+                                        dialogProps: DialogProps(barrierDismissible: true,),
                                         itemBuilder:
                                             (context, item, isSelected, onTap) {
                                           return ListTile(
@@ -1197,6 +1200,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                 },
                                 enabled: _editmode,
                                 popupProps: const PopupProps.dialog(
+                                    dialogProps: DialogProps(barrierDismissible: true,),
                                     showSelectedItems: true,
                                     showSearchBox: true),
                                 // mode: Mode.dialog,

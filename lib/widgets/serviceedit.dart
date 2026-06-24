@@ -491,6 +491,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                             key: _projectkey,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
+                              dialogProps: DialogProps(barrierDismissible: true,),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             filterFn: (item, filter) {
@@ -662,6 +663,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                           child: DropdownSearch<LeadProduct>.multiSelection(
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
+                              dialogProps: DialogProps(barrierDismissible: true,),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,

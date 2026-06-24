@@ -70,7 +70,8 @@
     <string>RKD requires access to your photo library to select photos, videos, and documents to upload.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>RKD requires permission to save generated ledger reports or media files directly to your device gallery.</string>
-
+    <key>NSMicrophoneUsageDescription</key>
+    <string>RKD requires access to your microphone to record videos for submission.</string>
     <key>NSContactsUsageDescription</key>
     <string>RKD requires contact permission to let you select customer or distributor contact information directly inside the app.</string>
 
