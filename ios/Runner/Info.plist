@@ -80,5 +80,11 @@
     <string>RKD requires your location data to manage automated localized sync alerts even when minimized.</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>RKD requires continuous background location access to provide real-time updates and notifications.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>remote-notification</string>
+    </array>
+
 </dict>
 </plist>
