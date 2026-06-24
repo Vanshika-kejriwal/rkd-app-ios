@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:business_app/permissions/permitrequest.dart';
 import 'package:business_app/screens/attendence.dart';
 import 'package:business_app/screens/complainnav.dart';
@@ -278,18 +279,18 @@ class _DashboardState extends State<Dashboard> {
         color: Colors.orangeAccent,
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(
-                8.0), // Padding to prevent text touching borders
-            child: FittedBox(
-              fit: BoxFit
-                  .scaleDown, // Force text to shrink rather than breaking into ugly lines
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14, // Maximum preferred size for larger screens
-                  fontWeight: FontWeight.bold,
-                ),
+            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 6.0),
+            child: AutoSizeText(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2, // Limits layout to exactly 2 lines maximum
+              minFontSize:
+                  10, // Prevents it from shrinking to an unreadable size
+              stepGranularity: 1, // Decrements smoothly by 1px steps to fit
+              style: const TextStyle(
+                fontSize: 14, // Preferred starting size for larger displays
+                fontWeight: FontWeight.bold,
+                height: 1.2,
               ),
             ),
           ),
