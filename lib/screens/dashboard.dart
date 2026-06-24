@@ -58,10 +58,11 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       loginut = ut!;
       loginname = name!;
-      loginuc = uc?? '';
+      loginuc = uc ?? '';
     });
     // print("Login UT in getusertype: $loginut");
-    if (["consumer", "contractor", "supplier"].contains(widget.ut.toLowerCase())) {
+    if (["consumer", "contractor", "supplier"]
+        .contains(widget.ut.toLowerCase())) {
       FirebaseMessaging.instance.unsubscribeFromTopic("all");
     }
   }
@@ -71,16 +72,14 @@ class _DashboardState extends State<Dashboard> {
     // print("Login UT in dashboard: $loginut");
     return Background(
         showDrawer: true,
-        appbarleading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(Icons.account_circle_outlined, size: 30),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          }
-        ),
+        appbarleading: Builder(builder: (context) {
+          return IconButton(
+            icon: const Icon(Icons.account_circle_outlined, size: 30),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          );
+        }),
         drawer: Drawer(
             width: MediaQuery.of(context).size.width * 0.9,
             backgroundColor: const Color(0xffffe6bd),
@@ -109,7 +108,7 @@ class _DashboardState extends State<Dashboard> {
                                 fontSize: 16,
                               )),
                           const SizedBox(height: 12),
-              
+
                           // Segmented Button (Personal / Business)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -161,7 +160,7 @@ class _DashboardState extends State<Dashboard> {
                         ],
                       ),
                     ),
-              
+
                     // Drawer Content (changes with segment)
                     Expanded(
                       child: AnimatedSwitcher(
@@ -182,138 +181,67 @@ class _DashboardState extends State<Dashboard> {
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
             children: [
-              if (!["consumer", "contractor", "supplier"].contains(widget.ut.toLowerCase()))
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Attendence(),
-                      ),
-                    );
-                  },
-                  child: Ink(
-                    color: Colors.orangeAccent,
-                    child: const Center(child: Text("Attendance",textAlign: TextAlign.center,)),
+              if (!["consumer", "contractor", "supplier"]
+                  .contains(widget.ut.toLowerCase()))
+                _buildGridTile(
+                  title: "Attendance",
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const Attendence()),
                   ),
                 ),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProjectRegistration(),
-                    ),
-                  );
-                },
-                child: Ink(
-                  color: Colors.orangeAccent,
-                  child: const Center(child: Text("Project Registration",textAlign: TextAlign.center,)),
+              _buildGridTile(
+                title: "Project Registration",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProjectRegistration()),
                 ),
               ),
-              // InkWell(
-              //   onTap: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(
-              //         builder: (context) => UserRegHeader(),
-              //       ),
-              //     );
-              //   },
-              //   child: Ink(
-              //     color: Colors.orangeAccent,
-              //     child: const Center(child: Text("User Registration")),
-              //   ),
-              // ),
-              if (!["consumer", "contractor", "supplier"].contains(widget.ut.toLowerCase()))
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => LeadGeneration(),
-                      ),
-                    );
-                  },
-                  child: Ink(
-                    color: Colors.orangeAccent,
-                    child: const Center(child: Padding(
-                      padding: EdgeInsets.all(2.0),
-                      child: Text("Lead Generation",textAlign: TextAlign.center,),
-                    )),
+              if (!["consumer", "contractor", "supplier"]
+                  .contains(widget.ut.toLowerCase()))
+                _buildGridTile(
+                  title: "Lead Generation",
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LeadGeneration()),
                   ),
                 ),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>  ComplainNav(),
-                    ),
-                  );
-                },
-                child: Ink(
-                  color: Colors.orangeAccent,
-                  child: const Center(child: Text("Complains",textAlign: TextAlign.center,)),
+              _buildGridTile(
+                title: "Complains",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ComplainNav()),
                 ),
               ),
-              // if (loginut != "Consumer")
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Installation(),
-                      ),
-                    );
-                  },
-                  child: Ink(
-                    color: Colors.orangeAccent,
-                    child: const Center(child: Text("Installation",textAlign: TextAlign.center,)),
-                  ),
+              _buildGridTile(
+                title: "Installation",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Installation()),
                 ),
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MyTransactions(),
-                      ),
-                    );
-                  },
-                  child: Ink(
-                    color: Colors.orangeAccent,
-                    child: const Center(child: Text("My Transactions",textAlign: TextAlign.center,)),
-                  ),
+              ),
+              _buildGridTile(
+                title: "My Transactions",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const MyTransactions()),
                 ),
-              
-              InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Service(),
-                      ),
-                    );
-                  },
-                  child: Ink(
-                    color: Colors.orangeAccent,
-                    child: const Center(child: Text("Service",textAlign: TextAlign.center,)),
-                  ),
+              ),
+              _buildGridTile(
+                title: "Service",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Service()),
                 ),
-                if (["admin"].contains(widget.ut.toLowerCase()))
-                  InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Mmast(),
-                      ),
-                    );
-                  },
-                  child: Ink(
-                    color: Colors.orangeAccent,
-                    child: const Center(child: Text("Manufacturer Master",textAlign: TextAlign.center,)),
+              ),
+              if (["admin"].contains(widget.ut.toLowerCase()))
+                _buildGridTile(
+                  title: "Manufacturer Master",
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const Mmast()),
                   ),
                 ),
             ],
@@ -341,5 +269,32 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> checkNotifPermission() async {
     await permitrequest.askNotificationPermission();
+  }
+
+  Widget _buildGridTile({required String title, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Ink(
+        color: Colors.orangeAccent,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(
+                6.0), // Gives text some breathing room from borders
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines:
+                  2, // Restricts long texts from breaking into ugly 3-4 line blocks
+              style: const TextStyle(
+                fontSize:
+                    13, // Slightly smaller uniform size ensures everything fits perfectly
+                fontWeight: FontWeight
+                    .bold, // Explicitly defines look across both platforms
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
