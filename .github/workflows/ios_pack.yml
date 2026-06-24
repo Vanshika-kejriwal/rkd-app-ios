@@ -6,11 +6,15 @@ on:
 jobs:
   build-and-deploy:
     name: 🎉 iOS Build & TestFlight Deploy
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
+
 
       - name: Install Apple Certificate and Provisioning Profile
         env:
