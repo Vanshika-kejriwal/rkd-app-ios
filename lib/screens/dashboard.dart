@@ -279,17 +279,17 @@ class _DashboardState extends State<Dashboard> {
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(
-                6.0), // Gives text some breathing room from borders
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines:
-                  2, // Restricts long texts from breaking into ugly 3-4 line blocks
-              style: const TextStyle(
-                fontSize:
-                    13, // Slightly smaller uniform size ensures everything fits perfectly
-                fontWeight: FontWeight
-                    .bold, // Explicitly defines look across both platforms
+                8.0), // Padding to prevent text touching borders
+            child: FittedBox(
+              fit: BoxFit
+                  .scaleDown, // Force text to shrink rather than breaking into ugly lines
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14, // Maximum preferred size for larger screens
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
