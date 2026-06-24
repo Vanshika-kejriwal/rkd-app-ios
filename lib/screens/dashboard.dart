@@ -285,10 +285,10 @@ class _DashboardState extends State<Dashboard> {
               textAlign: TextAlign.center,
               maxLines: 2, // Limits layout to exactly 2 lines maximum
               minFontSize:
-                  10, // Prevents it from shrinking to an unreadable size
+                  9, // Prevents it from shrinking to an unreadable size
               stepGranularity: 1, // Decrements smoothly by 1px steps to fit
               style: const TextStyle(
-                fontSize: 14, // Preferred starting size for larger displays
+                fontSize: 12, // Preferred starting size for larger displays
                 fontWeight: FontWeight.bold,
                 height: 1.2,
               ),
