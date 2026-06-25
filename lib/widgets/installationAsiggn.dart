@@ -318,7 +318,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                   return DropdownSearch<Project>(
                                     enabled: _isenabled,
                                     popupProps: const PopupProps.dialog(
-                                      dialogProps: DialogProps(barrierDismissible: true,),
+                                      dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                         // showSelectedItems: true,
                                         showSearchBox: true),
                                     filterFn: (item, filter) {
@@ -445,7 +445,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                           child: DropdownSearch<String>.multiSelection(
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,),
+                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
@@ -472,7 +472,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                           child: DropdownSearch<LeadProduct>.multiSelection(
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
@@ -504,7 +504,7 @@ class _InstallationasiggnState extends State<Installationasiggn> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
-                                      dialogProps: DialogProps(barrierDismissible: true,),
+                                      dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,

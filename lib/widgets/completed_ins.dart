@@ -309,7 +309,7 @@ class _CompletedInsState extends State<CompletedIns> {
                             child: DropdownSearch<String>(
                               // enabled: _isenabled,
                               popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                   showSelectedItems: true, showSearchBox: true),
                               // mode: Mode.dialog,
                               // showSelectedItems: true,
@@ -477,7 +477,7 @@ class _CompletedInsState extends State<CompletedIns> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,),
+                                        dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   decoratorProps:
@@ -509,7 +509,7 @@ class _CompletedInsState extends State<CompletedIns> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,),
+                                        dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   decoratorProps:

@@ -151,7 +151,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: "Phone Number",
                         controller: _usrnamecontroller,
                         suff: TextButton(
-                            onPressed: _requestOTP,
+                            onPressed: () {
+                              FocusScope.of(context).unfocus();
+                              _requestOTP();
+                            },
                             child: const Text("Verify")),
                       ),
                     ),

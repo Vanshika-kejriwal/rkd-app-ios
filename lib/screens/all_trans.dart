@@ -434,6 +434,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                     popupProps: PopupProps.dialog(
                       dialogProps: DialogProps(
                         barrierDismissible: true,
+                        barrierLabel: "Dismiss",
                       ),
                         title: Padding(
                           padding: const EdgeInsets.all(1.0),
@@ -689,7 +690,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                             // key: _projectkey,
 
                                             popupProps: MultiSelectionPopupProps.dialog(
-                                              dialogProps: DialogProps(barrierDismissible: true,),
+                                              dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                                 title: Padding(
                                                   padding:
                                                       const EdgeInsets.all(1.0),
@@ -786,7 +787,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
 
                                           popupProps:
                                               MultiSelectionPopupProps.dialog(
-                                                dialogProps: DialogProps(barrierDismissible: true,),
+                                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                                   title: Padding(
                                                     padding:
                                                         const EdgeInsets.all(

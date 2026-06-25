@@ -88,7 +88,7 @@ class _InstMastState extends State<InstMast> {
                                         // key: _projectkey,
                                         // controller
                                         popupProps: PopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,),
+                                          dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                           // showSelectedItems: true,
                                           showSearchBox: true,
                                           searchFieldProps: TextFieldProps(
@@ -260,7 +260,7 @@ class _InstMastState extends State<InstMast> {
                                   return null;
                                 },
                                 popupProps: PopupProps.dialog(
-                                  dialogProps: DialogProps(barrierDismissible: true,),
+                                  dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                   itemBuilder: (context, item, isSelected, selectedItems) {
                                     return ListTile(
                                       title: Text(item.name),
@@ -446,7 +446,7 @@ class _InstMastState extends State<InstMast> {
                                 return null;
                               },
                               popupProps:MultiSelectionPopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                 itemBuilder: (context, item, isSelected, selectedItems) {
                                   return ListTile(
                                     title: Text(item.item),
@@ -489,7 +489,7 @@ class _InstMastState extends State<InstMast> {
                                 return null;
                               },
                               popupProps:MultiSelectionPopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss"),
                                 itemBuilder: (context, item, isSelected, selectedItems) {
                                   return ListTile(
                                     title: Text(item.item),

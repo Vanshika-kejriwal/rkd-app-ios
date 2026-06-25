@@ -291,7 +291,7 @@ class _PendingServiceState extends State<PendingService> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,),
+                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   decoratorProps:
@@ -323,7 +323,7 @@ class _PendingServiceState extends State<PendingService> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,),
+                                          dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   decoratorProps:

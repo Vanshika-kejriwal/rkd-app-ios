@@ -239,7 +239,7 @@ class _ComplainState extends State<Complain> {
                                     enabled: _isenabled,
                                     compareFn: (item1, item2) => item1.pjc == item2.pjc,
                                     popupProps: const PopupProps.dialog(
-                                      dialogProps: DialogProps(barrierDismissible: true,),
+                                      dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss",),
                                         // showSelectedItems: true,
                                         showSearchBox: true),
                                     filterFn: (item, filter) {
@@ -374,7 +374,7 @@ class _ComplainState extends State<Complain> {
                           child: DropdownSearch<String>(
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,),
+                              dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
@@ -404,7 +404,7 @@ class _ComplainState extends State<Complain> {
                                 item1.product == item2.product,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
@@ -438,7 +438,7 @@ class _ComplainState extends State<Complain> {
                                       snapshot.data != null) {
                                     return DropdownSearch<String>(
                                       popupProps: const PopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,),
+                                          dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                       // mode: Mode.dialog,
@@ -504,7 +504,7 @@ class _ComplainState extends State<Complain> {
                           child: DropdownSearch<String>(
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,

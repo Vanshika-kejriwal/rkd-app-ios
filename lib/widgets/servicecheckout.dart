@@ -596,7 +596,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
               selectedItem:
                   _answers[item['q']] != "" ? _answers[item['q']] : null,
               popupProps: const PopupProps.dialog(
-                dialogProps: DialogProps(barrierDismissible: true,),
+                dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                   // showSelectedItems:
                   //     true,
                   showSearchBox: true),
@@ -720,7 +720,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                     .leadid; // Or whatever unique property your Product model uses
                           },
                           popupProps: const PopupProps.dialog(
-                            dialogProps: DialogProps(barrierDismissible: true,),
+                            dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                               // showSelectedItems:
                               //     true,
                               showSearchBox: true),
@@ -769,7 +769,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                       child: DropdownSearch<String>(
                           enabled: !_resendotp,
                           popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,),
+                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                               showSelectedItems: true, showSearchBox: false),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
@@ -864,7 +864,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   // enabled: !_resendotp,
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,),
+                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                   // mode: Mode.dialog,
@@ -903,7 +903,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                         child: DropdownSearch<String>(
                           // enabled: !_resendotp,
                           popupProps: const PopupProps.dialog(
-                            dialogProps: DialogProps(barrierDismissible: true,),
+                            dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                               showSelectedItems: true, showSearchBox: true),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
@@ -1008,7 +1008,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                 return DropdownSearch<String>(
                                   // enabled: !_resendotp,
                                   popupProps: const PopupProps.dialog(
-                                    dialogProps: DialogProps(barrierDismissible: true,),
+                                    dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                       showSelectedItems: true,
                                       showSearchBox: true),
                                   // mode: Mode.dialog,
@@ -1526,7 +1526,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                         snapshot.data != null) {
                                       return DropdownSearch<String>(
                                         popupProps: const PopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,),
+                                          dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                         // mode: Mode.dialog,

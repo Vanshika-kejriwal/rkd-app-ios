@@ -274,7 +274,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                               return DropdownSearch<String>(
                                 enabled: !_edit,
                                 popupProps: const PopupProps.dialog(
-                                  dialogProps: DialogProps(barrierDismissible: true,),
+                                  dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss",),
                                     showSelectedItems: true,
                                     showSearchBox: true),
                                 // mode: Mode.dialog,
@@ -325,7 +325,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<String>(
                             popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,),
+                              dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
@@ -378,7 +378,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<String>(
                             popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true,),
+                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                 showSelectedItems: true, showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
@@ -490,7 +490,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                                   return null;
                                 },
                                 popupProps: PopupProps.dialog(
-                                  dialogProps: DialogProps(barrierDismissible: true,),
+                                  dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                                   itemBuilder: (context, item, isSelected, onTap) {
                                     return ListTile(
                                       title: Text(item),
@@ -531,7 +531,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                           },
                           // enabled: _editmode,
                           popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,),
+                              dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
                               showSelectedItems: true, showSearchBox: true),
                           // mode: Mode.dialog,
                           // showSelectedItems: true,
