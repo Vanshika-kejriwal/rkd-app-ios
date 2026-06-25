@@ -179,20 +179,22 @@ class _DashboardState extends State<Dashboard> {
           child: GridView.count(
             crossAxisCount: 3,
             padding: const EdgeInsets.all(16),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
             children: [
               if (!["consumer", "contractor", "supplier"]
                   .contains(widget.ut.toLowerCase()))
-                _buildGridTile(
+                _buildDesignGridTile(
                   title: "Attendance",
+                  icon: Icons.how_to_reg, // Replaced with matching Flutter material icons
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const Attendence()),
                   ),
                 ),
-              _buildGridTile(
+              _buildDesignGridTile(
                 title: "Project Registration",
+                icon: Icons.assignment_ind_outlined,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -201,45 +203,51 @@ class _DashboardState extends State<Dashboard> {
               ),
               if (!["consumer", "contractor", "supplier"]
                   .contains(widget.ut.toLowerCase()))
-                _buildGridTile(
+                _buildDesignGridTile(
                   title: "Lead Generation",
+                  icon: Icons.chat_bubble_outline_rounded,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => LeadGeneration()),
                   ),
                 ),
-              _buildGridTile(
+              _buildDesignGridTile(
                 title: "Complains",
+                icon: Icons.sms_failed_outlined,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => ComplainNav()),
                 ),
               ),
-              _buildGridTile(
+              _buildDesignGridTile(
                 title: "Installation",
+                icon: Icons.construction_outlined,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => Installation()),
                 ),
               ),
-              _buildGridTile(
+              _buildDesignGridTile(
                 title: "My Transactions",
+                icon: Icons.assignment_outlined,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => const MyTransactions()),
                 ),
               ),
-              _buildGridTile(
+              _buildDesignGridTile(
                 title: "Service",
+                icon: Icons.build_circle_outlined,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => Service()),
                 ),
               ),
               if (["admin"].contains(widget.ut.toLowerCase()))
-                _buildGridTile(
+                _buildDesignGridTile(
                   title: "Manufacturer Master",
+                  icon: Icons.assignment_turned_in_outlined,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const Mmast()),
@@ -293,6 +301,83 @@ class _DashboardState extends State<Dashboard> {
                 height: 1.2,
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesignGridTile({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: Color(0xFFC8C7CC), width: 1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      color: const Color(0xFFFFF2D6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              // Top Section: Centered Icon
+              Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Dynamically calculate icon size as 45% of the available box height
+                  // On smaller screens, this scales down automatically.
+                  final iconSize = constraints.maxHeight * 0.50;
+                  
+                  return Center(
+                    child: Icon(
+                      icon,
+                      size: iconSize,
+                      color: Colors.black87,
+                    ),
+                    /* If you are using Material Icons instead, use this:
+                    child: Icon(
+                      icon,
+                      size: iconSize,
+                      color: Colors.black87,
+                    ),
+                    */
+                  );
+                },
+              ),
+            ),
+              // Bottom Section: Solid orange title banner
+              Container(
+                width: double.infinity,
+                height:
+                    36, // Fixed height ensures all bottom banners match fgvperfectly
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                color: const Color(0xFFFFB84D),
+                child: Center(
+                  child: AutoSizeText(
+                    title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2, // Allows it to drop cleanly into two lines
+                    minFontSize:
+                        9, // Safely scales down on devices like iPhone mini
+                    stepGranularity: 0.5, // Smooth downscaling
+                    style: const TextStyle(
+                      fontSize: 11, // Base size matching Figma design
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                      height: 1.1, // Tightens line spacing for 2 lines
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
