@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 // }else{
 //   const String baseuri = 'https://api.rkdistributorvns.com';
 // }
-// const String baseuri = 'http://192.168.1.8:8000';
+// const String baseuri = 'http://192.168.1.13:8000';
 const String baseuri = 'https://api.rkdistributorvns.com';
-const String searchdevbaseuri = '192.168.1.8:8000'; 
+const String searchdevbaseuri = '192.168.1.13:8000'; 
 const String searchprodbaseuri = 'api.rkdistributorvns.com';
 abstract class SearchableScreen {
   void search();

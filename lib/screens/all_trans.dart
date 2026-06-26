@@ -331,13 +331,17 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
     // Financial year starts in April (month 4)
     if (now.month >= 4) {
       // Current year is the start year
-      startYear = widget.leadtype == "Ledger" || widget.leadtype == "BillDetail" || widget.leadtype == "Invoices"
+      startYear = widget.leadtype == "Ledger" ||
+              widget.leadtype == "BillDetail" ||
+              widget.leadtype == "Invoices"
           ? now.year - 1
           : now.year;
       endYear = now.year + 1;
     } else {
       // Previous year is the start year
-      startYear = widget.leadtype == "Ledger" || widget.leadtype == "BillDetail" || widget.leadtype == "Invoices"
+      startYear = widget.leadtype == "Ledger" ||
+              widget.leadtype == "BillDetail" ||
+              widget.leadtype == "Invoices"
           ? now.year - 2
           : now.year - 1;
       endYear = now.year;
@@ -380,49 +384,53 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                           icon: const Icon(Icons.search)),
                 ),
               ),
-              if(_type == "Invoices")
+            if (_type == "Invoices")
               Row(
                 children: [
-                  Expanded(flex: 6,
+                  Expanded(
+                    flex: 6,
                     child: Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: InputField(
-                  controller: _searchcontroller,
-                  label: "Search Project",
-                  suff: _isprojLoading
-                      ? const SizedBox(
-                          width:
-                              24, // Give it a fixed size to avoid layout shifts
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : IconButton(
-                          onPressed: () {
-                            _fetchprojectsAndOpenDropdown();
-                          },
-                          icon: const Icon(Icons.search)),
-                ),
-              ),),
-              Expanded(flex: 4,
-                child: Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: InputField(
-                  controller: _billnosearchcontroller,
-                  label: "Search Bill No.",
-                  suff: IconButton(
-                          onPressed: () {
-                            if (mounted) {
-                              setState(() {
-                                _pjc = "";
-                                _selectedproject = null;
-                                _billno = _billnosearchcontroller.text;
-                                // print(_billno);
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.search)),
-                ),
-              ))
+                      padding: const EdgeInsets.all(5.0),
+                      child: InputField(
+                        controller: _searchcontroller,
+                        label: "Search Project",
+                        suff: _isprojLoading
+                            ? const SizedBox(
+                                width:
+                                    24, // Give it a fixed size to avoid layout shifts
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : IconButton(
+                                onPressed: () {
+                                  _fetchprojectsAndOpenDropdown();
+                                },
+                                icon: const Icon(Icons.search)),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                      flex: 4,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: InputField(
+                          controller: _billnosearchcontroller,
+                          label: "Search Bill No.",
+                          suff: IconButton(
+                              onPressed: () {
+                                if (mounted) {
+                                  setState(() {
+                                    _pjc = "";
+                                    _selectedproject = null;
+                                    _billno = _billnosearchcontroller.text;
+                                    // print(_billno);
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.search)),
+                        ),
+                      ))
                 ],
               ),
             if (_type != "Outstanding")
@@ -430,12 +438,14 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(1.0),
                   child: DropdownSearch<Amast>(
                     key: _projectkey,
-
+                    compareFn: (item1, item2) {
+                      return item1.ac == item2.ac;
+                    },
                     popupProps: PopupProps.dialog(
-                      dialogProps: DialogProps(
-                        barrierDismissible: true,
-                        barrierLabel: "Dismiss",
-                      ),
+                        dialogProps: DialogProps(
+                          barrierDismissible: true,
+                          barrierLabel: "Dismiss",
+                        ),
                         title: Padding(
                           padding: const EdgeInsets.all(1.0),
                           child: Row(
@@ -471,7 +481,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                     // },
                     // mode: Mode.dialog,
                     // showSelectedItems: true,
-                    items:  (filter, infiniteScrollProps) =>_projects,
+                    items: (filter, infiniteScrollProps) => _projects,
                     itemAsString: (item) {
                       if (item.name == "Add New") {
                         return item.name;
@@ -686,40 +696,46 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                       ),
                                       Padding(
                                           padding: const EdgeInsets.all(5.0),
-                                          child: DropdownSearch<Amast>.multiSelection(
+                                          child: DropdownSearch<
+                                              Amast>.multiSelection(
                                             // key: _projectkey,
-
-                                            popupProps: MultiSelectionPopupProps.dialog(
-                                              dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
-                                                title: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(1.0),
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      const Text(
-                                                        "Select a Company",
-                                                        style: TextStyle(
-                                                            fontSize: 18,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
+                                            compareFn: (item1, item2) => item1.ac==item2.ac,
+                                            popupProps:
+                                                MultiSelectionPopupProps.dialog(
+                                                    dialogProps: DialogProps(
+                                                      barrierDismissible: true,
+                                                      barrierLabel: "Dismiss",
+                                                    ),
+                                                    title: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              1.0),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          const Text(
+                                                            "Select a Company",
+                                                            style: TextStyle(
+                                                                fontSize: 18,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold),
+                                                          ),
+                                                          IconButton(
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                              },
+                                                              icon: const Icon(
+                                                                  Icons.close))
+                                                        ],
                                                       ),
-                                                      IconButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.close))
-                                                    ],
-                                                  ),
-                                                ),
-                                                // showSelectedItems: true,
-                                                showSearchBox: true),
+                                                    ),
+                                                    // showSelectedItems: true,
+                                                    showSearchBox: true),
                                             filterFn: (item, filter) {
                                               return item.name == "Add New" ||
                                                   item.name
@@ -739,7 +755,9 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                             // },
                                             // mode: Mode.dialog,
                                             // showSelectedItems: true,
-                                            items: (filter, infiniteScrollProps) => _company,
+                                            items:
+                                                (filter, infiniteScrollProps) =>
+                                                    _company,
                                             itemAsString: (item) {
                                               if (item.name == "Add New") {
                                                 return item.name;
@@ -749,8 +767,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                             },
                                             decoratorProps:
                                                 const DropDownDecoratorProps(
-                                              decoration:
-                                                  InputDecoration(
+                                              decoration: InputDecoration(
                                                 labelText: "Company",
                                                 hintText: "Select a Company",
                                               ),
@@ -784,10 +801,13 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                         child: DropdownSearch<
                                             InvItem>.multiSelection(
                                           // key: _projectkey,
-
+                                          compareFn: (item1, item2) => item1.code == item2.code,
                                           popupProps:
                                               MultiSelectionPopupProps.dialog(
-                                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
+                                                  dialogProps: DialogProps(
+                                                    barrierDismissible: true,
+                                                    barrierLabel: "Dismiss",
+                                                  ),
                                                   title: Padding(
                                                     padding:
                                                         const EdgeInsets.all(
@@ -833,7 +853,9 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           // },
                                           // mode: Mode.dialog,
                                           // showSelectedItems: true,
-                                          items: (filter, infiniteScrollProps) => _hilightitems,
+                                          items:
+                                              (filter, infiniteScrollProps) =>
+                                                  _hilightitems,
                                           itemAsString: (item) {
                                             if (item.name == "Add New") {
                                               return item.name;
@@ -843,8 +865,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           },
                                           decoratorProps:
                                               const DropDownDecoratorProps(
-                                            decoration:
-                                                InputDecoration(
+                                            decoration: InputDecoration(
                                               labelText: "Select Items",
                                               hintText: "Select an Item",
                                             ),
@@ -887,10 +908,12 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                               children: [
                                                 RadioListTile<int>(
                                                     value: 1,
-                                                    title: Text("Complete List with Highlight")),
+                                                    title: Text(
+                                                        "Complete List with Highlight")),
                                                 RadioListTile<int>(
                                                     value: 2,
-                                                      title: Text("Only Selected Items")),
+                                                    title: Text(
+                                                        "Only Selected Items")),
                                               ],
                                             ),
                                           )),
@@ -910,14 +933,17 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                               'end': _filteredDate!.end
                                                   .toString()
                                                   .split(" ")[0],
-                                              'bill_detail_type': _selectedBillDetailType,
+                                              'bill_detail_type':
+                                                  _selectedBillDetailType,
                                               'hilight_items':
                                                   _selectedhilightitems
                                                       .map((e) =>
                                                           "${e.mc}|||${e.code}")
                                                       .toList(),
                                               'selected_company':
-                                                  _selectedcompany.map((e) => e.ac).toList(),
+                                                  _selectedcompany
+                                                      .map((e) => e.ac)
+                                                      .toList(),
                                             };
                                             http.post(
                                               Uri.parse(

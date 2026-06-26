@@ -238,92 +238,82 @@ class _ServiceDetailState extends State<ServiceDetail> {
                               // var mob = await openDialog(
                               //     "Send installation Report", "Mobile Number");
                               var sno = meeting[index].sno;
+                              if (context.mounted) {
+                                QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.loading,
+                                    title: "Generating Report",
+                                    barrierDismissible: false);
+                              }
+                              // String queryparam = "ino=$ino&mob=$mob";
+                              var respcode = await http.get(Uri.parse(
+                                  '$baseuri/api/servicereport/?serviceno=$sno')).timeout(const Duration(seconds: 120));
+                              // if (context.mounted) {
+                              //   Navigator.pop(context);
+                              // }
+                              if (respcode.statusCode == 200 ||
+                                  respcode.statusCode == 201) {
+                                // Navigator.of(context).pop();
+                                final jsonResponse = jsonDecode(respcode.body);
+
+                                // --- Extracting Mobile Numbers and Filename ---
+
+                                final List<String> mobileNumbers =
+                                    jsonResponse['mobile_numbers']
+                                        .where((item) => item != null)
+                                        .toList()
+                                        .cast<String>();
+                                final String filename =
+                                    jsonResponse['filename'];
+
+                                print(
+                                    '✅ Received Mobile Numbers: $mobileNumbers');
+                                print('✅ Filename: $filename');
+
+                                // --- Decoding and Saving the PDF File ---
+
+                                final String base64Pdf =
+                                    jsonResponse['pdf_data'];
+
+                                // 3. Base64 Decode the PDF string into raw bytes (Uint8List)
+                                final pdfBytes = base64Decode(base64Pdf);
+                                final dir = await getTemporaryDirectory();
+                                final filepath =
+                                    '${dir.path}/Service Report (${widget.currentinst?.pjc})-${DateTime.now().millisecondsSinceEpoch}.pdf';
+                                File file = File(filepath);
+                                await file.writeAsBytes(pdfBytes);
+                                Navigator.of(context)
+                                    .pop(); // Close the loading dialog
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => Pdfview(
+                                      file: file,
+                                      type: "Service Report",
+                                      ac: widget.currentinst!.pjc,
+                                      mobileNumbers: mobileNumbers,
+                                      sno: sno,
+                                    ),
+                                  ),
+                                );
+                                // if (context.mounted) {
+                                //   QuickAlert.show(
+                                //       context: context,
+                                //       type: QuickAlertType.success,
+                                //       title: "Report Generated",
+                                //       text: "Successfully generated Report");
+                                // }
+                                _mobcontroller.clear();
+                                //successfully sent message
+                              } else {
+                                //something went wrong
                                 if (context.mounted) {
                                   QuickAlert.show(
                                       context: context,
-                                      type: QuickAlertType.loading,
-                                      title: "Generating Report",
-                                      barrierDismissible: false);
+                                      type: QuickAlertType.error,
+                                      title: "Could not send Message",
+                                      text: "Something went Wrong");
                                 }
-                                // String queryparam = "ino=$ino&mob=$mob";
-                                var respcode = await http.get(Uri.parse(
-                                    '$baseuri/api/servicereport/?serviceno=$sno')); 
-                                // if (context.mounted) {
-                                //   Navigator.pop(context);
-                                // }
-                                if (respcode.statusCode == 200 ||
-                                    respcode.statusCode == 201) {
-                                    final jsonResponse =
-                                                    jsonDecode(respcode.body);
-
-                                                // --- Extracting Mobile Numbers and Filename ---
-
-                                                final List<String>
-                                                    mobileNumbers =
-                                                    jsonResponse[
-                                                            'mobile_numbers']
-                                                        .where((item) =>
-                                                            item != null)
-                                                        .toList()
-                                                        .cast<String>();
-                                                final String filename =
-                                                    jsonResponse['filename'];
-
-                                                print(
-                                                    '✅ Received Mobile Numbers: $mobileNumbers');
-                                                print('✅ Filename: $filename');
-
-                                                // --- Decoding and Saving the PDF File ---
-
-                                                final String base64Pdf =
-                                                    jsonResponse['pdf_data'];
-
-                                                // 3. Base64 Decode the PDF string into raw bytes (Uint8List)
-                                                final pdfBytes =
-                                                    base64Decode(base64Pdf);
-                                                final dir =
-                                                    await getTemporaryDirectory();
-                                                final filepath =
-                                                    '${dir.path}/Service Report (${widget.currentinst?.pjc})-${DateTime.now().millisecondsSinceEpoch}.pdf';
-                                                File file = File(filepath);
-                                                await file
-                                                    .writeAsBytes(pdfBytes);
-                                                Navigator.of(context)
-                                                    .pop(); // Close the loading dialog
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Pdfview(
-                                                      file: file,
-                                                      type: "Service Report",
-                                                      ac: widget.currentinst!.pjc,
-                                                      doclink: jsonResponse['link'],
-                                                      mobileNumbers:
-                                                          mobileNumbers,
-                                                          sno: sno,
-                                                    ),
-                                                  ),
-                                                );
-                                  // if (context.mounted) {
-                                  //   QuickAlert.show(
-                                  //       context: context,
-                                  //       type: QuickAlertType.success,
-                                  //       title: "Report Generated",
-                                  //       text: "Successfully generated Report");
-                                  // }
-                                  _mobcontroller.clear();
-                                  //successfully sent message
-                                } else {
-                                  //something went wrong
-                                  if (context.mounted) {
-                                    QuickAlert.show(
-                                        context: context,
-                                        type: QuickAlertType.error,
-                                        title: "Could not send Message",
-                                        text: "Something went Wrong");
-                                  }
-                                }
-                              
+                              }
                             },
                             child: Text(
                                 "View Report for Service No ${meeting[index].sno}")),

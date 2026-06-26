@@ -196,7 +196,7 @@ class _ComplainState extends State<Complain> {
   getloginut() async {
     var sharedpref = await SharedPreferences.getInstance();
     var ut = sharedpref.getString('UT');
-    if (ut == "ADMIN" || ut == "Employee") {
+    if (ut!.toLowerCase() == "admin" || ut.toLowerCase() == "employee") {
       setState(() {
         _allowAssign = true;
       });

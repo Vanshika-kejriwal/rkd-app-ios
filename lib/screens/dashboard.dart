@@ -175,85 +175,87 @@ class _DashboardState extends State<Dashboard> {
               ),
             )),
         appbar: true,
-        childs: Center(
-          child: GridView.count(
-            crossAxisCount: 3,
-            padding: const EdgeInsets.all(16),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            children: [
-              if (!["consumer", "contractor", "supplier"]
-                  .contains(widget.ut.toLowerCase()))
+        childs: SafeArea(
+          child: Center(
+            child: GridView.count(
+              crossAxisCount: 3,
+              padding: const EdgeInsets.all(16),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: [
+                if (!["consumer", "contractor", "supplier"]
+                    .contains(widget.ut.toLowerCase()))
+                  _buildDesignGridTile(
+                    title: "Attendance",
+                    icon: Icons.how_to_reg, // Replaced with matching Flutter material icons
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Attendence()),
+                    ),
+                  ),
                 _buildDesignGridTile(
-                  title: "Attendance",
-                  icon: Icons.how_to_reg, // Replaced with matching Flutter material icons
+                  title: "Project Registration",
+                  icon: Icons.assignment_ind_outlined,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const Attendence()),
+                    MaterialPageRoute(
+                        builder: (context) => const ProjectRegistration()),
                   ),
                 ),
-              _buildDesignGridTile(
-                title: "Project Registration",
-                icon: Icons.assignment_ind_outlined,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const ProjectRegistration()),
-                ),
-              ),
-              if (!["consumer", "contractor", "supplier"]
-                  .contains(widget.ut.toLowerCase()))
+                if (!["consumer", "contractor", "supplier"]
+                    .contains(widget.ut.toLowerCase()))
+                  _buildDesignGridTile(
+                    title: "Lead Generation",
+                    icon: Icons.chat_bubble_outline_rounded,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LeadGeneration()),
+                    ),
+                  ),
                 _buildDesignGridTile(
-                  title: "Lead Generation",
-                  icon: Icons.chat_bubble_outline_rounded,
+                  title: "Complains",
+                  icon: Icons.sms_failed_outlined,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => LeadGeneration()),
+                    MaterialPageRoute(builder: (context) => ComplainNav()),
                   ),
                 ),
-              _buildDesignGridTile(
-                title: "Complains",
-                icon: Icons.sms_failed_outlined,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ComplainNav()),
-                ),
-              ),
-              _buildDesignGridTile(
-                title: "Installation",
-                icon: Icons.construction_outlined,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Installation()),
-                ),
-              ),
-              _buildDesignGridTile(
-                title: "My Transactions",
-                icon: Icons.assignment_outlined,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const MyTransactions()),
-                ),
-              ),
-              _buildDesignGridTile(
-                title: "Service",
-                icon: Icons.build_circle_outlined,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Service()),
-                ),
-              ),
-              if (["admin"].contains(widget.ut.toLowerCase()))
                 _buildDesignGridTile(
-                  title: "Manufacturer Master",
-                  icon: Icons.assignment_turned_in_outlined,
+                  title: "Installation",
+                  icon: Icons.construction_outlined,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const Mmast()),
+                    MaterialPageRoute(builder: (context) => Installation()),
                   ),
                 ),
-            ],
+                _buildDesignGridTile(
+                  title: "My Transactions",
+                  icon: Icons.assignment_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MyTransactions()),
+                  ),
+                ),
+                _buildDesignGridTile(
+                  title: "Service",
+                  icon: Icons.build_circle_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Service()),
+                  ),
+                ),
+                if (["admin"].contains(widget.ut.toLowerCase()))
+                  _buildDesignGridTile(
+                    title: "Manufacturer Master",
+                    icon: Icons.assignment_turned_in_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Mmast()),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
         appbartitle: const Text("R K Distributors"),
@@ -356,7 +358,7 @@ class _DashboardState extends State<Dashboard> {
               Container(
                 width: double.infinity,
                 height:
-                    36, // Fixed height ensures all bottom banners match fgvperfectly
+                    40, // Fixed height ensures all bottom banners match fgvperfectly
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
                 color: const Color(0xFFFFB84D),
@@ -369,7 +371,7 @@ class _DashboardState extends State<Dashboard> {
                         9, // Safely scales down on devices like iPhone mini
                     stepGranularity: 0.5, // Smooth downscaling
                     style: const TextStyle(
-                      fontSize: 11, // Base size matching Figma design
+                      fontSize: 12, // Base size matching Figma design
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                       height: 1.1, // Tightens line spacing for 2 lines
