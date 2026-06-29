@@ -361,7 +361,7 @@ class _DashboardState extends State<Dashboard> {
                     40, // Fixed height ensures all bottom banners match fgvperfectly
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                color: const Color(0xFFFFB84D),
+                color: const Color(0xFFFFBF4D),
                 child: Center(
                   child: AutoSizeText(
                     title,

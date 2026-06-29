@@ -86,7 +86,7 @@ class _ComplainNavState extends State<ComplainNav> {
       bottomvav: true,
       bottomNav: NavigationBar(
         selectedIndex: _currentidx,
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: Color(0xFFFFBF4D),
         onDestinationSelected: (value) {
           
           // Navigator.pushReplacementNamed(context, _routes[value]);

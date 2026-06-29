@@ -109,7 +109,7 @@ Widget build(BuildContext context) {
     bottomvav: true,
     bottomNav: NavigationBar(
       selectedIndex: _currentidx >= destinations.length ? 0 : _currentidx,
-      backgroundColor: Colors.deepOrange,
+      backgroundColor: Color(0xFFFFBF4D),
       onDestinationSelected: (value) {
         setState(() {
           _currentidx = value;

@@ -29,7 +29,7 @@ class _BuyOnlineState extends State<BuyOnline> {
       bottomvav: true,
       bottomNav: NavigationBar(
         selectedIndex: _currentidx,
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: Color(0xFFFFBF4D),
         onDestinationSelected: (value) {
           setState(() {
             _currentidx = value;

@@ -77,7 +77,7 @@ class _LeadGenerationState extends State<LeadGeneration> {
       bottomvav: true,
       bottomNav: NavigationBar(
         selectedIndex: _currentidx,
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: Color(0xFFFFBF4D),
         onDestinationSelected: (value) {
           setState(() {
             _currentidx = value;
