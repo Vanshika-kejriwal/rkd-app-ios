@@ -3,11 +3,14 @@ import 'dart:convert';
 // import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:business_app/constants.dart';
 import 'package:business_app/widgets/background.dart';
+import 'package:business_app/widgets/input_field.dart';
 import 'package:business_app/widgets/list_leads.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +40,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
   List<String> _filteredProjects = [];
   List<String> _filteredProducts = [];
   List<String> _filteredLeadtypes = [];
+  DateTimeRange? _filteredDate;
+  final TextEditingController _datecontroller = TextEditingController();
   int _listcount = 0;
 
   Future<String> loggedInUser() async {
@@ -251,6 +256,7 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                 List<String> filteredProjects = _filteredProjects;
                 List<String> filteredProducts = _filteredProducts;
                 List<String> filteredLeadtypes = _filteredLeadtypes;
+                DateTimeRange? filterdate = _filteredDate;
                 final result = await showModalBottomSheet(
                   isScrollControlled: true,
                   context: context,
@@ -364,6 +370,35 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                         AutovalidateMode.onUserInteraction,
                                   ),
                                 ),
+                                Padding(
+                                padding: const EdgeInsets.all(5.0),
+                                child: InputField(
+                                  label: "Date Range",
+                                  controller: _datecontroller,
+                                  readOnly: true,
+                                  onTap: () async {
+                                    var dr = await showOmniDateTimeRangePicker(
+                                        context: context,
+                                        barrierDismissible: true,
+                                        startInitialDate: filterdate?.start,
+                                        endInitialDate: filterdate?.end,
+                                        type: OmniDateTimePickerType.date,
+                                        isForceEndDateAfterStartDate: true);
+                                    
+                                    setstate(() {
+                                      _datecontroller.text = dr == null
+                                          ? ""
+                                          : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                                      if (dr != null) {
+                                        filterdate = DateTimeRange(
+                                            start: dr[0], end: dr[1]);
+                                      } else {
+                                        filterdate = null;
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceAround,
@@ -381,7 +416,17 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                                   filterval = {
                                                 "Product": filteredProducts,
                                                 "Project": filteredProjects,
-                                                "Leadtype": filteredLeadtypes
+                                                "Leadtype": filteredLeadtypes,
+                                                "Date": filterdate == null
+                                                    ? []
+                                                    : [
+                                                        DateFormat("yyyy-MM-dd")
+                                                            .format(
+                                                                filterdate!.start),
+                                                        DateFormat("yyyy-MM-dd")
+                                                            .format(
+                                                                filterdate!.end)
+                                                      ]
                                               };
                                               filterlist(filterval);
                                               Navigator.of(context)
@@ -395,6 +440,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                                 filteredProducts = [];
                                                 filteredProjects = [];
                                                 filteredLeadtypes = [];
+                                                filterdate = null;
+                                                _datecontroller.text = "";
                                               });
                                             },
                                             child: const Text("Clear All"))),
@@ -413,6 +460,11 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                     _filteredProducts = result["Product"];
                     _filteredProjects = result["Project"];
                     _filteredLeadtypes = result["Leadtype"] ?? [];
+                    _filteredDate = result["Date"] != null && result["Date"].length == 2
+                        ? DateTimeRange(
+                            start: DateTime.parse(result["Date"][0]),
+                            end: DateTime.parse(result["Date"][1]))
+                        : null;
                   });
                 }
               },

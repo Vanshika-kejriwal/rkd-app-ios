@@ -38,18 +38,27 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void whereToGo() async {
     var sharedpref = await SharedPreferences.getInstance();
+    // await sharedpref.clear();
     var isLoggedIn = sharedpref.getBool("Login");
     var userType = sharedpref.getString("UT");
     Timer(const Duration(seconds: 2), () {
-      if(mounted){
+      if (mounted) {
         if (isLoggedIn != null) {
-        if (isLoggedIn) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Dashboard(ut: userType ?? ""),
-            ),
-          );
+          if (isLoggedIn) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Dashboard(ut: userType ?? ""),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LoginScreen(),
+              ),
+            );
+          }
         } else {
           Navigator.pushReplacement(
             context,
@@ -58,14 +67,6 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           );
         }
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoginScreen(),
-          ),
-        );
-      }
       }
     });
   }

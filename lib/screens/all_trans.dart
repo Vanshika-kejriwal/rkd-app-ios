@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
@@ -527,16 +528,24 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                   controller: _datecontroller,
                   readOnly: true,
                   onTap: () async {
-                    var dr = await showDateRangePicker(
-                        initialDateRange: getCurrentFinancialYear(),
+                    // var initdate = getCurrentFinancialYear();
+                    var dr = await showOmniDateTimeRangePicker(
                         context: context,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100));
+                        barrierDismissible: true,
+                        startInitialDate: _filteredDate?.start,
+                        endInitialDate: _filteredDate?.end,
+                        type: OmniDateTimePickerType.date,
+                        isForceEndDateAfterStartDate: true);
+
                     setState(() {
                       _datecontroller.text = dr == null
                           ? ""
-                          : "${DateFormat("dd/MM/yyyy").format(dr.start)}-${DateFormat("dd/MM/yyyy").format(dr.end)}";
-                      _filteredDate = dr;
+                          : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                      if (dr != null) {
+                        _filteredDate = DateTimeRange(start: dr[0], end: dr[1]);
+                      } else {
+                        _filteredDate = null;
+                      }
                     });
                   },
                 ),
@@ -569,17 +578,28 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                     controller: _datecontroller,
                                     readOnly: true,
                                     onTap: () async {
-                                      var dr = await showDateRangePicker(
-                                          initialDateRange:
-                                              getCurrentFinancialYear(),
-                                          context: context,
-                                          firstDate: DateTime(2000),
-                                          lastDate: DateTime(2100));
+                                      var dr =
+                                          await showOmniDateTimeRangePicker(
+                                              context: context,
+                                              barrierDismissible: true,
+                                              startInitialDate:
+                                                  _filteredDate?.start,
+                                              endInitialDate:
+                                                  _filteredDate?.end,
+                                              type: OmniDateTimePickerType.date,
+                                              isForceEndDateAfterStartDate:
+                                                  true);
+
                                       setState(() {
                                         _datecontroller.text = dr == null
                                             ? ""
-                                            : "${DateFormat("dd/MM/yyyy").format(dr.start)}-${DateFormat("dd/MM/yyyy").format(dr.end)}";
-                                        _filteredDate = dr;
+                                            : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                                        if (dr != null) {
+                                          _filteredDate = DateTimeRange(
+                                              start: dr[0], end: dr[1]);
+                                        } else {
+                                          _filteredDate = null;
+                                        }
                                       });
                                     },
                                   ),
@@ -678,18 +698,29 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           controller: _datecontroller,
                                           readOnly: true,
                                           onTap: () async {
-                                            var dr = await showDateRangePicker(
-                                                initialDateRange:
-                                                    getCurrentFinancialYear(),
-                                                context: context,
-                                                firstDate: DateTime(2000),
-                                                lastDate: DateTime(2100));
+                                            var dr =
+                                                await showOmniDateTimeRangePicker(
+                                                    context: context,
+                                                    barrierDismissible: true,
+                                                    startInitialDate:
+                                                        _filteredDate?.start,
+                                                    endInitialDate:
+                                                        _filteredDate?.end,
+                                                    type: OmniDateTimePickerType
+                                                        .date,
+                                                    isForceEndDateAfterStartDate:
+                                                        true);
+
                                             setState(() {
                                               _datecontroller.text = dr == null
                                                   ? ""
-                                                  : "${DateFormat("dd/MM/yyyy").format(dr.start)}-${DateFormat("dd/MM/yyyy").format(dr.end)}";
-                                              _filteredDate = dr;
-                                              getcompany();
+                                                  : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                                              if (dr != null) {
+                                                _filteredDate = DateTimeRange(
+                                                    start: dr[0], end: dr[1]);
+                                              } else {
+                                                _filteredDate = null;
+                                              }
                                             });
                                           },
                                         ),
@@ -699,7 +730,8 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                           child: DropdownSearch<
                                               Amast>.multiSelection(
                                             // key: _projectkey,
-                                            compareFn: (item1, item2) => item1.ac==item2.ac,
+                                            compareFn: (item1, item2) =>
+                                                item1.ac == item2.ac,
                                             popupProps:
                                                 MultiSelectionPopupProps.dialog(
                                                     dialogProps: DialogProps(
@@ -801,7 +833,8 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                         child: DropdownSearch<
                                             InvItem>.multiSelection(
                                           // key: _projectkey,
-                                          compareFn: (item1, item2) => item1.code == item2.code,
+                                          compareFn: (item1, item2) =>
+                                              item1.code == item2.code,
                                           popupProps:
                                               MultiSelectionPopupProps.dialog(
                                                   dialogProps: DialogProps(

@@ -1,17 +1,17 @@
 class Lead {
   String pjc;
   String pname;
-  String leadtype;
-  String lastfollowup;
+  String? leadtype;
+  String? lastfollowup;
   String? custtype;
-  List<dynamic> products;
+  List<dynamic>? products;
   Lead(
       {required this.pjc,
       required this.pname,
-      required this.leadtype,
-      required this.lastfollowup,
+      this.leadtype,
+      this.lastfollowup,
       this.custtype,
-      required this.products});
+      this.products});
 }
 
 class PendingInst {

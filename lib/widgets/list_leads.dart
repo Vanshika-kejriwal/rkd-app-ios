@@ -54,6 +54,7 @@ class _ListLeadsState extends State<ListLeads> {
     setState(() {
       _isDataLoaded = false;
       leads = [];
+      _foundleads = [];
     });
     var sharedpref = await SharedPreferences.getInstance();
     var mob = sharedpref.getString("Mobile");
@@ -72,12 +73,15 @@ class _ListLeadsState extends State<ListLeads> {
     final connectivityProvider =
         Provider.of<NetworkProvider>(context, listen: false);
     try {
-      if (ut!.toLowerCase() == "consumer" || ut.toLowerCase() == "contractor" || ut.toLowerCase() == "supplier" || (widget.leadbyn == null && widget.leadton == null)) {
+      if (ut!.toLowerCase() == "consumer" ||
+          ut.toLowerCase() == "contractor" ||
+          ut.toLowerCase() == "supplier" ||
+          (widget.leadbyn == null && widget.leadton == null)) {
         final Map<String, dynamic> query = {
           'catagory': widget.leadtype,
           "mob": mob,
         };
-         response = await http.post(Uri.parse('$baseuri/api/complain_list/'),
+        response = await http.post(Uri.parse('$baseuri/api/complain_list/'),
             body: jsonEncode(query),
             headers: {"Content-Type": "application/json"});
       } else {
@@ -87,7 +91,7 @@ class _ListLeadsState extends State<ListLeads> {
           'leadton': widget.leadton
         };
 
-         response = await http.post(Uri.parse('$baseuri/api/leads_list/'),
+        response = await http.post(Uri.parse('$baseuri/api/leads_list/'),
             body: jsonEncode(query),
             headers: {"Content-Type": "application/json"});
       }
@@ -128,19 +132,63 @@ class _ListLeadsState extends State<ListLeads> {
         }
         // leads.remove(value)
         leads.sort((a, b) {
-          if (leads.isNotEmpty && (a.lastfollowup != "") && (b.lastfollowup != "")) {
+          DateTime parseLeadDate(String dateStr) {
+            if (dateStr == "OPEN" || dateStr.trim().isEmpty) {
+              // For "OPEN" or empty dates, return a base default date so it doesn't crash
+              return DateTime(1970, 1, 1);
+            }
+
+            // Clean out weird narrow space characters if present
+            String cleanStr = dateStr.replaceAll('\u202f', ' ').trim();
+
+            try {
+              // Adjust this pattern to match exactly what your API yields.
+              // If your API gives ISO format: "yyyy-MM-dd HH:mm:ss.SSSSSS"
+              // If it gives something like "15/01/2026 1:25 PM": "dd/MM/yyyy h:mm a"
+              if (cleanStr.contains('-')) {
+                return DateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS", "en_US")
+                    .parse(cleanStr);
+              } else {
+                return DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(cleanStr);
+              }
+            } catch (e) {
+              if (kDebugMode){
+                print("Failed to parse date string: $cleanStr. Error: $e");
+              }
+              return DateTime(
+                  1970, 1, 1); // Fallback to avoid breaking the sort flow
+            }
+          }
+
+          if (leads.isNotEmpty &&
+              (a.lastfollowup != "") &&
+              (b.lastfollowup != "")) {
             // print(b.lastfollowup);
-            b.lastfollowup = b.lastfollowup.replaceAll('\u202f', ' ');
+            b.lastfollowup = b.lastfollowup!.replaceAll('\u202f', ' ');
             // String yourDateString = a.lastfollowup;
             // for (int i = 0; i < yourDateString.length; i++) {
             //   print(
             //       "Char at $i: '${yourDateString[i]}' (Code: ${yourDateString.codeUnitAt(i)})");
             // }
+            // if (widget.leadtype == "Closed") {
+            //   var dateb = DateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS", "en_US").parse(b.lastfollowup);
+            //   a.lastfollowup = a.lastfollowup.replaceAll('\u202f', ' ');
+            //   var datea =
+            //       DateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS", "en_US").parse(a.lastfollowup);
+            //   return dateb.compareTo(datea);
+            // } else {
+            //   var dateb =
+            //       DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(b.lastfollowup);
+            //   a.lastfollowup = a.lastfollowup.replaceAll('\u202f', ' ');
+            //   var datea =
+            //       DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(a.lastfollowup);
+            //   return datea.compareTo(dateb);
+            // }
             var dateb =
-                DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(b.lastfollowup);
-            a.lastfollowup = a.lastfollowup.replaceAll('\u202f', ' ');
+                parseLeadDate(b.lastfollowup!);
+            a.lastfollowup = a.lastfollowup!.replaceAll('\u202f', ' ');
             var datea =
-                DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(a.lastfollowup);
+                parseLeadDate(a.lastfollowup!);
             if (widget.leadtype == "Closed") {
               return dateb.compareTo(datea);
             } else {
@@ -154,10 +202,10 @@ class _ListLeadsState extends State<ListLeads> {
         _foundleads = leads;
         widget.listcountChange(leads.length);
         filtervalues();
-        if(mounted){
+        if (mounted) {
           setState(() {
-          _isDataLoaded = true;
-        });
+            _isDataLoaded = true;
+          });
         }
       }
     } on SocketException catch (_) {
@@ -171,6 +219,7 @@ class _ListLeadsState extends State<ListLeads> {
     setState(() {
       _isDataLoaded = false;
       leads = [];
+      _foundleads = [];
     });
     var sharedpref = await SharedPreferences.getInstance();
     var mob = sharedpref.getString("Mobile");
@@ -189,12 +238,15 @@ class _ListLeadsState extends State<ListLeads> {
     final connectivityProvider =
         Provider.of<NetworkProvider>(context, listen: false);
     try {
-      if (ut!.toLowerCase() == "consumer" || ut.toLowerCase() == "contractor" || ut.toLowerCase() == "supplier" || (widget.leadbyn == null && widget.leadton == null)) {
+      if (ut!.toLowerCase() == "consumer" ||
+          ut.toLowerCase() == "contractor" ||
+          ut.toLowerCase() == "supplier" ||
+          (widget.leadbyn == null && widget.leadton == null)) {
         final Map<String, dynamic> query = {
           'catagory': widget.leadtype,
           "mob": mob,
         };
-         response = await http.post(Uri.parse('$baseuri/api/complain_list/'),
+        response = await http.post(Uri.parse('$baseuri/api/complain_list/'),
             body: jsonEncode(query),
             headers: {"Content-Type": "application/json"});
       } else {
@@ -204,7 +256,8 @@ class _ListLeadsState extends State<ListLeads> {
           'leadton': widget.leadton
         };
 
-         response = await http.get(Uri.parse('$baseuri/api/leads_list/?type=unassigned'),
+        response = await http.get(
+            Uri.parse('$baseuri/api/leads_list/?type=unassigned'),
             headers: {"Content-Type": "application/json"});
       }
       // print(response.headers);
@@ -245,19 +298,19 @@ class _ListLeadsState extends State<ListLeads> {
         }
         // leads.remove(value)
         leads.sort((a, b) {
-          if (leads.isNotEmpty && (a.lastfollowup != "") && (b.lastfollowup != "")) {
+          if (leads.isNotEmpty &&
+              (a.lastfollowup != "") &&
+              (b.lastfollowup != "")) {
             // print(b.lastfollowup);
-            b.lastfollowup = b.lastfollowup.replaceAll('\u202f', ' ');
+            b.lastfollowup = b.lastfollowup!.replaceAll('\u202f', ' ');
             // String yourDateString = a.lastfollowup;
             // for (int i = 0; i < yourDateString.length; i++) {
             //   print(
             //       "Char at $i: '${yourDateString[i]}' (Code: ${yourDateString.codeUnitAt(i)})");
             // }
-            var dateb =
-                DateFormat("dd/MM/yyy", "en_US").parse(b.lastfollowup);
-            a.lastfollowup = a.lastfollowup.replaceAll('\u202f', ' ');
-            var datea =
-                DateFormat("dd/MM/yyy", "en_US").parse(a.lastfollowup);
+            var dateb = DateFormat("dd/MM/yyy", "en_US").parse(b.lastfollowup!);
+            a.lastfollowup = a.lastfollowup!.replaceAll('\u202f', ' ');
+            var datea = DateFormat("dd/MM/yyy", "en_US").parse(a.lastfollowup!);
             if (widget.leadtype == "Closed") {
               return dateb.compareTo(datea);
             } else {
@@ -271,10 +324,10 @@ class _ListLeadsState extends State<ListLeads> {
         _foundleads = leads;
         widget.listcountChange(leads.length);
         filtervalues();
-        if(mounted) {
+        if (mounted) {
           setState(() {
-          _isDataLoaded = true;
-        });
+            _isDataLoaded = true;
+          });
         }
       }
     } on SocketException catch (_) {
@@ -359,7 +412,7 @@ class _ListLeadsState extends State<ListLeads> {
             widget.selectedfilters!["Project"]!.isNotEmpty;
         bool shouldConsiderProduct =
             widget.selectedfilters!["Product"]!.isNotEmpty;
-            bool shouldConsiderLeadtype =
+        bool shouldConsiderLeadtype =
             widget.selectedfilters!["Leadtype"]!.isNotEmpty;
         bool projectmatches;
         if (shouldConsiderProject) {
@@ -377,13 +430,43 @@ class _ListLeadsState extends State<ListLeads> {
         }
         bool productmatches;
         if (shouldConsiderProduct) {
-          productmatches = lead.products.any((product) =>
+          productmatches = lead.products!.any((product) =>
               widget.selectedfilters!["Product"]!.contains(product));
         } else {
           productmatches = true;
         }
-        return productmatches & projectmatches & leadtypematches;
+        bool shouldConsiderDate = widget.selectedfilters!["Date"]!.isNotEmpty;
+        bool datematches;
+        if (shouldConsiderDate) {
+          DateTime startDate = DateFormat("yyyy-MM-dd")
+              .parse(widget.selectedfilters!["Date"]![0]);
+          DateTime endDate = DateFormat("yyyy-MM-dd")
+              .parse(widget.selectedfilters!["Date"]![1]);
+          if(lead.lastfollowup == "OPEN" || lead.lastfollowup == ""){
+            datematches = false;
+          } else {
+            DateTime leadDate = widget.leadtype == "Unassigned"
+                ? DateFormat("dd/MM/yyyy", "en_US").parse(lead.lastfollowup!)
+                : DateFormat("dd/MM/yyyy h:mm a", "en_US")
+                    .parse(lead.lastfollowup!);
+            datematches = leadDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+                leadDate.isBefore(endDate.add(const Duration(days: 1)));
+          }
+          // DateTime leadDate = widget.leadtype == "Unassigned"? DateFormat("dd/MM/yyyy", "en_US").parse(lead.lastfollowup) :DateFormat("dd/MM/yyyy h:mm a", "en_US")
+          //       .parse(lead.lastfollowup);
+          // datematches =
+          //   lead.lastfollowup == "OPEN" || lead.lastfollowup == ""?
+          //     false
+          //   :
+            
+          //   leadDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+          //       leadDate.isBefore(endDate.add(const Duration(days: 1)));
+        }else {
+          datematches = true;
+        }
+        return productmatches & projectmatches & leadtypematches & datematches;
       }).toList();
+      
       leads = filterLeads;
       _foundleads = filterLeads;
     }
@@ -445,7 +528,7 @@ class _ListLeadsState extends State<ListLeads> {
                                     .split(" ")
                                     .where((word) => word.isNotEmpty)
                                     .toList()
-                                    .every((word) => lead.leadtype
+                                    .every((word) => lead.leadtype!
                                         .toLowerCase()
                                         .contains(word)) ||
                                 value
@@ -453,7 +536,7 @@ class _ListLeadsState extends State<ListLeads> {
                                     .split(" ")
                                     .where((word) => word.isNotEmpty)
                                     .toList()
-                                    .every((word) => lead.products.any((product) => product
+                                    .every((word) => lead.products!.any((product) => product
                                         .toString()
                                         .toLowerCase()
                                         .contains(word)));
@@ -473,21 +556,41 @@ class _ListLeadsState extends State<ListLeads> {
                               color: Colors.transparent,
                               child: ListTile(
                                 title: Text(_foundleads[index].pname,
-                                    style: const TextStyle(
-                                        fontSize: 13)),
+                                    style: const TextStyle(fontSize: 13)),
                                 subtitle: Row(
                                   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                        _foundleads[index].leadtype,style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,backgroundColor: _foundleads[index].leadtype=="INSTALLATION"? Colors.orange[700]: _foundleads[index].leadtype=="COMPLAIN"? Colors.green[400]: _foundleads[index].leadtype=="SERVICE"? Colors.yellow: Colors.white),),
-                                        const SizedBox(width: 20),
-                                        Text(
-                                        _foundleads[index].lastfollowup,style: const TextStyle(fontSize: 12),),
-                                        const SizedBox(width: 20),
-                                        Expanded(
-                                          child: Text(
-                                          _foundleads[index].products.join(","), overflow: TextOverflow.ellipsis,style: const TextStyle(fontSize: 12),),
-                                        )
+                                      _foundleads[index].leadtype!,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          backgroundColor: _foundleads[index]
+                                                      .leadtype ==
+                                                  "INSTALLATION"
+                                              ? Colors.orange[700]
+                                              : _foundleads[index].leadtype ==
+                                                      "COMPLAIN"
+                                                  ? Colors.green[400]
+                                                  : _foundleads[index]
+                                                              .leadtype ==
+                                                          "SERVICE"
+                                                      ? Colors.yellow
+                                                      : Colors.white),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Text(
+                                      _foundleads[index].lastfollowup!,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: Text(
+                                        _foundleads[index].products!.join(","),
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    )
                                   ],
                                 ),
                                 // isThreeLine: true,
@@ -505,15 +608,15 @@ class _ListLeadsState extends State<ListLeads> {
                                     });
                                   } else {
                                     Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => LeadDetail(
-                                          currentlead: _foundleads[index]),
-                                    ),
-                                  ).then((_) {
-                                    // Refresh the leads list when returning
-                                    getleads();
-                                  });
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => LeadDetail(
+                                            currentlead: _foundleads[index]),
+                                      ),
+                                    ).then((_) {
+                                      // Refresh the leads list when returning
+                                      getleads();
+                                    });
                                   }
                                 },
                               ));
@@ -529,9 +632,9 @@ class _ListLeadsState extends State<ListLeads> {
     Set<String> uniqueProducts = {};
     Set<String> uniqueLeadtypes = {};
     for (var lead in leads) {
-      uniqueProducts.addAll(List<String>.from(lead.products));
+      uniqueProducts.addAll(List<String>.from(lead.products!));
       uniqueProjects.add(lead.pname);
-      uniqueLeadtypes.add(lead.leadtype);
+      uniqueLeadtypes.add(lead.leadtype!);
     }
     filters["Product"] = uniqueProducts.toList();
     filters["Project"] = uniqueProjects.toList();

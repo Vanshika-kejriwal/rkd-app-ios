@@ -16,6 +16,7 @@ import 'package:flutter_native_contact_picker/model/contact.dart';
 // import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
@@ -536,15 +537,24 @@ class _CompletedInsState extends State<CompletedIns> {
                                   controller: _dobcontroller,
                                   readOnly: true,
                                   onTap: () async {
-                                    var dr = await showDateRangePicker(
+                                    var dr = await showOmniDateTimeRangePicker(
                                         context: context,
-                                        firstDate: DateTime(2000),
-                                        lastDate: DateTime(2100));
+                                        barrierDismissible: true,
+                                        startInitialDate: filterdate?.start,
+                                        endInitialDate: filterdate?.end,
+                                        type: OmniDateTimePickerType.date,
+                                        isForceEndDateAfterStartDate: true);
+                                    
                                     setstate(() {
                                       _dobcontroller.text = dr == null
                                           ? ""
-                                          : "${DateFormat("dd/MM/yyyy").format(dr.start)}-${DateFormat("dd/MM/yyyy").format(dr.end)}";
-                                      filterdate = dr;
+                                          : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                                      if (dr != null) {
+                                        filterdate = DateTimeRange(
+                                            start: dr[0], end: dr[1]);
+                                      } else {
+                                        filterdate = null;
+                                      }
                                     });
                                   },
                                 ),

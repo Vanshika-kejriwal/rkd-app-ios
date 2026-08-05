@@ -55,6 +55,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   final _jcccontroller = TextEditingController();
   final _instcontpnamecontroller = TextEditingController();
   String? _selectedPhoneNumber;
+  final _formkey = GlobalKey<FormState>();
   final FlutterNativeContactPicker _contactPicker =
       FlutterNativeContactPicker();
   double _charge1 = 0.0;
@@ -596,7 +597,8 @@ class _ServicecheckoutState extends State<Servicecheckout> {
               selectedItem:
                   _answers[item['q']] != "" ? _answers[item['q']] : null,
               popupProps: const PopupProps.dialog(
-                dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                  dialogProps: DialogProps(
+                      barrierDismissible: true, barrierLabel: "Dismiss"),
                   // showSelectedItems:
                   //     true,
                   showSearchBox: true),
@@ -692,1105 +694,1144 @@ class _ServicecheckoutState extends State<Servicecheckout> {
           child: SizedBox(
             width: swidth * 0.8,
             child: Form(
+                key: _formkey,
                 child: Center(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Text(
-                        widget.pname,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Text(
+                            widget.pname,
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
 
-                    Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: DropdownSearch<Product>(
-                          itemAsString: (Product item) {
-                            return item.product;
-                          },
-                          compareFn: (Product item1, Product item2) {
-                            return item1.leadid ==
-                                item2
-                                    .leadid; // Or whatever unique property your Product model uses
-                          },
-                          popupProps: const PopupProps.dialog(
-                            dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
-                              // showSelectedItems:
-                              //     true,
-                              showSearchBox: true),
-                          // mode: Mode.dialog,
-                          // showSelectedItems: true,
-                          items: (filter, infiniteScrollProps) =>
-                              widget.products,
-                          decoratorProps: const DropDownDecoratorProps(
-                            decoration: InputDecoration(
-                              labelText: "Follow-up For Product",
-                              hintText: "Select a Product",
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<Product>(
+                              itemAsString: (Product item) {
+                                return item.product;
+                              },
+                              compareFn: (Product item1, Product item2) {
+                                return item1.leadid ==
+                                    item2
+                                        .leadid; // Or whatever unique property your Product model uses
+                              },
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                      barrierDismissible: true,
+                                      barrierLabel: "Dismiss"),
+                                  // showSelectedItems:
+                                  //     true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) =>
+                                  widget.products,
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Follow-up For Product",
+                                  hintText: "Select a Product",
+                                ),
+                              ),
+                              onSelected: (value) async {
+                                setState(() {
+                                  _resendotp = false;
+                                  _selectedfollowupproduct = value;
+                                  _answers.clear();
+                                  _selectedstatus = "";
+                                  _selectedcategory = "";
+                                  _selectedinstallationitems = [];
+                                  _controllers.forEach((key, controller) =>
+                                      controller.clear()); // Reset visuals
+                                  _sparepartnamecontroller.clear();
+                                  _sparepartcostcontroller.clear();
+                                  _servicechargecontroller.clear();
+                                  _sparechargecontroller.clear();
+                                  _otherchargecontroller.clear();
+                                  _gstamountcontroller.clear();
+                                  _installdatecontroller.clear();
+                                  _amcdatecontroller.clear();
+                                  _mobforotpcontroller.clear();
+                                  _jcccontroller.clear();
+                                  _instcontpnamecontroller.clear();
+                                  _selectedgst = "";
+                                  _commentcontroller.clear();
+                                });
+                                await fetchcheckoutdetail(
+                                    _selectedfollowupproduct, setState);
+                              },
+                              selectedItem: _selectedfollowupproduct,
+                            )),
+
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: DropdownSearch<String>(
+                              enabled: !_resendotp,
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                      barrierDismissible: true,
+                                      barrierLabel: "Dismiss"),
+                                  showSelectedItems: true,
+                                  showSearchBox: false),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) =>
+                                  const ["Job Completed ", "Job Not Completed"],
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Lead Status",
+                                  hintText: "Select status",
+                                ),
+                              ),
+                              onSelected: (value) {
+                                setState(() {
+                                  _category.clear();
+                                  _selectedstatus = value!;
+                                  if (_selectedstatus == "Job Not Completed") {
+                                    _leadstat = 1;
+                                  } else {
+                                    _leadstat = 2;
+                                    for (var item in _productQuestions[
+                                        _selectedfollowupproduct!.product
+                                            .toUpperCase()]!) {
+                                      _answers[item['q']] =
+                                          ""; // Initialize all Qs
+                                    }
+                                  }
+                                  getcategory();
+                                  if (_selectedfollowupproduct?.product
+                                              .toLowerCase() ==
+                                          "water treatment" &&
+                                      _selectedstatus == "Job Completed ") {
+                                    getsaltbilling();
+                                  }
+                                });
+                              },
+                              selectedItem: _selectedstatus),
+                          // child: Row(
+                          //   mainAxisAlignment:
+                          //       MainAxisAlignment
+                          //           .spaceAround,
+                          //   crossAxisAlignment:
+                          //       CrossAxisAlignment.center,
+                          //   children: [
+                          //     Row(
+                          //       children: [
+                          //         Radio<int>(
+                          //             value: 1,
+                          //             groupValue: _leadstat,
+                          //             // selected: false,
+                          //             onChanged:
+                          //                 (int? value) {
+                          //               setState(() {
+                          //                 _leadstat =
+                          //                     value!;
+                          //               });
+                          //             }),
+                          //         const SizedBox(
+                          //             width: 10.0),
+                          //         const Text("Open")
+                          //       ],
+                          //     ),
+                          //     Row(
+                          //       children: [
+                          //         Radio<int>(
+                          //             value: 2,
+                          //             groupValue: _leadstat,
+                          //             // selected: false,
+                          //             onChanged:
+                          //                 (int? value) {
+                          //               setState(() {
+                          //                 _leadstat =
+                          //                     value!;
+                          //               });
+                          //             }),
+                          //         const SizedBox(
+                          //             width: 10.0),
+                          //         const Text("Close")
+                          //       ],
+                          //     )
+                          //   ],
+                          // ),
+                        ),
+                        if (_selectedfollowupproduct != null &&
+                            _selectedstatus == "Job Completed ")
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: FutureBuilder<List<InvItem>>(
+                                future: getinstitems(
+                                    widget.pjc,
+                                    _selectedfollowupproduct?.product,
+                                    "SERVICE"),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    return DropdownSearch<
+                                        InvItem>.multiSelection(
+                                      // enabled: !_resendotp,
+                                      popupProps:
+                                          const MultiSelectionPopupProps.dialog(
+                                              dialogProps: DialogProps(
+                                                  barrierDismissible: true,
+                                                  barrierLabel: "Dismiss"),
+                                              showSelectedItems: true,
+                                              showSearchBox: true),
+                                      // mode: Mode.dialog,
+                                      // showSelectedItems: true,
+                                      items: (filter, infiniteScrollProps) =>
+                                          snapshot.data!,
+                                      itemAsString: (item) => item.name,
+                                      compareFn: (item1, item2) =>
+                                          item1.id == item2.id,
+                                      decoratorProps:
+                                          const DropDownDecoratorProps(
+                                        decoration: InputDecoration(
+                                          labelText: "Select Products",
+                                          hintText: "Select a Product",
+                                        ),
+                                      ),
+
+                                      onSelected: (value) {
+                                        setState(() {
+                                          _selectedinstallationitems = value;
+                                        });
+                                      },
+                                      selectedItems: _selectedinstallationitems,
+                                    );
+                                  } else {
+                                    // print(snapshot.error);
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                }),
+                          ),
+                        if ((_selectedstatus == "Job Completed "))
+                          _buildConditionalFields(),
+                        // if ((_selectedstatus == "Job Completed "))
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<String>(
+                              // enabled: !_resendotp,
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                      barrierDismissible: true,
+                                      barrierLabel: "Dismiss"),
+                                  showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) => _category,
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Reason/Category",
+                                  hintText: "Select an option",
+                                ),
+                              ),
+
+                              onSelected: (value) {
+                                setState(() {
+                                  // _company.clear();
+                                  _selectedcategory = value!;
+                                  // getcomp();
+                                });
+                              },
+                              selectedItem: _selectedcategory,
+                            )),
+                        if (_selectedcategory == "Spare Part Required")
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              // readOnly: _resendotp,
+                              label: "Part Name",
+                              controller: _sparepartnamecontroller,
                             ),
                           ),
-                          onSelected: (value) async {
-                            setState(() {
-                              _resendotp = false;
-                              _selectedfollowupproduct = value;
-                              _answers.clear();
-                              _selectedstatus = "";
-                              _selectedcategory = "";
-                              _selectedinstallationitems = [];
-                              _controllers.forEach((key, controller) =>
-                                  controller.clear()); // Reset visuals
-                              _sparepartnamecontroller.clear();
-                              _sparepartcostcontroller.clear();
-                              _servicechargecontroller.clear();
-                              _sparechargecontroller.clear();
-                              _otherchargecontroller.clear();
-                              _gstamountcontroller.clear();
-                              _installdatecontroller.clear();
-                              _amcdatecontroller.clear();
-                              _mobforotpcontroller.clear();
-                              _jcccontroller.clear();
-                              _instcontpnamecontroller.clear();
-                              _selectedgst = "";
-                              _commentcontroller.clear();
-                            });
-                            await fetchcheckoutdetail(
-                                _selectedfollowupproduct, setState);
-                          },
-                          selectedItem: _selectedfollowupproduct,
-                        )),
-
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: DropdownSearch<String>(
-                          enabled: !_resendotp,
-                          popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
-                              showSelectedItems: true, showSearchBox: false),
-                          // mode: Mode.dialog,
-                          // showSelectedItems: true,
-                          items: (filter, infiniteScrollProps) =>
-                              const ["Job Completed ", "Job Not Completed"],
-                          decoratorProps: const DropDownDecoratorProps(
-                            decoration: InputDecoration(
-                              labelText: "Lead Status",
-                              hintText: "Select status",
+                        if (_selectedcategory == "Spare Part Required")
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              // readOnly: _resendotp,
+                              label: "Part Cost",
+                              controller: _sparepartcostcontroller,
+                              keyboardtype: TextInputType.number,
                             ),
                           ),
-                          onSelected: (value) {
-                            setState(() {
-                              _category.clear();
-                              _selectedstatus = value!;
-                              if (_selectedstatus == "Job Not Completed") {
-                                _leadstat = 1;
-                              } else {
-                                _leadstat = 2;
-                                for (var item in _productQuestions[
-                                    _selectedfollowupproduct!.product
-                                        .toUpperCase()]!) {
-                                  _answers[item['q']] = ""; // Initialize all Qs
-                                }
-                              }
-                              getcategory();
-                              if (_selectedfollowupproduct?.product
-                                          .toLowerCase() ==
-                                      "water treatment" &&
-                                  _selectedstatus == "Job Completed ") {
-                                getsaltbilling();
-                              }
-                            });
-                          },
-                          selectedItem: _selectedstatus),
-                      // child: Row(
-                      //   mainAxisAlignment:
-                      //       MainAxisAlignment
-                      //           .spaceAround,
-                      //   crossAxisAlignment:
-                      //       CrossAxisAlignment.center,
-                      //   children: [
-                      //     Row(
-                      //       children: [
-                      //         Radio<int>(
-                      //             value: 1,
-                      //             groupValue: _leadstat,
-                      //             // selected: false,
-                      //             onChanged:
-                      //                 (int? value) {
-                      //               setState(() {
-                      //                 _leadstat =
-                      //                     value!;
-                      //               });
-                      //             }),
-                      //         const SizedBox(
-                      //             width: 10.0),
-                      //         const Text("Open")
-                      //       ],
-                      //     ),
-                      //     Row(
-                      //       children: [
-                      //         Radio<int>(
-                      //             value: 2,
-                      //             groupValue: _leadstat,
-                      //             // selected: false,
-                      //             onChanged:
-                      //                 (int? value) {
-                      //               setState(() {
-                      //                 _leadstat =
-                      //                     value!;
-                      //               });
-                      //             }),
-                      //         const SizedBox(
-                      //             width: 10.0),
-                      //         const Text("Close")
-                      //       ],
-                      //     )
-                      //   ],
-                      // ),
-                    ),
-                    if (_selectedfollowupproduct != null &&
-                        _selectedstatus == "Job Completed ")
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: FutureBuilder<List<InvItem>>(
-                            future: getinstitems(widget.pjc,
-                                _selectedfollowupproduct?.product, "SERVICE"),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return DropdownSearch<InvItem>.multiSelection(
-                                  // enabled: !_resendotp,
-                                  popupProps:
-                                      const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                        if ((_selectedcategory == "Paid Basis") |
+                            (_selectedcategory == "Obligatory Service") |
+                            (_selectedcategory ==
+                                "Free Service as per Installation Agreement"))
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              // readOnly: _resendotp,
+                              label: "Service Charge",
+                              controller: _servicechargecontroller,
+                              keyboardtype: TextInputType.number,
+                              onChanged: (value) {
+                                _charge1 = double.tryParse(value) ?? 0.0;
+                                // _calculateGstAmount();
+                              },
+                            ),
+                          ),
+                        if ((_selectedcategory == "Paid Basis") |
+                            (_selectedcategory == "Obligatory Service") |
+                            (_selectedcategory ==
+                                "Free Service as per Installation Agreement"))
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              // readOnly: _resendotp,
+                              label: "Spare Charge",
+                              controller: _sparechargecontroller,
+                              keyboardtype: TextInputType.number,
+                              onChanged: (value) {
+                                _charge2 = double.tryParse(value) ?? 0.0;
+                                // _calculateGstAmount();
+                              },
+                            ),
+                          ),
+                        if ((_selectedcategory == "Paid Basis") |
+                            (_selectedcategory == "Obligatory Service") |
+                            (_selectedcategory ==
+                                "Free Service as per Installation Agreement"))
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              // readOnly: _resendotp,
+                              label: "Other Charge",
+                              controller: _otherchargecontroller,
+                              keyboardtype: TextInputType.number,
+                              onChanged: (value) {
+                                _charge3 = double.tryParse(value) ?? 0.0;
+                                // _calculateGstAmount();
+                              },
+                            ),
+                          ),
+                        // gst %
+                        if ((_selectedcategory == "Paid Basis") |
+                            (_selectedcategory == "Obligatory Service") |
+                            (_selectedcategory ==
+                                "Free Service as per Installation Agreement"))
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: FutureBuilder<List<String>>(
+                                future: getgst(),
+                                builder: ((context, snapshot) {
+                                  if (snapshot.hasData &&
+                                      snapshot.data != null) {
+                                    return DropdownSearch<String>(
+                                      // enabled: !_resendotp,
+                                      popupProps: const PopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  // mode: Mode.dialog,
-                                  // showSelectedItems: true,
-                                  items: (filter, infiniteScrollProps) =>
-                                      snapshot.data!,
-                                  itemAsString: (item) => item.name,
-                                  compareFn: (item1, item2) =>
-                                      item1.id == item2.id,
-                                  decoratorProps: const DropDownDecoratorProps(
-                                    decoration: InputDecoration(
-                                      labelText: "Select Products",
-                                      hintText: "Select a Product",
-                                    ),
-                                  ),
-
-                                  onSelected: (value) {
-                                    setState(() {
-                                      _selectedinstallationitems = value;
-                                    });
-                                  },
-                                  selectedItems: _selectedinstallationitems,
-                                );
-                              } else {
-                                // print(snapshot.error);
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              }
-                            }),
-                      ),
-                    if ((_selectedstatus == "Job Completed "))
-                      _buildConditionalFields(),
-                    // if ((_selectedstatus == "Job Completed "))
-                    Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: DropdownSearch<String>(
-                          // enabled: !_resendotp,
-                          popupProps: const PopupProps.dialog(
-                            dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
-                              showSelectedItems: true, showSearchBox: true),
-                          // mode: Mode.dialog,
-                          // showSelectedItems: true,
-                          items: (filter, infiniteScrollProps) => _category,
-                          decoratorProps: const DropDownDecoratorProps(
-                            decoration: InputDecoration(
-                              labelText: "Reason/Category",
-                              hintText: "Select an option",
+                                      // mode: Mode.dialog,
+                                      // showSelectedItems: true,
+                                      items: (filter, infiniteScrollProps) =>
+                                          snapshot.data!,
+                                      decoratorProps:
+                                          const DropDownDecoratorProps(
+                                        decoration: InputDecoration(
+                                          labelText: "GST %",
+                                          hintText: "Select a GST %",
+                                        ),
+                                      ),
+                                      autoValidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      validator: (value) {
+                                        if (value!.isEmpty) {
+                                          return "Select a GST %";
+                                        }
+                                        return null;
+                                      },
+                                      // dropdownSearchDecoration: const InputDecoration(
+                                      // labelText: "Menu mode",
+                                      // hintText: "country in menu mode",
+                                      // ),
+                                      // popupItemDisabled: isItemDisabled,
+                                      onSelected: (value) {
+                                        setState(() {
+                                          _selectedgst = value!;
+                                        });
+                                        _gstPercent =
+                                            double.tryParse(value!) ?? 18.0;
+                                        _calculateGstAmount();
+                                      },
+                                      selectedItem: _selectedgst,
+                                      // showSearchBox: true,
+                                      // searchFieldProps: TextFieldProps(
+                                      //   cursorColor: Colors.blue,
+                                      // ),
+                                    );
+                                  } else {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                })),
+                          ),
+                        if ((_selectedcategory == "Paid Basis") |
+                            (_selectedcategory == "Obligatory Service") |
+                            (_selectedcategory ==
+                                "Free Service as per Installation Agreement"))
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              readOnly: true,
+                              label: "GST Amount",
+                              controller: _gstamountcontroller,
+                              keyboardtype: TextInputType.number,
+                            ),
+                          ),
+                        if (_selectedcategory ==
+                            "Free Service as per Installation Agreement")
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              label: "Installation Date",
+                              controller: _installdatecontroller,
+                              readOnly: true,
+                              onTap: _resendotp
+                                  ? null
+                                  : () async {
+                                      DateTime? picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(1900),
+                                          lastDate: DateTime(2100));
+                                      if (picked != null) {
+                                        setState(() {
+                                          _installdatecontroller.text =
+                                              picked.toString().split(" ")[0];
+                                        });
+                                      }
+                                      // setState(() {
+                                      //   _dobdate = picked;
+                                      // });
+                                    },
+                            ),
+                          ),
+                        if (_selectedcategory == "Under AMC")
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              label: "AMC Date",
+                              controller: _amcdatecontroller,
+                              readOnly: true,
+                              onTap: _resendotp
+                                  ? null
+                                  : () async {
+                                      DateTime? picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(1900),
+                                          lastDate: DateTime(2100));
+                                      if (picked != null) {
+                                        setState(() {
+                                          _amcdatecontroller.text =
+                                              picked.toString().split(" ")[0];
+                                        });
+                                      }
+                                    },
                             ),
                           ),
 
-                          onSelected: (value) {
-                            setState(() {
-                              // _company.clear();
-                              _selectedcategory = value!;
-                              // getcomp();
-                            });
-                          },
-                          selectedItem: _selectedcategory,
-                        )),
-                    if (_selectedcategory == "Spare Part Required")
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          // readOnly: _resendotp,
-                          label: "Part Name",
-                          controller: _sparepartnamecontroller,
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            // readOnly: _resendotp,
+                            label: "Comments",
+                            controller: _commentcontroller,
+                            minlines: 1,
+                            maxlines: 10,
+                          ),
                         ),
-                      ),
-                    if (_selectedcategory == "Spare Part Required")
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          // readOnly: _resendotp,
-                          label: "Part Cost",
-                          controller: _sparepartcostcontroller,
-                          keyboardtype: TextInputType.number,
-                        ),
-                      ),
-                    if ((_selectedcategory == "Paid Basis") |
-                        (_selectedcategory == "Obligatory Service") |
-                        (_selectedcategory ==
-                            "Free Service as per Installation Agreement"))
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          // readOnly: _resendotp,
-                          label: "Service Charge",
-                          controller: _servicechargecontroller,
-                          keyboardtype: TextInputType.number,
-                          onChanged: (value) {
-                            _charge1 = double.tryParse(value) ?? 0.0;
-                            // _calculateGstAmount();
-                          },
-                        ),
-                      ),
-                    if ((_selectedcategory == "Paid Basis") |
-                        (_selectedcategory == "Obligatory Service") |
-                        (_selectedcategory ==
-                            "Free Service as per Installation Agreement"))
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          // readOnly: _resendotp,
-                          label: "Spare Charge",
-                          controller: _sparechargecontroller,
-                          keyboardtype: TextInputType.number,
-                          onChanged: (value) {
-                            _charge2 = double.tryParse(value) ?? 0.0;
-                            // _calculateGstAmount();
-                          },
-                        ),
-                      ),
-                    if ((_selectedcategory == "Paid Basis") |
-                        (_selectedcategory == "Obligatory Service") |
-                        (_selectedcategory ==
-                            "Free Service as per Installation Agreement"))
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          // readOnly: _resendotp,
-                          label: "Other Charge",
-                          controller: _otherchargecontroller,
-                          keyboardtype: TextInputType.number,
-                          onChanged: (value) {
-                            _charge3 = double.tryParse(value) ?? 0.0;
-                            // _calculateGstAmount();
-                          },
-                        ),
-                      ),
-                    // gst %
-                    if ((_selectedcategory == "Paid Basis") |
-                        (_selectedcategory == "Obligatory Service") |
-                        (_selectedcategory ==
-                            "Free Service as per Installation Agreement"))
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: FutureBuilder<List<String>>(
-                            future: getgst(),
-                            builder: ((context, snapshot) {
-                              if (snapshot.hasData && snapshot.data != null) {
-                                return DropdownSearch<String>(
-                                  // enabled: !_resendotp,
-                                  popupProps: const PopupProps.dialog(
-                                    dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
-                                      showSelectedItems: true,
-                                      showSearchBox: true),
-                                  // mode: Mode.dialog,
-                                  // showSelectedItems: true,
-                                  items: (filter, infiniteScrollProps) =>
-                                      snapshot.data!,
-                                  decoratorProps: const DropDownDecoratorProps(
-                                    decoration: InputDecoration(
-                                      labelText: "GST %",
-                                      hintText: "Select a GST %",
-                                    ),
-                                  ),
-                                  autoValidateMode:
-                                      AutovalidateMode.onUserInteraction,
-                                  validator: (value) {
-                                    if (value!.isEmpty) {
-                                      return "Select a GST %";
-                                    }
-                                    return null;
-                                  },
-                                  // dropdownSearchDecoration: const InputDecoration(
-                                  // labelText: "Menu mode",
-                                  // hintText: "country in menu mode",
-                                  // ),
-                                  // popupItemDisabled: isItemDisabled,
-                                  onSelected: (value) {
-                                    setState(() {
-                                      _selectedgst = value!;
-                                    });
-                                    _gstPercent =
-                                        double.tryParse(value!) ?? 18.0;
-                                    _calculateGstAmount();
-                                  },
-                                  selectedItem: _selectedgst,
-                                  // showSearchBox: true,
-                                  // searchFieldProps: TextFieldProps(
-                                  //   cursorColor: Colors.blue,
-                                  // ),
-                                );
-                              } else {
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              }
-                            })),
-                      ),
-                    if ((_selectedcategory == "Paid Basis") |
-                        (_selectedcategory == "Obligatory Service") |
-                        (_selectedcategory ==
-                            "Free Service as per Installation Agreement"))
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          readOnly: true,
-                          label: "GST Amount",
-                          controller: _gstamountcontroller,
-                          keyboardtype: TextInputType.number,
-                        ),
-                      ),
-                    if (_selectedcategory ==
-                        "Free Service as per Installation Agreement")
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Installation Date",
-                          controller: _installdatecontroller,
-                          readOnly: true,
-                          onTap: _resendotp
-                              ? null
-                              : () async {
-                                  DateTime? picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: DateTime.now(),
-                                      firstDate: DateTime(1900),
-                                      lastDate: DateTime(2100));
-                                  if (picked != null) {
-                                    setState(() {
-                                      _installdatecontroller.text =
-                                          picked.toString().split(" ")[0];
-                                    });
-                                  }
-                                  // setState(() {
-                                  //   _dobdate = picked;
-                                  // });
-                                },
-                        ),
-                      ),
-                    if (_selectedcategory == "Under AMC")
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "AMC Date",
-                          controller: _amcdatecontroller,
-                          readOnly: true,
-                          onTap: _resendotp
-                              ? null
-                              : () async {
-                                  DateTime? picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: DateTime.now(),
-                                      firstDate: DateTime(1900),
-                                      lastDate: DateTime(2100));
-                                  if (picked != null) {
-                                    setState(() {
-                                      _amcdatecontroller.text =
-                                          picked.toString().split(" ")[0];
-                                    });
-                                  }
-                                },
-                        ),
-                      ),
 
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: InputField(
-                        // readOnly: _resendotp,
-                        label: "Comments",
-                        controller: _commentcontroller,
-                        minlines: 1,
-                        maxlines: 10,
-                      ),
-                    ),
-
-                    if (_leadstat != 1)
-                      // image/vedio upload
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: Row(
-                          children: [
-                            Text("Upload Image/Video",
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey[700])),
-                            const Spacer(),
-                            // camera iconbutton
-                            SpeedDial(
-                              icon: Icons.camera_alt,
-                              activeIcon: Icons.close_rounded,
+                        if (_leadstat != 1)
+                          // image/vedio upload
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: Row(
                               children: [
-                                SpeedDialChild(
-                                  child: const Icon(Icons.camera_alt),
-                                  label: "Capture Image",
-                                  onTap: () async {
-                                    final XFile? image =
-                                        await _picker.pickImage(
-                                            source: ImageSource.camera,
-                                            imageQuality: 75);
-                                    if (image != null) {
-                                      setState(() {
-                                        _selectedImage.add(image.path);
-                                      });
-                                    }
-                                  },
+                                Text("Upload Image/Video",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[700])),
+                                const Spacer(),
+                                // camera iconbutton
+                                SpeedDial(
+                                  icon: Icons.camera_alt,
+                                  activeIcon: Icons.close_rounded,
+                                  children: [
+                                    SpeedDialChild(
+                                      child: const Icon(Icons.camera_alt),
+                                      label: "Capture Image",
+                                      onTap: () async {
+                                        final XFile? image =
+                                            await _picker.pickImage(
+                                                source: ImageSource.camera,
+                                                imageQuality: 75);
+                                        if (image != null) {
+                                          setState(() {
+                                            _selectedImage.add(image.path);
+                                          });
+                                        }
+                                      },
+                                    ),
+                                    SpeedDialChild(
+                                      child: const Icon(Icons.videocam),
+                                      label: "Capture Video",
+                                      onTap: () async {
+                                        final XFile? video =
+                                            await _picker.pickVideo(
+                                                source: ImageSource.camera,
+                                                maxDuration: const Duration(
+                                                    seconds: 30));
+                                        if (video != null) {
+                                          final mediaInfo =
+                                              await VideoCompress.compressVideo(
+                                            video.path,
+                                            quality: VideoQuality.MediumQuality,
+                                            includeAudio: true,
+                                            deleteOrigin:
+                                                false, // Set to true to delete the original video after compression
+                                          );
+                                          setState(() {
+                                            _selectedImage
+                                                .add(mediaInfo!.file!.path);
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ],
                                 ),
-                                SpeedDialChild(
-                                  child: const Icon(Icons.videocam),
-                                  label: "Capture Video",
-                                  onTap: () async {
-                                    final XFile? video =
-                                        await _picker.pickVideo(
-                                            source: ImageSource.camera,
-                                            maxDuration:
-                                                const Duration(seconds: 30));
-                                    if (video != null) {
-                                      final mediaInfo =
-                                          await VideoCompress.compressVideo(
-                                        video.path,
-                                        quality: VideoQuality.MediumQuality,
-                                        includeAudio: true,
-                                        deleteOrigin:
-                                            false, // Set to true to delete the original video after compression
-                                      );
-                                      setState(() {
-                                        _selectedImage
-                                            .add(mediaInfo!.file!.path);
-                                      });
+                                IconButton(
+                                  icon: const Icon(Icons.photo),
+                                  onPressed: () async {
+                                    final List<XFile> images = await _picker
+                                        .pickMultipleMedia(imageQuality: 75);
+                                    if (images.isNotEmpty) {
+                                      for (var element in images) {
+                                        if (element.path.endsWith('.mp4') ||
+                                            element.path.endsWith('.mov')) {
+                                          VideoCompress.compressVideo(
+                                            element.path,
+                                            quality: VideoQuality.MediumQuality,
+                                            includeAudio: true,
+                                            deleteOrigin:
+                                                false, // Set to true to delete the original video after compression
+                                          ).then((mediaInfo) {
+                                            setState(() {
+                                              _selectedImage
+                                                  .add(mediaInfo!.file!.path);
+                                            });
+                                          });
+                                        } else {
+                                          setState(() {
+                                            _selectedImage.add(element.path);
+                                          });
+                                        }
+                                      }
                                     }
                                   },
                                 ),
                               ],
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.photo),
-                              onPressed: () async {
-                                final List<XFile> images = await _picker
-                                    .pickMultipleMedia(imageQuality: 75);
-                                if (images.isNotEmpty) {
-                                  for (var element in images) {
-                                    if (element.path.endsWith('.mp4') ||
-                                        element.path.endsWith('.mov')) {
-                                      VideoCompress.compressVideo(
-                                        element.path,
-                                        quality: VideoQuality.MediumQuality,
-                                        includeAudio: true,
-                                        deleteOrigin:
-                                            false, // Set to true to delete the original video after compression
-                                      ).then((mediaInfo) {
-                                        setState(() {
-                                          _selectedImage
-                                              .add(mediaInfo!.file!.path);
-                                        });
-                                      });
-                                    } else {
-                                      setState(() {
-                                        _selectedImage.add(element.path);
-                                      });
-                                    }
-                                  }
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (_leadstat != 1)
-                      // preview of selected files
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: SizedBox(
-                          height: 90,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _selectedImage.length,
-                            itemBuilder: (context, index) {
-                              final file = _selectedImage[index];
-                              final isVideo = file.endsWith('.mp4') ||
-                                  file.endsWith(
-                                      '.mov'); // Quick extension check
+                          ),
+                        if (_leadstat != 1)
+                          // preview of selected files
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: SizedBox(
+                              height: 90,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _selectedImage.length,
+                                itemBuilder: (context, index) {
+                                  final file = _selectedImage[index];
+                                  final isVideo = file.endsWith('.mp4') ||
+                                      file.endsWith(
+                                          '.mov'); // Quick extension check
 
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Stack(
-                                  alignment: Alignment.topRight,
-                                  children: [
-                                    // 1. The Media Container
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      child: Container(
-                                        width: 80,
-                                        height: 80,
-                                        color: Colors.grey[200],
-                                        child: Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            // Render based on file type
-                                            if (isVideo)
-                                              VideoPreviewWidget(
-                                                  file: File(file))
-                                            else
-                                              Image.file(
-                                                File(file),
-                                                fit: BoxFit.cover,
-                                              ),
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0),
+                                    child: Stack(
+                                      alignment: Alignment.topRight,
+                                      children: [
+                                        // 1. The Media Container
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8.0),
+                                          child: Container(
+                                            width: 80,
+                                            height: 80,
+                                            color: Colors.grey[200],
+                                            child: Stack(
+                                              fit: StackFit.expand,
+                                              children: [
+                                                // Render based on file type
+                                                if (isVideo)
+                                                  VideoPreviewWidget(
+                                                      file: File(file))
+                                                else
+                                                  Image.file(
+                                                    File(file),
+                                                    fit: BoxFit.cover,
+                                                  ),
 
-                                            // Overlay a play icon if it's a video so the user knows it's not a photo
-                                            // if (isVideo)
-                                            //   const Center(
-                                            //     child:
-                                            //         Icon(
-                                            //       Icons.play_circle_fill,
-                                            //       size: 30,
-                                            //       color: Colors.white70,
-                                            //     ),
-                                            //   ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
-                                    // 2. The Red Cross Button Overlaid on Top
-                                    Positioned(
-                                      top: 0,
-                                      right: 0,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedImage.removeAt(index);
-                                          });
-                                        },
-                                        child: Container(
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
+                                                // Overlay a play icon if it's a video so the user knows it's not a photo
+                                                // if (isVideo)
+                                                //   const Center(
+                                                //     child:
+                                                //         Icon(
+                                                //       Icons.play_circle_fill,
+                                                //       size: 30,
+                                                //       color: Colors.white70,
+                                                //     ),
+                                                //   ),
+                                              ],
+                                            ),
                                           ),
-                                          padding: const EdgeInsets.all(4.0),
-                                          child: const Icon(Icons.close,
-                                              size: 14, color: Colors.white),
+                                        ),
+
+                                        // 2. The Red Cross Button Overlaid on Top
+                                        Positioned(
+                                          top: 0,
+                                          right: 0,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedImage.removeAt(index);
+                                              });
+                                            },
+                                            child: Container(
+                                              decoration: const BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.all(4.0),
+                                              child: const Icon(Icons.close,
+                                                  size: 14,
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        if (_dataupload && _leadstat != 1)
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 24.0, vertical: 16.0),
+                              padding: const EdgeInsets.all(20.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize
+                                    .min, // Wrap tightly around progress items
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.cloud_upload_outlined,
+                                          color: Colors.brown),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _uploadProgress >= 1.0
+                                              ? "Processing on server..."
+                                              : "Uploading file data...",
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    if (_dataupload && _leadstat != 1)
-                      Center(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 24.0, vertical: 16.0),
-                          padding: const EdgeInsets.all(20.0),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize
-                                .min, // Wrap tightly around progress items
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.cloud_upload_outlined,
-                                      color: Colors.brown),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      _uploadProgress >= 1.0
-                                          ? "Processing on server..."
-                                          : "Uploading file data...",
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
+                                      // Shows raw text layout percentage (e.g., 45%)
+                                      Text(
+                                        "${(_uploadProgress * 100).toStringAsFixed(0)}%",
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.brown,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  // Shows raw text layout percentage (e.g., 45%)
-                                  Text(
-                                    "${(_uploadProgress * 100).toStringAsFixed(0)}%",
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
+                                  const SizedBox(height: 14),
+
+                                  // The actual linear bar displaying state data
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                        4), // Rounds the edges of the bar
+                                    child: LinearProgressIndicator(
+                                      value: _uploadProgress,
                                       color: Colors.brown,
+                                      backgroundColor: Colors.transparent,
+                                      minHeight:
+                                          8, // Makes the bar visually easy to track
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 14),
-
-                              // The actual linear bar displaying state data
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(
-                                    4), // Rounds the edges of the bar
-                                child: LinearProgressIndicator(
-                                  value: _uploadProgress,
-                                  color: Colors.brown,
-                                  backgroundColor: Colors.transparent,
-                                  minHeight:
-                                      8, // Makes the bar visually easy to track
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    if (_leadstat != 1)
-                      Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color.fromRGBO(252, 101, 8, 1),
-                                    foregroundColor: Colors.white),
-                                onPressed: _isLoading
-                                    ? null
-                                    : (() async {
-                                        FocusScope.of(context).unfocus();
-                                        setState(() {
-                                          _isLoading = true;
-                                        });
-                                        var respcode = await submitdata(
-                                            "true", _resendotp);
-                                        if (respcode == 200 ||
-                                            respcode == 201) {
-                                          setState(() {
-                                            _isLoading = false;
-                                            _dataupload = false;
-                                            _questionsanswered = true;
-                                          });
+                        if (_leadstat != 1)
+                          Padding(
+                              padding: const EdgeInsets.all(5),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color.fromRGBO(
+                                              252, 101, 8, 1),
+                                          foregroundColor: Colors.white),
+                                      onPressed: _isLoading
+                                          ? null
+                                          : (() async {
+                                              FocusScope.of(context).unfocus();
+                                              setState(() {
+                                                _isLoading = true;
+                                              });
+                                              var respcode = await submitdata(
+                                                  "true", _resendotp);
+                                              if (respcode == 200 ||
+                                                  respcode == 201) {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                  _dataupload = false;
+                                                  _questionsanswered = true;
+                                                });
 
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(SnackBar(
-                                                  content: const Text(
-                                                      "Data saved successfully"),
-                                                  backgroundColor:
-                                                      Colors.green[400]));
-                                          // if (kDebugMode) {
-                                          //   SendNotificationService
-                                          //       .sendNotificationUsingApi(
-                                          //           token: "test",
-                                          //           title: "Lead Follow UP",
-                                          //           body:
-                                          //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                          //           data: {
-                                          //         "screen": "detail",
-                                          //         "pjc": widget.pjc,
-                                          //         "pname": widget.pname
-                                          //       });
-                                          // } else {
-                                          //   SendNotificationService
-                                          //       .sendNotificationUsingApi(
-                                          //           token: "all",
-                                          //           title: "Lead Follow UP",
-                                          //           body:
-                                          //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                          //           data: {
-                                          //         "screen": "detail",
-                                          //         "pjc": widget.pjc,
-                                          //         "pname": widget.pname
-                                          //       });
-                                          // }
-                                        } else {
-                                          setState(() {
-                                            _isLoading = false;
-                                            _dataupload = false;
-                                          });
-                                          // Navigator.of(
-                                          //         context)
-                                          //     .pop(
-                                          //         "Data saved");
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                                  content: Text(
-                                                      "Something went wrong. Please try again."),
-                                                  backgroundColor: Colors.red));
-                                        }
-                                      }),
-                                child: const Text('Save')),
-                            // _selectedstatus ==
-                            //         "Installation Completed"
-                            //     ? ElevatedButton(
-                            //         style: ElevatedButton.styleFrom(
-                            //             backgroundColor: const Color
-                            //                 .fromRGBO(
-                            //                 252,
-                            //                 101,
-                            //                 8,
-                            //                 1),
-                            //             foregroundColor:
-                            //                 Colors
-                            //                     .white),
-                            //         onPressed:
-                            //             _isLoading
-                            //                 ? null
-                            //                 : (() async {
-                            //                     setState(() {
-                            //                       _isLoading = true;
-                            //                     });
-                            //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
-                            //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
-                            //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
-                            //                       setState(() {
-                            //                         _isLoading = false;
-                            //                         ischeckedin = false;
-                            //                       });
-                            //                       Navigator.of(context).pop("Data saved and Report Sent");
-                            //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
-                            //                     }
-                            //                   }),
-                            //         child:
-                            //             const Text(
-                            //           "Send Report",
-                            //         ))
-                          ],
-                        )),
-                    if (_leadstat != 1)
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Site Represtative Name",
-                          controller: _instcontpnamecontroller,
-                        ),
-                      ),
-
-                    if (_leadstat == 1)
-                      Column(
-                        children: [
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                        content: const Text(
+                                                            "Data saved successfully"),
+                                                        backgroundColor:
+                                                            Colors.green[400]));
+                                                // if (kDebugMode) {
+                                                //   SendNotificationService
+                                                //       .sendNotificationUsingApi(
+                                                //           token: "test",
+                                                //           title: "Lead Follow UP",
+                                                //           body:
+                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                //           data: {
+                                                //         "screen": "detail",
+                                                //         "pjc": widget.pjc,
+                                                //         "pname": widget.pname
+                                                //       });
+                                                // } else {
+                                                //   SendNotificationService
+                                                //       .sendNotificationUsingApi(
+                                                //           token: "all",
+                                                //           title: "Lead Follow UP",
+                                                //           body:
+                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                //           data: {
+                                                //         "screen": "detail",
+                                                //         "pjc": widget.pjc,
+                                                //         "pname": widget.pname
+                                                //       });
+                                                // }
+                                              } else {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                  _dataupload = false;
+                                                });
+                                                // Navigator.of(
+                                                //         context)
+                                                //     .pop(
+                                                //         "Data saved");
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(const SnackBar(
+                                                        content: Text(
+                                                            "Something went wrong. Please try again."),
+                                                        backgroundColor:
+                                                            Colors.red));
+                                              }
+                                            }),
+                                      child: const Text('Save')),
+                                  // _selectedstatus ==
+                                  //         "Installation Completed"
+                                  //     ? ElevatedButton(
+                                  //         style: ElevatedButton.styleFrom(
+                                  //             backgroundColor: const Color
+                                  //                 .fromRGBO(
+                                  //                 252,
+                                  //                 101,
+                                  //                 8,
+                                  //                 1),
+                                  //             foregroundColor:
+                                  //                 Colors
+                                  //                     .white),
+                                  //         onPressed:
+                                  //             _isLoading
+                                  //                 ? null
+                                  //                 : (() async {
+                                  //                     setState(() {
+                                  //                       _isLoading = true;
+                                  //                     });
+                                  //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
+                                  //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
+                                  //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
+                                  //                       setState(() {
+                                  //                         _isLoading = false;
+                                  //                         ischeckedin = false;
+                                  //                       });
+                                  //                       Navigator.of(context).pop("Data saved and Report Sent");
+                                  //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
+                                  //                     }
+                                  //                   }),
+                                  //         child:
+                                  //             const Text(
+                                  //           "Send Report",
+                                  //         ))
+                                ],
+                              )),
+                        if (_leadstat != 1)
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
-                              label: "Next Follow Up Date",
-                              controller: _nextfudatecontroller,
-                              readOnly: true,
-                              onTap: () async {
-                                DateTime? meet = await showOmniDateTimePicker(
-                                    context: context, minutesInterval: 15);
-                                if (meet != null) {
-                                  _nextfudatecontroller.text =
-                                      DateFormat("dd/MM/yyyy")
-                                          .add_jm()
-                                          .format(meet);
-                                }
-                              },
+                              label: "Site Represtative Name",
+                              controller: _instcontpnamecontroller,
                             ),
                           ),
-                          Padding(
-                              padding: const EdgeInsets.all(5.0),
-                              child: FutureBuilder<List<String>>(
-                                  future: getnames(),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.hasData &&
-                                        snapshot.data != null) {
-                                      return DropdownSearch<String>(
-                                        popupProps: const PopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
-                                            showSelectedItems: true,
-                                            showSearchBox: true),
-                                        // mode: Mode.dialog,
-                                        // showSelectedItems: true,
-                                        items: (filter, infiniteScrollProps) =>
-                                            snapshot.data!,
-                                        decoratorProps:
-                                            const DropDownDecoratorProps(
-                                          decoration: InputDecoration(
-                                            labelText: "Next Follow-up By",
-                                            hintText: "Select a Name",
-                                          ),
-                                        ),
 
-                                        onSelected: (value) {
-                                          setState(() {
-                                            _selectedfollowupby = value;
-                                          });
-                                        },
-                                        selectedItem: _selectedfollowupby,
-                                      );
-                                    } else {
-                                      return const Center(
-                                          child: CircularProgressIndicator());
+                        if (_leadstat == 1)
+                          Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(5.0),
+                                child: InputField(
+                                  label: "Next Follow Up Date",
+                                  controller: _nextfudatecontroller,
+                                  readOnly: true,
+                                  onTap: () async {
+                                    DateTime? meet =
+                                        await showOmniDateTimePicker(
+                                            context: context,
+                                            minutesInterval: 15);
+                                    if (meet != null) {
+                                      _nextfudatecontroller.text =
+                                          DateFormat("dd/MM/yyyy")
+                                              .add_jm()
+                                              .format(meet);
                                     }
-                                  })),
-                        ],
-                      ),
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                  padding: const EdgeInsets.all(5.0),
+                                  child: FutureBuilder<List<String>>(
+                                      future: getnames(),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasData &&
+                                            snapshot.data != null) {
+                                          return DropdownSearch<String>(
+                                            popupProps: const PopupProps.dialog(
+                                                dialogProps: DialogProps(
+                                                    barrierDismissible: true,
+                                                    barrierLabel: "Dismiss"),
+                                                showSelectedItems: true,
+                                                showSearchBox: true),
+                                            // mode: Mode.dialog,
+                                            // showSelectedItems: true,
+                                            items:
+                                                (filter, infiniteScrollProps) =>
+                                                    snapshot.data!,
+                                            decoratorProps:
+                                                const DropDownDecoratorProps(
+                                              decoration: InputDecoration(
+                                                labelText: "Next Follow-up By",
+                                                hintText: "Select a Name",
+                                              ),
+                                            ),
 
-                    if (_leadstat != 1)
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                            label: "Site Representative Mobile Number",
-                            controller: _mobforotpcontroller,
-                            keyboardtype: TextInputType.phone,
-                            sufficon: IconButton(
-                                onPressed: () async {
-                                  Contact? contact =
-                                      await _contactPicker.selectPhoneNumber();
-                                  setState(() {
-                                    _selectedPhoneNumber =
-                                        contact?.selectedPhoneNumber;
-                                    if (_selectedPhoneNumber != null) {
-                                      var phno = _selectedPhoneNumber!
-                                          .replaceAll(" ", "");
-                                      _mobforotpcontroller.text =
-                                          phno.substring(phno.length - 10);
-                                      _selectedPhoneNumber = null;
-                                    }
-                                  });
-                                },
-                                icon: const Icon(Icons.contacts))),
-                      ),
-                    if ((_selectedstatus == "Job Completed "))
-                      TextButton(
-                          onPressed: () {
-                            if (!_questionsanswered) {
-                              QuickAlert.show(
-                                  context: context,
-                                  type: QuickAlertType.warning,
-                                  text:
-                                      "Please answer the questions and save the data before sending OTP.");
-                            } else {
-                              sendserviceotp(setState);
-                            }
-                          },
-                          child: const Text('Send OTP')),
-                    if (_openotpfield)
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Enter OTP",
-                          controller: _jcccontroller,
-                        ),
-                      ),
-
-                    if (_isLoading)
-                      const Center(
-                          child:
-                              CircularProgressIndicator(color: Colors.brown)),
-                    Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color.fromRGBO(252, 101, 8, 1),
-                                    foregroundColor: Colors.white),
-                                onPressed: _isLoading
-                                    ? null
-                                    : (() async {
-                                        FocusScope.of(context).unfocus();
-                                        setState(() {
-                                          _isLoading = true;
-                                        });
-                                        if (_leadstat == 1) {
-                                          var respcode = await submitdata(
-                                              "true", _resendotp);
-                                          if (respcode == 200 ||
-                                              respcode == 201) {
-                                            setState(() {
-                                              _isLoading = false;
-                                              _dataupload = true;
-                                            });
-
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(SnackBar(
-                                                    content: const Text(
-                                                        "Data saved successfully"),
-                                                    backgroundColor:
-                                                        Colors.green[400]));
-                                            // if (kDebugMode) {
-                                            //   SendNotificationService
-                                            //       .sendNotificationUsingApi(
-                                            //           token: "test",
-                                            //           title: "Lead Follow UP",
-                                            //           body:
-                                            //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                            //           data: {
-                                            //         "screen": "detail",
-                                            //         "pjc": widget.pjc,
-                                            //         "pname": widget.pname
-                                            //       });
-                                            // } else {
-                                            //   SendNotificationService
-                                            //       .sendNotificationUsingApi(
-                                            //           token: "all",
-                                            //           title: "Lead Follow UP",
-                                            //           body:
-                                            //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                            //           data: {
-                                            //         "screen": "detail",
-                                            //         "pjc": widget.pjc,
-                                            //         "pname": widget.pname
-                                            //       });
-                                            // }
-                                            Navigator.of(context)
-                                                .pop("Data saved");
-                                          } else {
-                                            setState(() {
-                                              _isLoading = false;
-                                            });
-                                            // Navigator.of(
-                                            //         context)
-                                            //     .pop(
-                                            //         "Data saved");
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(const SnackBar(
-                                                    content: Text(
-                                                        "Something went wrong. Please try again."),
-                                                    backgroundColor:
-                                                        Colors.red));
-                                          }
+                                            onSelected: (value) {
+                                              setState(() {
+                                                _selectedfollowupby = value;
+                                              });
+                                            },
+                                            selectedItem: _selectedfollowupby,
+                                          );
                                         } else {
-                                          var respcode = await submitotp(
-                                              _jcccontroller.text);
-                                          // var respcode = await submitdata(
-                                          //   "true", _resendotp);
-                                          if (respcode == 200 ||
-                                              respcode == 201) {
-                                            setState(() {
-                                              _isLoading = false;
-                                              _dataupload = false;
-                                            });
-
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(SnackBar(
-                                                    content: const Text(
-                                                        "OTP Verified Successfully"),
-                                                    backgroundColor:
-                                                        Colors.green[400]));
-                                            // Navigator.of(context)
-                                            //     .pop("Data saved");
-                                            // if (kDebugMode) {
-                                            //   SendNotificationService
-                                            //       .sendNotificationUsingApi(
-                                            //           token: "test",
-                                            //           title: "Lead Follow UP",
-                                            //           body:
-                                            //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                            //           data: {
-                                            //         "screen": "detail",
-                                            //         "pjc": widget.pjc,
-                                            //         "pname": widget.pname
-                                            //       });
-                                            // } else {
-                                            //   SendNotificationService
-                                            //       .sendNotificationUsingApi(
-                                            //           token: "all",
-                                            //           title: "Lead Follow UP",
-                                            //           body:
-                                            //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                            //           data: {
-                                            //         "screen": "detail",
-                                            //         "pjc": widget.pjc,
-                                            //         "pname": widget.pname
-                                            //       });
-                                            // }
-                                            Navigator.of(context)
-                                                .pop("Data saved");
-                                          } else {
-                                            setState(() {
-                                              _isLoading = false;
-                                            });
-                                            // Navigator.of(
-                                            //         context)
-                                            //     .pop(
-                                            //         "Data saved");
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(const SnackBar(
-                                                    content: Text(
-                                                        "Something went wrong. Please try again."),
-                                                    backgroundColor:
-                                                        Colors.red));
-                                          }
+                                          return const Center(
+                                              child:
+                                                  CircularProgressIndicator());
                                         }
-                                      }),
-                                child: _leadstat == 1
-                                    ? const Text('Save')
-                                    : const Text("Verify OTP")),
-                            // _selectedstatus ==
-                            //         "Installation Completed"
-                            //     ? ElevatedButton(
-                            //         style: ElevatedButton.styleFrom(
-                            //             backgroundColor: const Color
-                            //                 .fromRGBO(
-                            //                 252,
-                            //                 101,
-                            //                 8,
-                            //                 1),
-                            //             foregroundColor:
-                            //                 Colors
-                            //                     .white),
-                            //         onPressed:
-                            //             _isLoading
-                            //                 ? null
-                            //                 : (() async {
-                            //                     setState(() {
-                            //                       _isLoading = true;
-                            //                     });
-                            //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
-                            //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
-                            //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
-                            //                       setState(() {
-                            //                         _isLoading = false;
-                            //                         ischeckedin = false;
-                            //                       });
-                            //                       Navigator.of(context).pop("Data saved and Report Sent");
-                            //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
-                            //                     }
-                            //                   }),
-                            //         child:
-                            //             const Text(
-                            //           "Send Report",
-                            //         ))
-                          ],
-                        ))
-                  ],
-                ),
-              ),
-            )),
+                                      })),
+                            ],
+                          ),
+
+                        if (_leadstat != 1)
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                                label: "Site Representative Mobile Number",
+                                controller: _mobforotpcontroller,
+                                validator: (val) {
+                                  if (val?.length != 10) {
+                                    return "Enter a valid 10-digit whatsapp number";
+                                  }
+                                  return null;
+                                },
+                                keyboardtype: TextInputType.phone,
+                                sufficon: IconButton(
+                                    onPressed: () async {
+                                      Contact? contact = await _contactPicker
+                                          .selectPhoneNumber();
+                                      setState(() {
+                                        _selectedPhoneNumber =
+                                            contact?.selectedPhoneNumber;
+                                        if (_selectedPhoneNumber != null) {
+                                          var phno = _selectedPhoneNumber!
+                                              .replaceAll(" ", "");
+                                          _mobforotpcontroller.text =
+                                              phno.substring(phno.length - 10);
+                                          _selectedPhoneNumber = null;
+                                        }
+                                      });
+                                    },
+                                    icon: const Icon(Icons.contacts))),
+                          ),
+                        if ((_selectedstatus == "Job Completed "))
+                          TextButton(
+                              onPressed: () {
+                                if (!_questionsanswered) {
+                                  QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.warning,
+                                      text:
+                                          "Please answer the questions and save the data before sending OTP.");
+                                } else {
+                                  if (_formkey.currentState!.validate()) {
+                                    sendserviceotp(setState);
+                                  }
+                                }
+                              },
+                              child: const Text('Send OTP')),
+                        if (_openotpfield)
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              label: "Enter OTP",
+                              controller: _jcccontroller,
+                            ),
+                          ),
+
+                        if (_isLoading)
+                          const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.brown)),
+                        Padding(
+                            padding: const EdgeInsets.all(5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color.fromRGBO(
+                                            252, 101, 8, 1),
+                                        foregroundColor: Colors.white),
+                                    onPressed: _isLoading
+                                        ? null
+                                        : (() async {
+                                            FocusScope.of(context).unfocus();
+                                            setState(() {
+                                              _isLoading = true;
+                                            });
+                                            if (_leadstat == 1) {
+                                              var respcode = await submitdata(
+                                                  "true", _resendotp);
+                                              if (respcode == 200 ||
+                                                  respcode == 201) {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                  _dataupload = true;
+                                                });
+
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                        content: const Text(
+                                                            "Data saved successfully"),
+                                                        backgroundColor:
+                                                            Colors.green[400]));
+                                                // if (kDebugMode) {
+                                                //   SendNotificationService
+                                                //       .sendNotificationUsingApi(
+                                                //           token: "test",
+                                                //           title: "Lead Follow UP",
+                                                //           body:
+                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                //           data: {
+                                                //         "screen": "detail",
+                                                //         "pjc": widget.pjc,
+                                                //         "pname": widget.pname
+                                                //       });
+                                                // } else {
+                                                //   SendNotificationService
+                                                //       .sendNotificationUsingApi(
+                                                //           token: "all",
+                                                //           title: "Lead Follow UP",
+                                                //           body:
+                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                //           data: {
+                                                //         "screen": "detail",
+                                                //         "pjc": widget.pjc,
+                                                //         "pname": widget.pname
+                                                //       });
+                                                // }
+                                                Navigator.of(context)
+                                                    .pop("Data saved");
+                                              } else {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                });
+                                                // Navigator.of(
+                                                //         context)
+                                                //     .pop(
+                                                //         "Data saved");
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(const SnackBar(
+                                                        content: Text(
+                                                            "Something went wrong. Please try again."),
+                                                        backgroundColor:
+                                                            Colors.red));
+                                              }
+                                            } else {
+                                              var respcode = await submitotp(
+                                                  _jcccontroller.text);
+                                              // var respcode = await submitdata(
+                                              //   "true", _resendotp);
+                                              if (respcode == 200 ||
+                                                  respcode == 201) {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                  _dataupload = false;
+                                                });
+
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                        content: const Text(
+                                                            "OTP Verified Successfully"),
+                                                        backgroundColor:
+                                                            Colors.green[400]));
+                                                // Navigator.of(context)
+                                                //     .pop("Data saved");
+                                                // if (kDebugMode) {
+                                                //   SendNotificationService
+                                                //       .sendNotificationUsingApi(
+                                                //           token: "test",
+                                                //           title: "Lead Follow UP",
+                                                //           body:
+                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                //           data: {
+                                                //         "screen": "detail",
+                                                //         "pjc": widget.pjc,
+                                                //         "pname": widget.pname
+                                                //       });
+                                                // } else {
+                                                //   SendNotificationService
+                                                //       .sendNotificationUsingApi(
+                                                //           token: "all",
+                                                //           title: "Lead Follow UP",
+                                                //           body:
+                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                //           data: {
+                                                //         "screen": "detail",
+                                                //         "pjc": widget.pjc,
+                                                //         "pname": widget.pname
+                                                //       });
+                                                // }
+                                                Navigator.of(context)
+                                                    .pop("Data saved");
+                                              } else {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                });
+                                                // Navigator.of(
+                                                //         context)
+                                                //     .pop(
+                                                //         "Data saved");
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(const SnackBar(
+                                                        content: Text(
+                                                            "Something went wrong. Please try again."),
+                                                        backgroundColor:
+                                                            Colors.red));
+                                              }
+                                            }
+                                          }),
+                                    child: _leadstat == 1
+                                        ? const Text('Save')
+                                        : const Text("Verify OTP")),
+                                // _selectedstatus ==
+                                //         "Installation Completed"
+                                //     ? ElevatedButton(
+                                //         style: ElevatedButton.styleFrom(
+                                //             backgroundColor: const Color
+                                //                 .fromRGBO(
+                                //                 252,
+                                //                 101,
+                                //                 8,
+                                //                 1),
+                                //             foregroundColor:
+                                //                 Colors
+                                //                     .white),
+                                //         onPressed:
+                                //             _isLoading
+                                //                 ? null
+                                //                 : (() async {
+                                //                     setState(() {
+                                //                       _isLoading = true;
+                                //                     });
+                                //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
+                                //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
+                                //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
+                                //                       setState(() {
+                                //                         _isLoading = false;
+                                //                         ischeckedin = false;
+                                //                       });
+                                //                       Navigator.of(context).pop("Data saved and Report Sent");
+                                //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
+                                //                     }
+                                //                   }),
+                                //         child:
+                                //             const Text(
+                                //           "Send Report",
+                                //         ))
+                              ],
+                            ))
+                      ],
+                    ),
+                  ),
+                )),
           ),
         ),
         appbartitle: const Text("Service Checkout"),

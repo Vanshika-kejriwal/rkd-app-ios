@@ -285,3 +285,38 @@ class ServiceDetailModel {
       required this.producttype,
       required this.company});
 }
+
+class AMCModel {
+  String item;
+  String code;
+  String idatec;
+
+  AMCModel({required this.item, required this.code, required this.idatec});
+}
+
+class AMCDetailModel {
+  String amcno;
+  String amctype;
+  String amcdate;
+  String producttype;
+  String company;
+  String amount;
+  String amcperiod;
+  String amcstartdate;
+  String warantytill;
+  String cashrecievername;
+  String? idatec;
+
+  AMCDetailModel(
+      {required this.amcno,
+      required this.amctype,
+      required this.amcdate,
+      required this.producttype,
+      required this.company,
+      required this.amount,
+      required this.amcperiod,
+      required this.amcstartdate,
+      required this.warantytill,
+      required this.cashrecievername,
+      this.idatec});
+}

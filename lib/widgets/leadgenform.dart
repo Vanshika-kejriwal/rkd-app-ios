@@ -6,6 +6,8 @@ import "package:business_app/services/notification_service.dart";
 // import "package:business_app/services/send_notification_service.dart";
 import "package:business_app/widgets/background.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter_native_contact_picker/flutter_native_contact_picker.dart";
+import "package:flutter_native_contact_picker/model/contact.dart";
 import 'package:http/http.dart' as http;
 import "package:business_app/constants.dart";
 import "package:business_app/widgets/input_field.dart";
@@ -43,6 +45,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
   // final _pnamecontroller = TextEditingController();
   final _meetingdatetimecontroller = TextEditingController();
   final _msgcontroller = TextEditingController();
+  final _mobilecontroller = TextEditingController();
   List<String> _selectedproduct = [];
   List<LeadProduct> _selectedcomp = [];
   String? _selectedut;
@@ -60,7 +63,8 @@ class _NewLeadFormState extends State<NewLeadForm> {
   final GlobalKey<DropdownSearchState<Project>> _projectkey =
       GlobalKey<DropdownSearchState<Project>>();
   NotificationService notificationService = NotificationService();
-
+  final FlutterNativeContactPicker _contactPicker =
+      FlutterNativeContactPicker();
   String _pjc = '';
   String _name = '';
   String _ownermobile = '';
@@ -74,7 +78,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
   String _mobile2 = '';
   String _pin = '';
   String _gstno = '';
-
+  String? _selectedPhoneNumber;
   // DateTime? _meetingdatetime;
   Future<List<String>> getut() async {
     final response = await http.get(Uri.parse('$baseuri/api/custtype/'));
@@ -284,6 +288,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
       "LEAD_TYPE":
           widget.leadinfo == null ? "NEW LEAD" : widget.leadinfo!["leadtype"],
       "MESSAGE": _msgcontroller.text,
+      'COMPLAIN_MOB': _mobilecontroller.text,
       "SEND_MSG": sendmsg
     };
     var assignexisting = "";
@@ -309,6 +314,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
         _selectedleadton = null;
         _meetingdatetimecontroller.clear();
         _msgcontroller.clear();
+        _mobilecontroller.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text("Data saved successfully"),
@@ -799,6 +805,31 @@ class _NewLeadFormState extends State<NewLeadForm> {
                         child: InputField(
                           label: "Message",
                           controller: _msgcontroller,
+                        ),
+                      ), 
+                      Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: InputField(
+                          label: "Contact Number",
+                          controller: _mobilecontroller,
+                          keyboardtype: TextInputType.phone,
+                          suff: IconButton(
+                              onPressed: () async {
+                                Contact? contact =
+                                    await _contactPicker.selectPhoneNumber();
+                                setState(() {
+                                  _selectedPhoneNumber =
+                                      contact?.selectedPhoneNumber;
+                                  if (_selectedPhoneNumber != null) {
+                                    var phno = _selectedPhoneNumber!
+                                        .replaceAll(" ", "");
+                                    _mobilecontroller.text =
+                                        phno.substring(phno.length - 10);
+                                    _selectedPhoneNumber = null;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.contacts)),
                         ),
                       ),
                       if (_isLoading)

@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -350,15 +351,24 @@ class _PendingInsState extends State<PendingIns> {
                                   controller: _dobcontroller,
                                   readOnly: true,
                                   onTap: () async {
-                                    var dr = await showDateRangePicker(
+                                    var dr = await showOmniDateTimeRangePicker(
                                         context: context,
-                                        firstDate: DateTime(2000),
-                                        lastDate: DateTime(2100));
+                                        barrierDismissible: true,
+                                        startInitialDate: filterdate?.start,
+                                        endInitialDate: filterdate?.end,
+                                        type: OmniDateTimePickerType.date,
+                                        isForceEndDateAfterStartDate: true);
+                                    
                                     setstate(() {
                                       _dobcontroller.text = dr == null
                                           ? ""
-                                          : "${DateFormat("dd/MM/yyyy").format(dr.start)}-${DateFormat("dd/MM/yyyy").format(dr.end)}";
-                                      filterdate = dr;
+                                          : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                                      if (dr != null) {
+                                        filterdate = DateTimeRange(
+                                            start: dr[0], end: dr[1]);
+                                      } else {
+                                        filterdate = null;
+                                      }
                                     });
                                   },
                                 ),

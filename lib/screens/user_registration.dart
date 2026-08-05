@@ -438,6 +438,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                         controller: _namecontroller,
                       ),
                     ),
+                  if (!widget.fromLogin)
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
@@ -451,6 +452,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                         controller: _add1controller,
                       ),
                     ),
+                  if (!widget.fromLogin)
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
@@ -458,6 +460,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                         controller: _add2controller,
                       ),
                     ),
+                  if (!widget.fromLogin)
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: FutureBuilder<List<String>>(
@@ -520,6 +523,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                             }
                           }),
                     ),
+                  if (!widget.fromLogin)
                     Padding(
                         padding: const EdgeInsets.all(5.0),
                         child: DropdownSearch<String>(
@@ -553,6 +557,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                           },
                           selectedItem: _selectedDistrict,
                         )),
+                  if (!widget.fromLogin)
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
@@ -561,6 +566,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                         // readOnly: !_editmode,
                       ),
                     ),
+                  if (!widget.fromLogin)
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
@@ -576,6 +582,7 @@ class _UserRegistrationState extends State<UserRegistration> {
                         readOnly: true,
                       ),
                     ),
+                  if (!widget.fromLogin)
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
@@ -693,8 +700,8 @@ class _UserRegistrationState extends State<UserRegistration> {
                                     'ADD1': _add1controller.text,
                                     'ADD2': _add2controller.text,
                                     'PIN': _pincontroller.text,
-                                    'STATE': _selectedState,
-                                    'DIST': _selectedDistrict,
+                                    'STATE': _selectedState?? "",
+                                    'DIST': _selectedDistrict?? "",
                                     'CITY': _citycontroller.text,
                                     'MOBILE1': _mobilecontroller.text,
                                     'EMAIL': _emailcontroller.text,

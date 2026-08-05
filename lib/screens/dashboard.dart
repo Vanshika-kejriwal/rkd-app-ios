@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:business_app/permissions/permitrequest.dart';
+import 'package:business_app/screens/amchead.dart';
 import 'package:business_app/screens/attendence.dart';
 import 'package:business_app/screens/complainnav.dart';
 import 'package:business_app/screens/installation.dart';
@@ -252,6 +253,14 @@ class _DashboardState extends State<Dashboard> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const Mmast()),
+                    ),
+                  ),
+                _buildDesignGridTile(
+                    title: "AMC",
+                    icon: Icons.description,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AMChead()),
                     ),
                   ),
               ],

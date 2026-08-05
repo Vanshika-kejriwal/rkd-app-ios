@@ -1,6 +1,6 @@
 import "package:business_app/services/notification_service.dart";
 import "package:business_app/widgets/background.dart";
-import "package:business_app/widgets/completed_ins.dart";
+import "package:business_app/widgets/completed_ins.dart" hide Icon;
 import "package:business_app/widgets/completed_service.dart";
 import "package:business_app/widgets/installationAsiggn.dart";
 import "package:business_app/widgets/installation_master.dart";

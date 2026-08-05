@@ -1,6 +1,6 @@
 import "package:business_app/services/notification_service.dart";
 import "package:business_app/widgets/background.dart";
-import "package:business_app/widgets/completed_ins.dart";
+import "package:business_app/widgets/completed_ins.dart" hide Icon;
 import "package:business_app/widgets/installationAsiggn.dart";
 import "package:business_app/widgets/installation_master.dart";
 import "package:business_app/widgets/pending_ins.dart";
@@ -50,7 +50,7 @@ class _InstallationState extends State<Installation> {
   // Generate destinations dynamically
   List<NavigationDestination> _getDestinations() {
     return [
-      const NavigationDestination(icon: Icon(Icons.assignment), label: "Pending"),
+      NavigationDestination(icon: Icon(Icons.assignment), label: "Pending"),
       const NavigationDestination(icon: Icon(Icons.done_all), label: "Completed"),
       if (_loginut.toLowerCase() == "admin")
         const NavigationDestination(icon: Icon(Icons.settings), label: "Inst Mast"),

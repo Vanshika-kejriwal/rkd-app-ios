@@ -322,7 +322,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
     double sheight = MediaQuery.of(context).size.height;
     return Background(
         appbaractions: [
-          IconButton(
+          TextButton(
               onPressed: () {
                 setState(() {
                   _editmode = !_editmode;
@@ -332,7 +332,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                   }
                 });
               },
-              icon: const Icon(Icons.edit)),
+              child: const Text("Edit")),
           IconButton(
               onPressed: !_editmode
                   ? null
