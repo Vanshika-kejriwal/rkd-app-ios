@@ -74,7 +74,7 @@ class _AMCListState extends State<AMCList> {
            
               leads.add(Lead(
                   pjc: lead['PJC'],
-                  pname: lead['PNAME'],
+                  pname: "${lead['PNAME']} (${lead['CUSTTYPE']})" ,
                   ));
             
               // DateTime followup = DateFormat('yyyy-MM-ddTHH:mm:ss.SSSSSS')

@@ -55,6 +55,10 @@ class _AMCState extends State<AMC> {
   final TextEditingController _documentNumberController =
       TextEditingController();
   final TextEditingController _bankNameController = TextEditingController();
+  final TextEditingController _amtController = TextEditingController();
+  final TextEditingController _gstamtController = TextEditingController();
+  String _gstper = "18";
+  String _ratetype = "";
 
   Future<List<Project>> getprojects() async {
     http.Response response;
@@ -87,31 +91,55 @@ class _AMCState extends State<AMC> {
     // });
   }
 
-  Future<void> getrate() async {
-    final response = await http.post(Uri.parse('$baseuri/api/amcrate/'),
-        body: jsonEncode({
-          "product": "$_selectedproduct",
-          "company": _selectedcomp!.company,
-          "model": _selectedmodel,
-          "amctype": _selectedamctype,
-          "duration": _selectedduration,
-        }),
-        headers: {"Content-Type": "application/json"});
-    final body = json.decode(response.body);
-    if (response.statusCode == 200) {
-      var targetkey = "_${_selectedduration!.split(" ")[0]}_MONTHS";
-      var gst = body[0]["GST"].substring(0, body[0]["GST"].length - 1);
-      var qty = _billQuantityController.text.isNotEmpty
-          ? double.parse(_billQuantityController.text)
-          : 1;
-      var amount = double.parse(body[0][targetkey].toString()) *
-          qty *
-          (1 + double.parse(gst) / 100);
-      setState(() {
-        _rateController.text =
-            "${body[0][targetkey].toString()} ${body[0]['F2'].toString()}";
-        _amountController.text = amount.toStringAsFixed(2);
-      });
+  Future<void> getrate({custom = false}) async {
+    if ((_selectedamctype != null) && (_selectedduration != null)) {
+      if (!custom) {
+        final response = await http.post(Uri.parse('$baseuri/api/amcrate/'),
+            body: jsonEncode({
+              "product": "$_selectedproduct",
+              "company": _selectedcomp!.company,
+              "model": _selectedmodel,
+              "amctype": _selectedamctype,
+              "duration": _selectedduration,
+            }),
+            headers: {"Content-Type": "application/json"});
+        final body = json.decode(response.body);
+        if (response.statusCode == 200) {
+          var targetkey = "_${_selectedduration!.split(" ")[0]}_MONTHS";
+          var gst = body[0]["GST"].substring(0, body[0]["GST"].length - 1);
+          var qty = _billQuantityController.text.isNotEmpty
+              ? double.parse(_billQuantityController.text)
+              : 1;
+          var amount = double.parse(body[0][targetkey].toString()) *
+              qty *
+              (1 + double.parse(gst) / 100);
+          var amtwogst = double.parse(body[0][targetkey].toString()) * qty;
+          var gstamt = amtwogst * (double.parse(gst) / 100);
+          setState(() {
+            _gstper = gst;
+            _rateController.text = body[0][targetkey].toString();
+            _ratetype = body[0]['F2'].toString();
+            _amtController.text = amtwogst.toStringAsFixed(2);
+            _gstamtController.text = gstamt.toStringAsFixed(2);
+            _amountController.text = amount.toStringAsFixed(2);
+          });
+        }
+      } else {
+        var gst = _gstper;
+        var qty = _billQuantityController.text.isNotEmpty
+            ? double.parse(_billQuantityController.text)
+            : 1;
+        var amount = double.parse(_rateController.text) *
+            qty *
+            (1 + double.parse(gst) / 100);
+        var amtwogst = double.parse(_rateController.text) * qty;
+        var gstamt = amtwogst * (double.parse(gst) / 100);
+        setState(() {
+          _amtController.text = amtwogst.toStringAsFixed(2);
+          _gstamtController.text = gstamt.toStringAsFixed(2);
+          _amountController.text = amount.toStringAsFixed(2);
+        });
+      }
     }
   }
 
@@ -147,7 +175,9 @@ class _AMCState extends State<AMC> {
       'Product_Type': _selectedproduct,
       'Company': _selectedcomp!.company,
       // 'LEAD_DATE': DateTime.now().toString().split(" ")[0],
-      'Model': _selectedamcitemdetail.isNotEmpty? _selectedamcitemdetail.first.item : _selectedmodel,
+      'Model': _selectedamcitemdetail.isNotEmpty
+          ? _selectedamcitemdetail.first.item
+          : _selectedmodel,
       'AMC_Type': _selectedamctype,
       'AMC_Period': _selectedduration,
       'Bill_date': _billDateController.text,
@@ -236,14 +266,14 @@ class _AMCState extends State<AMC> {
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
-                        label: "Cash Giver Name",
+                        label: "Payment Giver Name",
                         controller: _cashGiverNameController,
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: InputField(
-                        label: "Cash Giver Contact",
+                        label: "Payment Giver Contact",
                         controller: _cashGiverContactController,
                       ),
                     ),
@@ -298,7 +328,9 @@ class _AMCState extends State<AMC> {
                   body: jsonEncode({
                     "amc_number": amcNumber,
                     "otp": jcc,
-                    'item_codes': _selectedamcitemdetail.map((item) => item.code).toList(),
+                    'item_codes': _selectedamcitemdetail
+                        .map((item) => item.code)
+                        .toList(),
                   }),
                   headers: {"Content-Type": "application/json"});
         }
@@ -435,7 +467,8 @@ class _AMCState extends State<AMC> {
     List<AMCModel> comp = [];
     if (response.statusCode == 200) {
       for (var c in body) {
-        comp.add(AMCModel(code: c['CODE'], item: c['ITEM'], idatec: c['IDATEC']));
+        comp.add(
+            AMCModel(code: c['CODE'], item: c['ITEM'], idatec: c['IDATEC']));
       }
     }
     setState(() {
@@ -571,16 +604,16 @@ class _AMCState extends State<AMC> {
                                       setState(() {
                                         // _projects.clear();
                                         _selectedproject = value;
-                                      _amcitemdetail.clear();
-                                      _selectedproduct = null;
-                                      _selectedcomp = null;
-                                      _selectedamcitemdetail = [];
-                                      _selectedmodel = null;
-                                      _selectedamctype = null;
-                                      _selectedduration = null;
-                                      _billDateController.clear();
-                                      _billNumberController.clear();
-                                      _billQuantityController.clear();
+                                        _amcitemdetail.clear();
+                                        _selectedproduct = null;
+                                        _selectedcomp = null;
+                                        _selectedamcitemdetail = [];
+                                        _selectedmodel = null;
+                                        _selectedamctype = null;
+                                        _selectedduration = null;
+                                        _billDateController.clear();
+                                        _billNumberController.clear();
+                                        _billQuantityController.clear();
                                         getproduct();
                                       });
                                       if (value!.pname == "Add New") {
@@ -808,7 +841,6 @@ class _AMCState extends State<AMC> {
                                 _selectedamcitemdetail = value;
                                 getbilldetail();
                               });
-                              
                             },
                             selectedItems: _selectedamcitemdetail,
                           )),
@@ -844,6 +876,9 @@ class _AMCState extends State<AMC> {
                         child: InputField(
                           label: "Bill Quantity",
                           controller: _billQuantityController,
+                          onChanged: (val) {
+                            getrate(custom: true);
+                          },
                         ),
                       ),
                       Padding(
@@ -895,8 +930,9 @@ class _AMCState extends State<AMC> {
                           ).then((selectedDate) {
                             if (selectedDate != null) {
                               setState(() {
-                                _amcstartDateController.text = 
-              DateFormat('dd/MM/yyyy').format(selectedDate);
+                                _amcstartDateController.text =
+                                    DateFormat('dd/MM/yyyy')
+                                        .format(selectedDate);
                               });
                             }
                           }),
@@ -960,15 +996,34 @@ class _AMCState extends State<AMC> {
                       Padding(
                         padding: const EdgeInsets.all(5.0),
                         child: InputField(
-                          label: "Rate",
+                          label: "Rate $_ratetype",
                           controller: _rateController,
-                          readOnly: true,
+                          // readOnly: true,
+                          onChanged: (p0) {
+                            getrate(custom: true);
+                          },
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(5.0),
                         child: InputField(
                           label: "Amount",
+                          controller: _amtController,
+                          readOnly: true,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: InputField(
+                          label: "GST Amount",
+                          controller: _gstamtController,
+                          readOnly: true,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: InputField(
+                          label: "Total Amount",
                           controller: _amountController,
                           readOnly: true,
                         ),
