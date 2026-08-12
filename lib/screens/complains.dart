@@ -31,7 +31,8 @@ class _ComplainState extends State<Complain> {
   LeadProduct? _selectedcomp;
   String? _selectedut;
   Project? _selectedproject;
-  String? _selectedcategory;
+  LeadCategory? _selectedcategory;
+  List<LeadCategory> _category = [];
   String? _selectedleadton;
   bool _isLoading = false;
   bool _allowAssign = false;
@@ -39,6 +40,8 @@ class _ComplainState extends State<Complain> {
   List<LeadProduct> _company = [];
   late Future<List<Project>> _projects;
   List<String> _products = [];
+  List<AMCModel> _selectedamcitemdetail = [];
+  List<AMCModel> _amcitemdetail = [];
   String? _selectedPhoneNumber;
   final _formkey = GlobalKey<FormState>();
   final FlutterNativeContactPicker _contactPicker =
@@ -49,7 +52,9 @@ class _ComplainState extends State<Complain> {
     var sharedpref = await SharedPreferences.getInstance();
     var ut = sharedpref.getString("UT");
     var mob = sharedpref.getString("Mobile");
-    if (ut!.toLowerCase() == "consumer" || ut.toLowerCase() == "contractor" || ut.toLowerCase() == "supplier") {
+    if (ut!.toLowerCase() == "consumer" ||
+        ut.toLowerCase() == "contractor" ||
+        ut.toLowerCase() == "supplier") {
       response =
           await http.get(Uri.parse('$baseuri/api/custprojlist/?mob=$mob'));
     } else {
@@ -92,11 +97,9 @@ class _ComplainState extends State<Complain> {
     // String queryparam = _selectedproduct.map((item) => "ut1=$item").join("&");
     List<String> queryparams = [];
     queryparams.add("$_selectedproduct");
-    final response = await http
-        .post(Uri.parse('$baseuri/api/leadforc/'), body: jsonEncode({
-          
-          "ut1": queryparams
-        }), headers: {"Content-Type": "application/json"});
+    final response = await http.post(Uri.parse('$baseuri/api/leadforc/'),
+        body: jsonEncode({"ut1": queryparams}),
+        headers: {"Content-Type": "application/json"});
     final body = json.decode(response.body);
     List<LeadProduct> comp = [];
     if (response.statusCode == 200) {
@@ -131,7 +134,7 @@ class _ComplainState extends State<Complain> {
       'LEADTON': _selectedleadton ?? "",
       'OPEN': 'Y',
       "LEAD_TYPE": "COMPLAIN",
-      'COMPLAIN_CATEGORY': _selectedcategory,
+      'COMPLAIN_CATEGORY': _selectedcategory!.ddl12,
       'COMPLAIN_MOB': _mobilecontroller.text,
       "MESSAGE": _msgcontroller.text,
       "SEND_MSG": sendmsg
@@ -165,6 +168,8 @@ class _ComplainState extends State<Complain> {
         _selectedproject = null;
         _selectedproduct = null;
         _selectedcomp = null;
+        _selectedamcitemdetail = [];
+        _selectedcategory = null;
         // _selectedleadton = null;
         _meetingdatetimecontroller.clear();
         _msgcontroller.clear();
@@ -205,10 +210,56 @@ class _ComplainState extends State<Complain> {
 
   @override
   void initState() {
-  
     super.initState();
     _projects = getprojects();
     getloginut();
+  }
+
+  Future<void> getitemdetail() async {
+    // String queryparam = _selectedproduct.map((item) => "ut1=$item").join("&");
+    List<String> queryparams = [];
+    // queryparams.add("$_selectedproduct");
+    final response = await http.post(Uri.parse('$baseuri/api/amcitemdetail/'),
+        body: jsonEncode({
+          'pjc': _selectedproject!.pjc,
+          "product": _selectedcomp!.product,
+          "complain_comp": _selectedcomp!.company
+        }),
+        headers: {"Content-Type": "application/json"});
+    final body = json.decode(response.body);
+    print(body);
+    print(response.statusCode);
+    List<AMCModel> comp = [];
+    if (response.statusCode == 200) {
+      for (var c in body) {
+        comp.add(
+            AMCModel(code: c['CODE'], item: c['ITEM'], idatec: c['IDATEC']));
+      }
+    }
+    setState(() {
+      _amcitemdetail = comp;
+    });
+  }
+
+  Future<void> getcategory() async {
+    String? items;
+    if (_selectedamcitemdetail.isNotEmpty) {
+      items =
+          _selectedamcitemdetail.map((item) => item.code).toList().join(",");
+    }
+
+    final response = await http.get(Uri.parse(
+        '$baseuri/api/leadstatcategory/?status=complainbooking&type=COMPLAIN&pjc=${_selectedproject!.pjc}&product=${_selectedcomp!.product}&complain_comp=${_selectedcomp!.company}&items=$items'));
+    final body = json.decode(response.body);
+    // List<String> names = [];
+    if (response.statusCode == 200) {
+      _category.clear();
+      for (var c in body) {
+       
+        _category
+            .add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled']));
+      }
+    }
   }
 
   @override
@@ -237,9 +288,13 @@ class _ComplainState extends State<Complain> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<Project>(
                                     enabled: _isenabled,
-                                    compareFn: (item1, item2) => item1.pjc == item2.pjc,
+                                    compareFn: (item1, item2) =>
+                                        item1.pjc == item2.pjc,
                                     popupProps: const PopupProps.dialog(
-                                      dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss",),
+                                        dialogProps: DialogProps(
+                                          barrierDismissible: true,
+                                          barrierLabel: "Dismiss",
+                                        ),
                                         // showSelectedItems: true,
                                         showSearchBox: true),
                                     filterFn: (item, filter) {
@@ -259,7 +314,8 @@ class _ComplainState extends State<Complain> {
                                     // },
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    items: (filter, infiniteScrollProps) =>
+                                        snapshot.data!,
                                     itemAsString: (item) {
                                       if (item.pname == "Add New") {
                                         return item.pname;
@@ -374,13 +430,16 @@ class _ComplainState extends State<Complain> {
                           child: DropdownSearch<String>(
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
-                                showSelectedItems: true, showSearchBox: true),
+                                dialogProps: DialogProps(
+                                  barrierDismissible: true,
+                                  barrierLabel: "Dismiss",
+                                ),
+                                showSelectedItems: true,
+                                showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
                             items: (filter, infiniteScrollProps) => _products,
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Product",
                                 hintText: "Select a Product",
@@ -404,7 +463,10 @@ class _ComplainState extends State<Complain> {
                                 item1.product == item2.product,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
+                                dialogProps: DialogProps(
+                                  barrierDismissible: true,
+                                  barrierLabel: "Dismiss",
+                                ),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
@@ -413,8 +475,7 @@ class _ComplainState extends State<Complain> {
                             itemAsString: (item) {
                               return "${item.company} (${item.product})";
                             },
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Company",
                                 hintText: "Select a Company",
@@ -425,6 +486,8 @@ class _ComplainState extends State<Complain> {
                               setState(() {
                                 _selectedcomp = value;
                               });
+                              getcategory();
+                              getitemdetail();
                             },
                             selectedItem: _selectedcomp,
                           )),
@@ -438,16 +501,19 @@ class _ComplainState extends State<Complain> {
                                       snapshot.data != null) {
                                     return DropdownSearch<String>(
                                       popupProps: const PopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss",
+                                          ),
                                           showSelectedItems: true,
                                           showSearchBox: true),
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
-                                      items: (filter, infiniteScrollProps) => snapshot.data!,
+                                      items: (filter, infiniteScrollProps) =>
+                                          snapshot.data!,
                                       decoratorProps:
                                           const DropDownDecoratorProps(
-                                        decoration:
-                                            InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Lead To Name",
                                           hintText: "Select Lead To Name",
                                         ),
@@ -501,30 +567,74 @@ class _ComplainState extends State<Complain> {
                         ),
                       Padding(
                           padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<String>(
-                            enabled: _isenabled,
-                            popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
-                                showSelectedItems: true, showSearchBox: true),
+                          child: DropdownSearch<AMCModel>.multiSelection(
+                            compareFn: (item1, item2) =>
+                                item1.code == item2.code &&
+                                item1.item == item2.item,
+                            popupProps: const MultiSelectionPopupProps.dialog(
+                                dialogProps: DialogProps(
+                                  barrierDismissible: true,
+                                  barrierLabel: "Dismiss",
+                                ),
+                                // showSelectedItems: true,
+                                showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) => [
-                              "Under AMC",
-                              "Paid Basis",
-                              "Free Service as per Installation Agreement"
-                            ],
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            items: (filter, infiniteScrollProps) =>
+                                _amcitemdetail,
+                            itemAsString: (item) {
+                              return "${item.item} (${item.idatec})";
+                            },
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
-                                labelText: "Category",
-                                hintText: "Select a category",
+                                labelText: "Item Detail",
+                                hintText: "Select Item",
+                              ),
+                            ),
+
+                            onSelected: (value) {
+                              setState(() {
+                                _selectedamcitemdetail = value;
+                                // getbilldetail();
+                              });
+                              getcategory();
+                            },
+                            selectedItems: _selectedamcitemdetail,
+                          )),
+                      Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: DropdownSearch<LeadCategory>(
+                            itemAsString: (item) {
+                              return item.ddl12;
+                            },
+                            compareFn: (item1, item2) {
+                              return item1.ddl12 == item2.ddl12;
+                            },
+                            // enabled: !_resendotp,
+                            popupProps: PopupProps.dialog(
+                                disabledItemFn: (item) {
+                                  return !item.enabled;
+                                },
+                                dialogProps: const DialogProps(
+                                  barrierDismissible: true,
+                                  barrierLabel: "Dismiss",
+                                ),
+                                showSelectedItems: true,
+                                showSearchBox: true),
+                            // mode: Mode.dialog,
+                            // showSelectedItems: true,
+                            items: (filter, infiniteScrollProps) => _category,
+                            decoratorProps: const DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: "Reason/Category",
+                                hintText: "Select an option",
                               ),
                             ),
 
                             onSelected: (value) {
                               setState(() {
                                 // _company.clear();
-                                _selectedcategory = value;
+                                _selectedcategory = value!;
                                 // getcomp();
                               });
                             },
@@ -580,6 +690,7 @@ class _ComplainState extends State<Complain> {
                               icon: const Icon(Icons.contacts)),
                         ),
                       ),
+
                       if (_isLoading)
                         const Center(
                             child:
@@ -596,7 +707,6 @@ class _ComplainState extends State<Complain> {
                                       if (_formkey.currentState!.validate()) {
                                         submitdata("true");
                                       }
-                                      
                                     }),
                               style: ElevatedButton.styleFrom(
                                   backgroundColor:

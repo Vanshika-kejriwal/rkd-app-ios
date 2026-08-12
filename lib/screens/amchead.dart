@@ -73,8 +73,9 @@ class _AMCheadState extends State<AMChead> {
         //   //   ),
         //   // );
         // }),
-        const AMCList(),
-        const AMC(),
+        AMCList(),
+        AMC(),
+        AMCList(pending: true,),
         const AMCRate()
       ];
 
@@ -99,6 +100,7 @@ class _AMCheadState extends State<AMChead> {
           // NavigationDestination(icon: Icon(Icons.assignment), label: "Pending"),
           NavigationDestination(icon: Icon(Icons.list), label: "AMC List"),
           NavigationDestination(icon: Icon(Icons.note_add_outlined), label: "BOOK AMC"),
+          NavigationDestination(icon: Icon(Icons.pending), label: " Pending AMC"),
           NavigationDestination(icon: Icon(Icons.price_check), label: "AMC Rate"),
         ],
       ),

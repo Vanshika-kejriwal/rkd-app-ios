@@ -15,88 +15,92 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AMCList extends StatefulWidget {
-  const AMCList({super.key});
+  bool pending;
+  AMCList({super.key, this.pending = false});
 
   @override
   State<AMCList> createState() => _AMCListState();
 }
 
 class _AMCListState extends State<AMCList> {
-
   bool _isDataLoaded = false;
 
   List<Lead> leads = []; // Assuming Lead is a defined class
   List<Lead> _foundleads = [];
   List<Lead> initleads = [];
   Timer? _reloadTimer;
-  
+
   Future<void> getleads() async {
-    setState(() {
-      _isDataLoaded = false;
-      leads = [];
-      _foundleads = [];
-    });
-    var sharedpref = await SharedPreferences.getInstance();
-    var mob = sharedpref.getString("Mobile");
-    var ut = sharedpref.getString("UT");
-    http.Response response;
-    // Removed unused username variable
-    // if (widget.leadton != null) {
-    //   _leadtoname = widget.leadton;
-    //   _leadbyname = '';
-    // }
-    // if (widget.leadbyn == true) {
-    //   _leadtoname = '';
-    //   _leadbyname = username;
-    // }
+    if (mounted) {
+      setState(() {
+        _isDataLoaded = false;
+        leads = [];
+        _foundleads = [];
+      });
 
-    final connectivityProvider =
-        Provider.of<NetworkProvider>(context, listen: false);
-    try {
-
-        response = await http.get(Uri.parse('$baseuri/api/amc_list/?mob=$mob&ut=$ut'),
-            headers: {"Content-Type": "application/json"});
-      
-      // print(response.headers);
-      // if (kDebugMode) {
-      //   print(response.body);
+      var sharedpref = await SharedPreferences.getInstance();
+      var mob = sharedpref.getString("Mobile");
+      var ut = sharedpref.getString("UT");
+      http.Response response;
+      // Removed unused username variable
+      // if (widget.leadton != null) {
+      //   _leadtoname = widget.leadton;
+      //   _leadbyname = '';
       // }
-      final body = json.decode(response.body);
-      if (kDebugMode) {
-        print(body);
-      }
-      if (response.statusCode == 200) {
-        if (body.isEmpty) {
-          leads = [];
-          // widget.listcountChange(0);
-        } else {
-          body.forEach((lead) {
-           
+      // if (widget.leadbyn == true) {
+      //   _leadtoname = '';
+      //   _leadbyname = username;
+      // }
+
+      final connectivityProvider =
+          Provider.of<NetworkProvider>(context, listen: false);
+      try {
+        response = await http.get(
+            Uri.parse(
+                '$baseuri/api/amc_list/?mob=$mob&ut=$ut&pending=${widget.pending}'),
+            headers: {"Content-Type": "application/json"});
+
+        // print(response.headers);
+        // if (kDebugMode) {
+        //   print(response.body);
+        // }
+        final body = json.decode(response.body);
+        if (kDebugMode) {
+          print(body);
+        }
+        if (response.statusCode == 200) {
+          if (body.isEmpty) {
+            leads = [];
+            // widget.listcountChange(0);
+          } else {
+            leads = [];
+            _foundleads = [];
+            body.forEach((lead) {
               leads.add(Lead(
-                  pjc: lead['PJC'],
-                  pname: "${lead['PNAME']} (${lead['CUSTTYPE']})" ,
-                  ));
-            
+                pjc: lead['PJC'],
+                pname: "${lead['PNAME']} (${lead['CUSTTYPE']})",
+              ));
+
               // DateTime followup = DateFormat('yyyy-MM-ddTHH:mm:ss.SSSSSS')
               // .parse(lead['LAST_FOLLOWUP']);
-              
-          });
+            });
+          }
+          // leads.remove(value)
+          initleads = leads;
+          _foundleads = leads;
+
+          // filtervalues();
+          if (mounted) {
+            setState(() {
+              _isDataLoaded = true;
+            });
+          }
         }
-        // leads.remove(value)
-        initleads = leads;
-        _foundleads = leads;
-        
-        // filtervalues();
-        if (mounted) {
-          setState(() {
-            _isDataLoaded = true;
-          });
-        }
+      } on SocketException catch (_) {
+        connectivityProvider.setConnected(false);
+      } on http.ClientException catch (_) {
+        connectivityProvider.setConnected(false);
       }
-    } on SocketException catch (_) {
-      connectivityProvider.setConnected(false);
-    } on http.ClientException catch (_) {
-      connectivityProvider.setConnected(false);
     }
   }
 
@@ -135,75 +139,88 @@ class _AMCListState extends State<AMCList> {
   }
 
   @override
+  void didUpdateWidget(covariant AMCList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 2. Re-fetch if the `pending` flag changes between rebuilds
+    if (oldWidget.pending != widget.pending) {
+      getleads();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Background(childs: !_isDataLoaded
-        ? const Center(
-            child: CircularProgressIndicator(),
-          )
-        : leads.isEmpty
-            ? const Center(
-                child: Text("AMCs to Show"),
-              )
-            : Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(5),
-                    child: InputField(
-                      label: "Search",
-                      onChanged: (value) {
-                        List<Lead> results = [];
-                        if (value.isEmpty) {
-                          results = leads;
-                        } else {
-                          results = leads.where((lead) {
-                            return value
-                                    .toLowerCase()
-                                    .split(" ")
-                                    .where((word) => word.isNotEmpty)
-                                    .toList()
-                                    .every((word) => lead.pname
-                                        .toLowerCase()
-                                        .contains(word)) ;
-                          }).toList();
-                        }
-                        setState(() {
-                          _foundleads = results;
-                        });
-                      },
+    return Background(
+      childs: !_isDataLoaded
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : leads.isEmpty
+              ? const Center(
+                  child: Text("AMCs to Show"),
+                )
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: InputField(
+                        label: "Search",
+                        onChanged: (value) {
+                          List<Lead> results = [];
+                          if (value.isEmpty) {
+                            results = leads;
+                          } else {
+                            results = leads.where((lead) {
+                              return value
+                                  .toLowerCase()
+                                  .split(" ")
+                                  .where((word) => word.isNotEmpty)
+                                  .toList()
+                                  .every((word) =>
+                                      lead.pname.toLowerCase().contains(word));
+                            }).toList();
+                          }
+                          setState(() {
+                            _foundleads = results;
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                        itemCount: _foundleads.length,
-                        itemBuilder: (context, index) {
-                          return Card(
-                              color: Colors.transparent,
-                              child: ListTile(
-                                title: Text(_foundleads[index].pname,
-                                    style: const TextStyle(fontSize: 13)),
-                                
-                                // isThreeLine: true,
-                                // trailing: Text(_foundleads[index].lastfollowup),
-                                tileColor: Colors.transparent,
-                                onTap: () {
-                                  // Use Navigator.push for navigation
-                                  
+                    Expanded(
+                      child: ListView.builder(
+                          itemCount: _foundleads.length,
+                          itemBuilder: (context, index) {
+                            return Card(
+                                color: Colors.transparent,
+                                child: ListTile(
+                                  title: Text(_foundleads[index].pname,
+                                      style: const TextStyle(fontSize: 13)),
+
+                                  // isThreeLine: true,
+                                  // trailing: Text(_foundleads[index].lastfollowup),
+                                  tileColor: Colors.transparent,
+                                  onTap: () {
+                                    // Use Navigator.push for navigation
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>AMCDetail(
+                                        builder: (context) => AMCDetail(
+                                            pending: widget.pending,
                                             currentlead: _foundleads[index]),
                                       ),
                                     ).then((_) {
                                       // Refresh the leads list when returning
                                       getleads();
                                     });
-                                  
-                                },
-                              ));
-                        }),
-                  ),
-                ],
-              ), appbartitle: const Text("AMC List"), appbaractions: const [], appbar: true, );
+                                  },
+                                ));
+                          }),
+                    ),
+                  ],
+                ),
+      appbartitle: const Text("AMC List"),
+      appbaractions: const [],
+      appbar: true,
+    );
   }
 }

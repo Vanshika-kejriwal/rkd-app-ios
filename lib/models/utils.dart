@@ -320,3 +320,10 @@ class AMCDetailModel {
       required this.cashrecievername,
       this.idatec});
 }
+
+class LeadCategory {
+  String ddl12;
+  bool enabled;
+
+  LeadCategory({required this.ddl12, required this.enabled});
+}

@@ -135,7 +135,7 @@ class _LeadDetailState extends State<LeadDetail> {
   String _gstno = '';
   String _selectedstatus = '';
   String _selectedgst = '';
-  String _selectedcategory = '';
+  LeadCategory? _selectedcategory;
   String _pname = '';
   bool _isLoading = false;
   bool _isAdmin = false;
@@ -148,6 +148,7 @@ class _LeadDetailState extends State<LeadDetail> {
   String? _selectedinsbyour;
   String? _selectedleadtype;
   List<Product> _selectedfollowupproduct = [];
+  Product? _selectedcomplainproduct;
   int _leadstat = 1;
   int? ino;
   bool _isdataLoaded = false;
@@ -158,7 +159,9 @@ class _LeadDetailState extends State<LeadDetail> {
   List<Product> products = [];
   List<Product> filterproducts = [];
   List<InvItem> _selectedinstallationitems = [];
-  final List<String> _category = [];
+  List<AMCModel> _selectedamcitemdetail = [];
+  List<AMCModel> _amcitemdetail = [];
+  List<LeadCategory> _category = [];
   final _sparepartnamecontroller = TextEditingController();
   final _sparepartcostcontroller = TextEditingController();
   final _servicechargecontroller = TextEditingController();
@@ -373,22 +376,24 @@ class _LeadDetailState extends State<LeadDetail> {
       final body = json.decode(response.body);
       ss(() {
         _selectedstatus = body["STATUS"];
-        _selectedcategory = body["CATEGORY"];
+        _selectedcategory?.ddl12 = body["CATEGORY"];
+        _selectedcategory?.enabled = true;
         _commentcontroller.text = body["COMMENTS"];
         // _selectedfollowupby = body["NEXT_FUBY"];
         // _nextfudatecontroller.text = body["NEXT_FUDATE"];
-        if ((_selectedcategory == "Paid Basis") |
-            (_selectedcategory == "Obligatory Service")) {
+        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+            (_selectedcategory?.ddl12 == "Obligatory Service")) {
           _selectedgst = body["GSTP"];
           _sparechargecontroller.text = body["SPARE_CHARGE"];
           _servicechargecontroller.text = body["SERVICE_CHARGE"];
           _otherchargecontroller.text = body["OTHER_CHARGE"];
           _gstamountcontroller.text = body["GST"];
         }
-        if (_selectedcategory == "Under AMC") {
+        if (_selectedcategory?.ddl12 == "Under AMC") {
           _amcdatecontroller.text = body["INSTALLATION_DATE"] ?? "";
         }
-        if (_selectedcategory == "Free Service as per Installation Agreement") {
+        if (_selectedcategory?.ddl12 ==
+            "Free Service as per Installation Agreement") {
           _installdatecontroller.text = body["INSTALLATION_DATE"] ?? "";
         }
         _leadstat = 2;
@@ -468,7 +473,7 @@ class _LeadDetailState extends State<LeadDetail> {
       'CHECKOUT_LOCA': _checkoutloca ?? "",
       'NEXT_FUDATETIME': _nextfudatecontroller.text,
       "STATUS": _selectedstatus ?? "",
-      "CATEGORY": _selectedcategory ?? "",
+      "CATEGORY": _selectedcategory?.ddl12 ?? "",
       "SPARE PART COST": _sparepartcostcontroller.text,
       "SPARE PART NAME": _sparepartnamecontroller.text,
       "AMC DATE": _amcdatecontroller.text,
@@ -634,14 +639,44 @@ class _LeadDetailState extends State<LeadDetail> {
   }
 
   Future<void> getcategory() async {
-    final response = await http.get(
-        Uri.parse('$baseuri/api/leadstatcategory/?status=$_selectedstatus'));
+    String? items;
+    if (_selectedinstallationitems.isNotEmpty) {
+      items = _selectedinstallationitems
+          .map((item) => item.code)
+          .toList()
+          .join(",");
+    } else if (_selectedamcitemdetail.isNotEmpty) {
+      items =
+          _selectedamcitemdetail.map((item) => item.code).toList().join(",");
+    }
+    String pjc = "";
+    if (widget.pjc == null) {
+      pjc = widget.currentlead!.pjc;
+    } else {
+      pjc = widget.pjc!;
+    }
+    final response = await http.get(Uri.parse(
+        '$baseuri/api/leadstatcategory/?status=$_selectedstatus&type=$_selectedleadtype&pjc=$pjc&product=${_selectedfollowupproduct.first.product}&leadid=${_selectedfollowupproduct.first.leadid}&items=$items'));
     final body = json.decode(response.body);
-    // List<String> names = [];
+    List<LeadCategory> names = [];
+    var ins_date="";
+    var amc_date ="";
     if (response.statusCode == 200) {
       for (var c in body) {
-        _category.add(c["DDL12"]);
+        names
+            .add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled']));
+        if (c["inst_date"] != null) {
+          ins_date = c["inst_date"];
+        }
+        if (c["amc_date"] != null) {
+          amc_date = c["amc_date"];
+        }
       }
+      setState(() {
+        _category = names;
+        _installdatecontroller.text = ins_date;
+        _amcdatecontroller.text = amc_date;
+      });
     }
   }
 
@@ -817,6 +852,32 @@ class _LeadDetailState extends State<LeadDetail> {
         _isdataLoaded = false;
       });
     }
+  }
+
+  Future<void> getitemdetail() async {
+    // String queryparam = _selectedproduct.map((item) => "ut1=$item").join("&");
+    List<String> queryparams = [];
+    // queryparams.add("$_selectedproduct");
+    final response = await http.post(Uri.parse('$baseuri/api/amcitemdetail/'),
+        body: jsonEncode({
+          'pjc': widget.currentlead!.pjc,
+          "product": _selectedfollowupproduct.first!.product,
+          "leadid": _selectedfollowupproduct.first!.leadid
+        }),
+        headers: {"Content-Type": "application/json"});
+    final body = json.decode(response.body);
+    print(body);
+    print(response.statusCode);
+    List<AMCModel> comp = [];
+    if (response.statusCode == 200) {
+      for (var c in body) {
+        comp.add(
+            AMCModel(code: c['CODE'], item: c['ITEM'], idatec: c['IDATEC']));
+      }
+    }
+    setState(() {
+      _amcitemdetail = comp;
+    });
   }
 
   @override
@@ -1194,6 +1255,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                         () {
                                                                       _selectedleadtype =
                                                                           value;
+                                                                      _selectedcomplainproduct =
+                                                                          null;
+                                                                      _selectedfollowupproduct =
+                                                                          [];
                                                                       filterproducts = products
                                                                           .where((item) => item
                                                                               .leadtype
@@ -1227,40 +1292,38 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                         CircularProgressIndicator());
                                                               }
                                                             })),
-                                                    Padding(
+                                                    if (_selectedleadtype ==
+                                                        "COMPLAIN") ...[
+                                                      // SINGLE SELECTION BLOCK
+                                                      Padding(
                                                         padding:
                                                             const EdgeInsets
                                                                 .all(5.0),
                                                         child: DropdownSearch<
-                                                            Product>.multiSelection(
+                                                            Product>(
                                                           compareFn: (Product
                                                                   item1,
                                                               Product item2) {
                                                             return item1
                                                                     .leadid ==
-                                                                item2
-                                                                    .leadid; // Or whatever unique property your Product model uses
+                                                                item2.leadid;
                                                           },
                                                           itemAsString:
                                                               (Product item) {
                                                             return item.product;
                                                           },
                                                           popupProps:
-                                                              const MultiSelectionPopupProps
+                                                              const PopupProps
                                                                   .dialog(
-                                                                  dialogProps:
-                                                                      DialogProps(
-                                                                    barrierDismissible:
-                                                                        true,
-                                                                    barrierLabel:
-                                                                        "Dismiss",
-                                                                  ),
-                                                                  // showSelectedItems:
-                                                                  //     true,
-                                                                  showSearchBox:
-                                                                      true),
-                                                          // mode: Mode.dialog,
-                                                          // showSelectedItems: true,
+                                                            dialogProps:
+                                                                DialogProps(
+                                                              barrierDismissible:
+                                                                  true,
+                                                              barrierLabel:
+                                                                  "Dismiss",
+                                                            ),
+                                                            showSearchBox: true,
+                                                          ),
                                                           items: (filter,
                                                                   infiniteScrollProps) =>
                                                               filterproducts,
@@ -1274,30 +1337,87 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   "Select a Product",
                                                             ),
                                                           ),
+                                                          onSelected: (Product?
+                                                              value) async {
+                                                            setstate(() {
+                                                              _selectedcomplainproduct =
+                                                                  value;
+                                                              // Wrap in a list if _selectedfollowupproduct expects a List<Product>
+                                                              _selectedfollowupproduct =
+                                                                  value != null
+                                                                      ? [value]
+                                                                      : [];
+                                                            });
+
+                                                            await fetchcheckoutdetail(
+                                                                _selectedfollowupproduct,
+                                                                setstate);
+                                                          },
+                                                          selectedItem:
+                                                              _selectedcomplainproduct,
+                                                        ),
+                                                      ),
+                                                    ] else ...[
+                                                      // MULTI SELECTION BLOCK
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: DropdownSearch<
+                                                            Product>.multiSelection(
+                                                          compareFn: (Product
+                                                                  item1,
+                                                              Product item2) {
+                                                            return item1
+                                                                    .leadid ==
+                                                                item2.leadid;
+                                                          },
+                                                          itemAsString:
+                                                              (Product item) {
+                                                            return item.product;
+                                                          },
+                                                          popupProps:
+                                                              const MultiSelectionPopupProps
+                                                                  .dialog(
+                                                            dialogProps:
+                                                                DialogProps(
+                                                              barrierDismissible:
+                                                                  true,
+                                                              barrierLabel:
+                                                                  "Dismiss",
+                                                            ),
+                                                            showSearchBox: true,
+                                                          ),
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              filterproducts,
+                                                          decoratorProps:
+                                                              const DropDownDecoratorProps(
+                                                            decoration:
+                                                                InputDecoration(
+                                                              labelText:
+                                                                  "Follow-up For Product",
+                                                              hintText:
+                                                                  "Select Products",
+                                                            ),
+                                                          ),
                                                           onSelected:
-                                                              (value) async {
+                                                              (List<Product>
+                                                                  value) async {
                                                             setstate(() {
                                                               _selectedfollowupproduct =
                                                                   value;
-                                                              if (_selectedleadtype ==
-                                                                  "INSTALLATION") {
-                                                                // getproductinfo(
-                                                                //     widget
-                                                                //         .currentlead!
-                                                                //         .pjc,
-                                                                //     value
-                                                                //         .map((e) =>
-                                                                //             e.product)
-                                                                //         .toList());
-                                                              }
                                                             });
+
                                                             await fetchcheckoutdetail(
                                                                 _selectedfollowupproduct,
                                                                 setstate);
                                                           },
                                                           selectedItems:
                                                               _selectedfollowupproduct,
-                                                        )),
+                                                        ),
+                                                      ),
+                                                    ],
 
                                                     Padding(
                                                       padding:
@@ -1354,7 +1474,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               } else {
                                                                 _leadstat = 2;
                                                               }
-                                                              getcategory();
+                                                              if (_selectedleadtype !=
+                                                                  "INSTALLATION") {
+                                                                getcategory();
+                                                                getitemdetail();
+                                                              }
                                                             });
                                                           },
                                                           selectedItem:
@@ -1405,6 +1529,64 @@ class _LeadDetailState extends State<LeadDetail> {
                                                       //   ],
                                                       // ),
                                                     ),
+                                                    if (_selectedleadtype ==
+                                                        "COMPLAIN")
+                                                      Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: DropdownSearch<
+                                                              AMCModel>.multiSelection(
+                                                            compareFn: (item1,
+                                                                    item2) =>
+                                                                item1.code ==
+                                                                    item2
+                                                                        .code &&
+                                                                item1.item ==
+                                                                    item2.item,
+                                                            popupProps: const MultiSelectionPopupProps
+                                                                .dialog(
+                                                                dialogProps:
+                                                                    DialogProps(
+                                                                  barrierDismissible:
+                                                                      true,
+                                                                  barrierLabel:
+                                                                      "Dismiss",
+                                                                ),
+                                                                // showSelectedItems: true,
+                                                                showSearchBox:
+                                                                    true),
+                                                            // mode: Mode.dialog,
+                                                            // showSelectedItems: true,
+                                                            items: (filter,
+                                                                    infiniteScrollProps) =>
+                                                                _amcitemdetail,
+                                                            itemAsString:
+                                                                (item) {
+                                                              return "${item.item} (${item.idatec})";
+                                                            },
+                                                            decoratorProps:
+                                                                const DropDownDecoratorProps(
+                                                              decoration:
+                                                                  InputDecoration(
+                                                                labelText:
+                                                                    "Item Detail",
+                                                                hintText:
+                                                                    "Select Item",
+                                                              ),
+                                                            ),
+
+                                                            onSelected:
+                                                                (value) {
+                                                              setstate(() {
+                                                                _selectedamcitemdetail =
+                                                                    value;
+                                                                // getbilldetail();
+                                                              });
+                                                            },
+                                                            selectedItems:
+                                                                _selectedamcitemdetail,
+                                                          )),
                                                     if (_selectedstatus ==
                                                             "Installation Completed" ||
                                                         ((_selectedstatus ==
@@ -1478,6 +1660,10 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       _selectedinstallationitems =
                                                                           value;
                                                                     });
+                                                                    if (_selectedleadtype ==
+                                                                        "INSTALLATION") {
+                                                                      getcategory();
+                                                                    }
                                                                   },
                                                                   selectedItems:
                                                                       _selectedinstallationitems,
@@ -1497,21 +1683,35 @@ class _LeadDetailState extends State<LeadDetail> {
                                                             const EdgeInsets
                                                                 .all(5.0),
                                                         child: DropdownSearch<
-                                                            String>(
+                                                            LeadCategory>(
+                                                          itemAsString: (item) {
+                                                            return item.ddl12;
+                                                          },
+                                                          compareFn:
+                                                              (item1, item2) {
+                                                            return item1
+                                                                    .ddl12 ==
+                                                                item2.ddl12;
+                                                          },
                                                           enabled: !_resendotp,
-                                                          popupProps: const PopupProps
-                                                              .dialog(
-                                                              dialogProps:
-                                                                  DialogProps(
-                                                                barrierDismissible:
-                                                                    true,
-                                                                barrierLabel:
-                                                                    "Dismiss",
-                                                              ),
-                                                              showSelectedItems:
-                                                                  true,
-                                                              showSearchBox:
-                                                                  true),
+                                                          popupProps:
+                                                              PopupProps.dialog(
+                                                                  disabledItemFn:
+                                                                      (item) {
+                                                                    return !item
+                                                                        .enabled;
+                                                                  },
+                                                                  dialogProps:
+                                                                      const DialogProps(
+                                                                    barrierDismissible:
+                                                                        true,
+                                                                    barrierLabel:
+                                                                        "Dismiss",
+                                                                  ),
+                                                                  showSelectedItems:
+                                                                      true,
+                                                                  showSearchBox:
+                                                                      true),
                                                           // mode: Mode.dialog,
                                                           // showSelectedItems: true,
                                                           items: (filter,
@@ -1539,7 +1739,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           selectedItem:
                                                               _selectedcategory,
                                                         )),
-                                                    if (_selectedcategory ==
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
                                                         "Spare Part Required")
                                                       Padding(
                                                         padding:
@@ -1552,7 +1753,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               _sparepartnamecontroller,
                                                         ),
                                                       ),
-                                                    if (_selectedcategory ==
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
                                                         "Spare Part Required")
                                                       Padding(
                                                         padding:
@@ -1568,9 +1770,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   .number,
                                                         ),
                                                       ),
-                                                    if ((_selectedcategory ==
+                                                    if ((_selectedcategory
+                                                                ?.ddl12 ==
                                                             "Paid Basis") |
-                                                        (_selectedcategory ==
+                                                        (_selectedcategory
+                                                                ?.ddl12 ==
                                                             "Obligatory Service"))
                                                       Padding(
                                                         padding:
@@ -1594,7 +1798,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           },
                                                         ),
                                                       ),
-                                                    if (_selectedcategory ==
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
                                                         "Paid Basis")
                                                       Padding(
                                                         padding:
@@ -1617,7 +1822,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           },
                                                         ),
                                                       ),
-                                                    if (_selectedcategory ==
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
                                                         "Paid Basis")
                                                       Padding(
                                                         padding:
@@ -1641,9 +1847,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                         ),
                                                       ),
                                                     // gst %
-                                                    if ((_selectedcategory ==
+                                                    if ((_selectedcategory
+                                                                ?.ddl12 ==
                                                             "Paid Basis") |
-                                                        (_selectedcategory ==
+                                                        (_selectedcategory
+                                                                ?.ddl12 ==
                                                             "Obligatory Service"))
                                                       Padding(
                                                         padding:
@@ -1731,9 +1939,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               }
                                                             })),
                                                       ),
-                                                    if ((_selectedcategory ==
+                                                    if ((_selectedcategory
+                                                                ?.ddl12 ==
                                                             "Paid Basis") |
-                                                        (_selectedcategory ==
+                                                        (_selectedcategory
+                                                                ?.ddl12 ==
                                                             "Obligatory Service"))
                                                       Padding(
                                                         padding:
@@ -1749,7 +1959,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   .number,
                                                         ),
                                                       ),
-                                                    if (_selectedcategory ==
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
                                                         "Free Service as per Installation Agreement")
                                                       Padding(
                                                         padding:
@@ -1761,38 +1972,39 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           controller:
                                                               _installdatecontroller,
                                                           readOnly: true,
-                                                          onTap: _resendotp
-                                                              ? null
-                                                              : () async {
-                                                                  DateTime? picked = await showDatePicker(
-                                                                      context:
-                                                                          context,
-                                                                      initialDate:
-                                                                          DateTime
-                                                                              .now(),
-                                                                      firstDate:
-                                                                          DateTime(
-                                                                              1900),
-                                                                      lastDate:
-                                                                          DateTime(
-                                                                              2100));
-                                                                  if (picked !=
-                                                                      null) {
-                                                                    setstate(
-                                                                        () {
-                                                                      _installdatecontroller.text = picked
-                                                                          .toString()
-                                                                          .split(
-                                                                              " ")[0];
-                                                                    });
-                                                                  }
-                                                                  // setstate(() {
-                                                                  //   _dobdate = picked;
-                                                                  // });
-                                                                },
+                                                          // onTap: _resendotp
+                                                          //     ? null
+                                                          //     : () async {
+                                                          //         DateTime? picked = await showDatePicker(
+                                                          //             context:
+                                                          //                 context,
+                                                          //             initialDate:
+                                                          //                 DateTime
+                                                          //                     .now(),
+                                                          //             firstDate:
+                                                          //                 DateTime(
+                                                          //                     1900),
+                                                          //             lastDate:
+                                                          //                 DateTime(
+                                                          //                     2100));
+                                                          //         if (picked !=
+                                                          //             null) {
+                                                          //           setstate(
+                                                          //               () {
+                                                          //             _installdatecontroller.text = picked
+                                                          //                 .toString()
+                                                          //                 .split(
+                                                          //                     " ")[0];
+                                                          //           });
+                                                          //         }
+                                                          //         // setstate(() {
+                                                          //         //   _dobdate = picked;
+                                                          //         // });
+                                                          //       },
                                                         ),
                                                       ),
-                                                    if (_selectedcategory ==
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
                                                         "Under AMC")
                                                       Padding(
                                                         padding:
@@ -1803,32 +2015,32 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           controller:
                                                               _amcdatecontroller,
                                                           readOnly: true,
-                                                          onTap: _resendotp
-                                                              ? null
-                                                              : () async {
-                                                                  DateTime? picked = await showDatePicker(
-                                                                      context:
-                                                                          context,
-                                                                      initialDate:
-                                                                          DateTime
-                                                                              .now(),
-                                                                      firstDate:
-                                                                          DateTime(
-                                                                              1900),
-                                                                      lastDate:
-                                                                          DateTime(
-                                                                              2100));
-                                                                  if (picked !=
-                                                                      null) {
-                                                                    setstate(
-                                                                        () {
-                                                                      _amcdatecontroller.text = picked
-                                                                          .toString()
-                                                                          .split(
-                                                                              " ")[0];
-                                                                    });
-                                                                  }
-                                                                },
+                                                          // onTap: _resendotp
+                                                          //     ? null
+                                                          //     : () async {
+                                                          //         DateTime? picked = await showDatePicker(
+                                                          //             context:
+                                                          //                 context,
+                                                          //             initialDate:
+                                                          //                 DateTime
+                                                          //                     .now(),
+                                                          //             firstDate:
+                                                          //                 DateTime(
+                                                          //                     1900),
+                                                          //             lastDate:
+                                                          //                 DateTime(
+                                                          //                     2100));
+                                                          //         if (picked !=
+                                                          //             null) {
+                                                          //           setstate(
+                                                          //               () {
+                                                          //             _amcdatecontroller.text = picked
+                                                          //                 .toString()
+                                                          //                 .split(
+                                                          //                     " ")[0];
+                                                          //           });
+                                                          //         }
+                                                          //       },
                                                         ),
                                                       ),
                                                     if (_selectedstatus ==
@@ -1898,7 +2110,8 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               })),
                                                     if (_selectedstatus ==
                                                             "Installation Completed" &&
-                                                        _selectedcategory !=
+                                                        _selectedcategory
+                                                                ?.ddl12 !=
                                                             "Installation Created by Mistake")
                                                       for (var product
                                                           in _selectedfollowupproduct)

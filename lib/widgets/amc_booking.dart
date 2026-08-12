@@ -14,7 +14,9 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AMC extends StatefulWidget {
-  const AMC({super.key});
+  bool? edit;
+  String? amcno;
+  AMC({super.key, this.amcno, this.edit = false});
 
   @override
   State<AMC> createState() => _AMCState();
@@ -41,7 +43,8 @@ class _AMCState extends State<AMC> {
   final TextEditingController _billQuantityController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _amcstartDateController = TextEditingController();
+  final TextEditingController _amcstartDateController = TextEditingController(
+      text: DateFormat('dd/MM/yyyy').format(DateTime.now()));
   final TextEditingController _cashRecieverNameController =
       TextEditingController();
   final TextEditingController _cashRecieverContactController =
@@ -178,6 +181,7 @@ class _AMCState extends State<AMC> {
       'Model': _selectedamcitemdetail.isNotEmpty
           ? _selectedamcitemdetail.first.item
           : _selectedmodel,
+      "List_Model": _selectedmodel,
       'AMC_Type': _selectedamctype,
       'AMC_Period': _selectedduration,
       'Bill_date': _billDateController.text,
@@ -187,6 +191,7 @@ class _AMCState extends State<AMC> {
       'AMC_Start_Date': _amcstartDateController.text,
       'Rate': _rateController.text,
       'Amount': _amountController.text,
+      'item_codes': _selectedamcitemdetail.map((item) => item.code).toList(),
       // 'Payment_mode': paymentMethod,
     };
     final resp = await http.post(Uri.parse('$baseuri/api/amcbooking/'),
@@ -198,143 +203,7 @@ class _AMCState extends State<AMC> {
       final result = json.decode(resp.body);
       final String message = result['message'];
       final String amcNumber = result['amc_number'];
-      var res = await showDialog(
-        barrierDismissible: false,
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("Payment Handover Confirmation"),
-          content: StatefulBuilder(
-            // 1. Wrap with StatefulBuilder
-            builder: (BuildContext context, StateSetter setDialogState) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: DropdownSearch<String>(
-                        popupProps: const PopupProps.dialog(
-                          dialogProps: DialogProps(
-                            barrierDismissible: true,
-                            barrierLabel: "Dismiss",
-                          ),
-                          showSelectedItems: true,
-                          showSearchBox: true,
-                        ),
-                        items: (filter, infiniteScrollProps) =>
-                            ["Cash", "Cheque", "NEFT/RTGS"],
-                        decoratorProps: const DropDownDecoratorProps(
-                          decoration: InputDecoration(
-                            labelText: "Payment Method",
-                            hintText: "Select Payment Method",
-                          ),
-                        ),
-                        onSelected: (value) {
-                          // 2. Use setDialogState to rebuild the dialog internally
-                          setDialogState(() {
-                            _selectedpaymentmethod = value!;
-                          });
 
-                          // Also update the parent view state if needed outside the dialog
-                          setState(() {
-                            _selectedpaymentmethod = value!;
-                          });
-                        },
-                        selectedItem: _selectedpaymentmethod,
-                      ),
-                    ),
-
-                    // 3. This condition will now actively re-evaluate inside the dialog!
-                    if (_selectedpaymentmethod == "Cheque" ||
-                        _selectedpaymentmethod == "NEFT/RTGS") ...[
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Document Number",
-                          controller: _documentNumberController,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Bank Name",
-                          controller: _bankNameController,
-                        ),
-                      ),
-                    ],
-
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: InputField(
-                        label: "Payment Giver Name",
-                        controller: _cashGiverNameController,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: InputField(
-                        label: "Payment Giver Contact",
-                        controller: _cashGiverContactController,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, {
-                "receiver_name": username,
-                "receiver_contact": usermobile,
-                "giver_name": _cashGiverNameController.text,
-                "giver_contact": _cashGiverContactController.text,
-                "payment_method": _selectedpaymentmethod,
-                'document_number': _documentNumberController.text,
-                'bank_name': _bankNameController.text,
-              }),
-              child: const Text("OK"),
-            )
-          ],
-        ),
-      );
-      if (res != null) {
-        // You can now use the res map to access the entered details
-        print("Cash Handover Details: $res");
-        // Here you can send this data to your backend or perform any other action
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.loading,
-          text: 'Sending OTP to ${res["giver_contact"]}',
-        );
-        var resp = await http.post(Uri.parse('$baseuri/api/amcpayment/'),
-            body: jsonEncode({
-              "amc_number": amcNumber,
-              "payment_mode": _selectedpaymentmethod,
-              "receiver_name": res["receiver_name"],
-              "receiver_contact": res["receiver_contact"],
-              "giver_name": res["giver_name"],
-              "giver_contact": res["giver_contact"],
-              'document_number': res['document_number'],
-              'bank_name': res['bank_name'],
-            }),
-            headers: {"Content-Type": "application/json"});
-        if (resp.statusCode == 200) {
-          // enter otp dialog
-          Navigator.of(context).pop(); // Close the loading dialog
-          var jcc = await openDialog(" Cash Recieve OTP", "Enter OTP");
-          var otpverifyresp =
-              await http.post(Uri.parse('$baseuri/api/amcpaymentverify/'),
-                  body: jsonEncode({
-                    "amc_number": amcNumber,
-                    "otp": jcc,
-                    'item_codes': _selectedamcitemdetail
-                        .map((item) => item.code)
-                        .toList(),
-                  }),
-                  headers: {"Content-Type": "application/json"});
-        }
-      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text("Data saved successfully"),
           backgroundColor: Colors.green[400]));
@@ -407,6 +276,9 @@ class _AMCState extends State<AMC> {
               'There is already a running AMC for the selected product with following details:Booking Date: ${body['booking_date']}\nCompany: ${body['company']}\nModel: ${body['model']}\nAMC Type: ${body['amc_type']}\nAMC Duration: ${body['amc_duration']}',
         );
       }
+      setState(() {
+        _amcstartDateController.text = body["next_amc_start"];
+      });
     }
   }
 
@@ -442,6 +314,7 @@ class _AMCState extends State<AMC> {
         headers: {"Content-Type": "application/json"});
     final body = json.decode(response.body);
     List<String> comp = [];
+    print(body);
     if (response.statusCode == 200) {
       for (var c in body) {
         comp.add(c['Model']);
@@ -495,6 +368,7 @@ class _AMCState extends State<AMC> {
           _billNumberController.text = body['bill_no'] ?? '';
           _billQuantityController.text = body['qty']?.toString() ?? '';
         });
+        getrate();
       }
     }
   }
@@ -525,6 +399,92 @@ class _AMCState extends State<AMC> {
     super.initState();
     _projects = getprojects();
     // getloginut();
+    if (widget.edit == true && widget.amcno != null) {
+      _loadAndPrefillData();
+    }
+  }
+
+  Future<void> _loadAndPrefillData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 1. Fetch AMC Details by AMC Number
+      final response = await http.get(
+        Uri.parse('$baseuri/api/amcdetails/?amcno=${widget.amcno}'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // 2. Fetch projects first to set matching selected project
+        List<Project> projectList = await _projects;
+        Project? matchedProject = projectList.firstWhere(
+          (p) => p.pjc == data['PJC'],
+          orElse: () => Project(pjc: "", pname: "", custtype: ""),
+        );
+        _selectedproject = matchedProject;
+        _selectedamctype = data['AMC_type'];
+        // 3. Set primary string fields & controllers
+        _selectedproduct = data['Product_Type'];
+        _selectedduration = data['AMC_Period'];
+        _billDateController.text = data['Bill_date'] ?? '';
+        _billNumberController.text = data['Bill_Number'] ?? '';
+        _billQuantityController.text = data['Qty']?.toString() ?? '';
+        _amcstartDateController.text = data['AMC_Start_Date'] ?? '';
+        _rateController.text = data['Rate']?.toString() ?? '';
+        _amountController.text = data['Amount']?.toString() ?? '';
+
+        // 4. Load options sequentially for cascading dropdowns
+        if (_selectedproduct != null) {
+          await getcomp();
+          if (_company.isNotEmpty) {
+            _selectedcomp = _company.firstWhere(
+              (c) => c.company == data['Company'],
+              orElse: () => _company.first,
+            );
+          }
+
+          if (_selectedcomp != null) {
+            await getmodel();
+            _selectedmodel = data['List_Model'];
+
+            await getitemdetail();
+            // Pre-select items if item codes are returned from response
+            if (data['item_codes'] != null) {
+              List<dynamic> itemCodes = data['item_codes'];
+              _selectedamcitemdetail = _amcitemdetail
+                  .where((item) => itemCodes.contains(item.code))
+                  .toList();
+            }
+            await getamctype();
+            _selectedamctype = data['AMC_Type'];
+          }
+        }
+
+        // 5. Calculate rate/amounts if necessary
+        getrate(custom: true);
+
+        setState(() {
+          _selectedproject =
+              matchedProject.pjc.isNotEmpty ? matchedProject : null;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to fetch existing AMC details."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error loading AMC data: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -552,7 +512,7 @@ class _AMCState extends State<AMC> {
                               builder: (context, snapshot) {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<Project>(
-                                    // enabled: _isenabled,
+                                    enabled: widget.edit==true? false:true,
                                     compareFn: (item1, item2) =>
                                         item1.pjc == item2.pjc,
                                     popupProps: const PopupProps.dialog(
@@ -701,7 +661,7 @@ class _AMCState extends State<AMC> {
                       Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<String>(
-                            // enabled: _isenabled,
+                            enabled: widget.edit==true? false:true,
                             popupProps: const PopupProps.dialog(
                                 dialogProps: DialogProps(
                                   barrierDismissible: true,
@@ -831,7 +791,7 @@ class _AMCState extends State<AMC> {
                             },
                             decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
-                                labelText: "Item",
+                                labelText: "Item Detail",
                                 hintText: "Select Item",
                               ),
                             ),
@@ -1049,7 +1009,7 @@ class _AMCState extends State<AMC> {
                                   backgroundColor:
                                       const Color.fromRGBO(252, 101, 8, 1),
                                   foregroundColor: Colors.white),
-                              child: const Text("Pay Now"),
+                              child: const Text("Save Details"),
                             ),
                             // ElevatedButton(
                             //   onPressed: _isLoading

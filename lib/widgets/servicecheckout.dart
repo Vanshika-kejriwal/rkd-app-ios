@@ -42,7 +42,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   List<Product> products = [];
   List<Product> filterproducts = [];
   List<InvItem> _selectedinstallationitems = [];
-  final List<String> _category = [];
+  List<LeadCategory> _category = [];
   final _sparepartnamecontroller = TextEditingController();
   final _sparepartcostcontroller = TextEditingController();
   final _servicechargecontroller = TextEditingController();
@@ -67,7 +67,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   double _gstAmount = 0.0;
   String _selectedstatus = '';
   String _selectedgst = '';
-  String _selectedcategory = '';
+  LeadCategory? _selectedcategory;
   final String _pname = '';
   String _checkoutloca = '';
   bool _isLoading = false;
@@ -114,22 +114,24 @@ class _ServicecheckoutState extends State<Servicecheckout> {
       final body = json.decode(response.body);
       ss(() {
         _selectedstatus = body["STATUS"];
-        _selectedcategory = body["CATEGORY"];
+        _selectedcategory?.ddl12 = body["CATEGORY"];
+        _selectedcategory?.enabled = true;
         _commentcontroller.text = body["COMMENTS"];
         // _selectedfollowupby = body["NEXT_FUBY"];
         // _nextfudatecontroller.text = body["NEXT_FUDATE"];
-        if ((_selectedcategory == "Paid Basis") |
-            (_selectedcategory == "Obligatory Service")) {
+        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+            (_selectedcategory?.ddl12 == "Obligatory Service")) {
           _selectedgst = body["GSTP"];
           _sparechargecontroller.text = body["SPARE_CHARGE"];
           _servicechargecontroller.text = body["SERVICE_CHARGE"];
           _otherchargecontroller.text = body["OTHER_CHARGE"];
           _gstamountcontroller.text = body["GST"];
         }
-        if (_selectedcategory == "Under AMC") {
+        if (_selectedcategory?.ddl12 == "Under AMC") {
           _amcdatecontroller.text = body["INSTALLATION_DATE"] ?? "";
         }
-        if (_selectedcategory == "Free Service as per Installation Agreement") {
+        if (_selectedcategory?.ddl12 ==
+            "Free Service as per Installation Agreement") {
           _installdatecontroller.text = body["INSTALLATION_DATE"] ?? "";
         }
         body["items"]?.forEach((item) {
@@ -186,14 +188,29 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   }
 
   Future<void> getcategory() async {
-    final response = await http.get(
-        Uri.parse('$baseuri/api/leadstatcategory/?status=$_selectedstatus'));
+    final response = await http.get(Uri.parse(
+        '$baseuri/api/leadstatcategory/?status=$_selectedstatus&type=SERVICE&pjc=${widget.pjc}&product=${_selectedfollowupproduct?.product}&items=${_selectedinstallationitems.map((item) => item.code).toList().join(",")}'));
     final body = json.decode(response.body);
-    // List<String> names = [];
+    List<LeadCategory> names = [];
+    var ins_date="";
+    var amc_date ="";
     if (response.statusCode == 200) {
       for (var c in body) {
-        _category.add(c["DDL12"]);
+        print(c['DDL12']);
+        print(c['inst_date']);
+        names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled']));
+        if (c["inst_date"] != null) {
+          ins_date = c["inst_date"];
+        }
+        if (c["amc_date"] != null) {
+          amc_date = c["amc_date"];
+        }
       }
+      setState(() {
+        _category = names;
+        _installdatecontroller.text = ins_date;
+        _amcdatecontroller.text = amc_date;
+      });
     }
   }
 
@@ -259,7 +276,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
       'CHECKOUT_LOCA': _checkoutloca ?? "",
       'NEXT_FUDATETIME': _nextfudatecontroller.text,
       "STATUS": _selectedstatus ?? "",
-      "CATEGORY": _selectedcategory ?? "",
+      "CATEGORY": _selectedcategory!.ddl12 ?? "",
       "SPARE PART COST": _sparepartcostcontroller.text,
       "SPARE PART NAME": _sparepartnamecontroller.text,
       "AMC DATE": _amcdatecontroller.text,
@@ -745,7 +762,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   _selectedfollowupproduct = value;
                                   _answers.clear();
                                   _selectedstatus = "";
-                                  _selectedcategory = "";
+                                  _selectedcategory = null;
                                   _selectedinstallationitems = [];
                                   _controllers.forEach((key, controller) =>
                                       controller.clear()); // Reset visuals
@@ -804,7 +821,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                           ""; // Initialize all Qs
                                     }
                                   }
-                                  getcategory();
+
                                   if (_selectedfollowupproduct?.product
                                               .toLowerCase() ==
                                           "water treatment" &&
@@ -899,6 +916,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                       onSelected: (value) {
                                         setState(() {
                                           _selectedinstallationitems = value;
+                                          getcategory();
                                         });
                                       },
                                       selectedItems: _selectedinstallationitems,
@@ -915,10 +933,16 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                         // if ((_selectedstatus == "Job Completed "))
                         Padding(
                             padding: const EdgeInsets.all(5.0),
-                            child: DropdownSearch<String>(
+                            child: DropdownSearch<LeadCategory>(
+                              compareFn: ((item1, item2) {
+                                return item1.ddl12 == item2.ddl12;
+                              }),
                               // enabled: !_resendotp,
-                              popupProps: const PopupProps.dialog(
-                                  dialogProps: DialogProps(
+                              popupProps: PopupProps.dialog(
+                                  disabledItemFn: (item) {
+                                    return !item.enabled;
+                                  },
+                                  dialogProps: const DialogProps(
                                       barrierDismissible: true,
                                       barrierLabel: "Dismiss"),
                                   showSelectedItems: true,
@@ -926,6 +950,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               // mode: Mode.dialog,
                               // showSelectedItems: true,
                               items: (filter, infiniteScrollProps) => _category,
+                              itemAsString: (item) {
+                                return item.ddl12;
+                              },
                               decoratorProps: const DropDownDecoratorProps(
                                 decoration: InputDecoration(
                                   labelText: "Reason/Category",
@@ -942,7 +969,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               },
                               selectedItem: _selectedcategory,
                             )),
-                        if (_selectedcategory == "Spare Part Required")
+                        if (_selectedcategory?.ddl12 == "Spare Part Required")
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
@@ -951,7 +978,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               controller: _sparepartnamecontroller,
                             ),
                           ),
-                        if (_selectedcategory == "Spare Part Required")
+                        if (_selectedcategory?.ddl12 == "Spare Part Required")
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
@@ -961,9 +988,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               keyboardtype: TextInputType.number,
                             ),
                           ),
-                        if ((_selectedcategory == "Paid Basis") |
-                            (_selectedcategory == "Obligatory Service") |
-                            (_selectedcategory ==
+                        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+                            (_selectedcategory?.ddl12 == "Obligatory Service") |
+                            (_selectedcategory?.ddl12 ==
                                 "Free Service as per Installation Agreement"))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -978,9 +1005,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               },
                             ),
                           ),
-                        if ((_selectedcategory == "Paid Basis") |
-                            (_selectedcategory == "Obligatory Service") |
-                            (_selectedcategory ==
+                        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+                            (_selectedcategory?.ddl12 == "Obligatory Service") |
+                            (_selectedcategory?.ddl12 ==
                                 "Free Service as per Installation Agreement"))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -995,9 +1022,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               },
                             ),
                           ),
-                        if ((_selectedcategory == "Paid Basis") |
-                            (_selectedcategory == "Obligatory Service") |
-                            (_selectedcategory ==
+                        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+                            (_selectedcategory?.ddl12 == "Obligatory Service") |
+                            (_selectedcategory?.ddl12 ==
                                 "Free Service as per Installation Agreement"))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1013,9 +1040,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                             ),
                           ),
                         // gst %
-                        if ((_selectedcategory == "Paid Basis") |
-                            (_selectedcategory == "Obligatory Service") |
-                            (_selectedcategory ==
+                        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+                            (_selectedcategory?.ddl12 == "Obligatory Service") |
+                            (_selectedcategory?.ddl12 ==
                                 "Free Service as per Installation Agreement"))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1076,9 +1103,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   }
                                 })),
                           ),
-                        if ((_selectedcategory == "Paid Basis") |
-                            (_selectedcategory == "Obligatory Service") |
-                            (_selectedcategory ==
+                        if ((_selectedcategory?.ddl12 == "Paid Basis") |
+                            (_selectedcategory?.ddl12 == "Obligatory Service") |
+                            (_selectedcategory?.ddl12 ==
                                 "Free Service as per Installation Agreement"))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1089,7 +1116,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               keyboardtype: TextInputType.number,
                             ),
                           ),
-                        if (_selectedcategory ==
+                        if (_selectedcategory?.ddl12 ==
                             "Free Service as per Installation Agreement")
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1097,48 +1124,48 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               label: "Installation Date",
                               controller: _installdatecontroller,
                               readOnly: true,
-                              onTap: _resendotp
-                                  ? null
-                                  : () async {
-                                      DateTime? picked = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(1900),
-                                          lastDate: DateTime(2100));
-                                      if (picked != null) {
-                                        setState(() {
-                                          _installdatecontroller.text =
-                                              picked.toString().split(" ")[0];
-                                        });
-                                      }
-                                      // setState(() {
-                                      //   _dobdate = picked;
-                                      // });
-                                    },
+                              // onTap: _resendotp
+                              //     ? null
+                              //     : () async {
+                              //         DateTime? picked = await showDatePicker(
+                              //             context: context,
+                              //             initialDate: DateTime.now(),
+                              //             firstDate: DateTime(1900),
+                              //             lastDate: DateTime(2100));
+                              //         if (picked != null) {
+                              //           setState(() {
+                              //             _installdatecontroller.text =
+                              //                 picked.toString().split(" ")[0];
+                              //           });
+                              //         }
+                              //         // setState(() {
+                              //         //   _dobdate = picked;
+                              //         // });
+                              //       },
                             ),
                           ),
-                        if (_selectedcategory == "Under AMC")
+                        if (_selectedcategory?.ddl12 == "Under AMC")
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
                               label: "AMC Date",
                               controller: _amcdatecontroller,
                               readOnly: true,
-                              onTap: _resendotp
-                                  ? null
-                                  : () async {
-                                      DateTime? picked = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(1900),
-                                          lastDate: DateTime(2100));
-                                      if (picked != null) {
-                                        setState(() {
-                                          _amcdatecontroller.text =
-                                              picked.toString().split(" ")[0];
-                                        });
-                                      }
-                                    },
+                              // onTap: _resendotp
+                              //     ? null
+                              //     : () async {
+                              //         DateTime? picked = await showDatePicker(
+                              //             context: context,
+                              //             initialDate: DateTime.now(),
+                              //             firstDate: DateTime(1900),
+                              //             lastDate: DateTime(2100));
+                              //         if (picked != null) {
+                              //           setState(() {
+                              //             _amcdatecontroller.text =
+                              //                 picked.toString().split(" ")[0];
+                              //           });
+                              //         }
+                              //       },
                             ),
                           ),
 

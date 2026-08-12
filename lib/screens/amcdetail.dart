@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:business_app/screens/pdfview.dart';
+import 'package:business_app/widgets/amc_booking.dart';
+import 'package:business_app/widgets/input_field.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:intl/intl.dart';
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/leads.dart';
@@ -18,8 +21,9 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AMCDetail extends StatefulWidget {
+  bool? pending;
   Lead? currentlead; // Assuming Lead is a defined class
-  AMCDetail({super.key, this.currentlead});
+  AMCDetail({super.key, this.currentlead, this.pending});
 
   @override
   State<AMCDetail> createState() => _AMCDetailState();
@@ -30,6 +34,15 @@ class _AMCDetailState extends State<AMCDetail> {
   List<AMCDetailModel> filtermeeting = [];
   bool _isdataLoaded = false;
   Timer? _reloadTimer;
+  final TextEditingController _cashGiverNameController =
+      TextEditingController();
+  final TextEditingController _cashGiverContactController =
+      TextEditingController();
+  final TextEditingController _jcccontroller = TextEditingController();
+  String? _selectedpaymentmethod;
+  final TextEditingController _documentNumberController =
+      TextEditingController();
+  final TextEditingController _bankNameController = TextEditingController();
 
   Widget _buildDataColumn(String label, String value) {
     return Expanded(
@@ -60,7 +73,8 @@ class _AMCDetailState extends State<AMCDetail> {
   }
 
   // Combines two data columns into a cleanly separated row
-  Widget _buildInfoRow(String label1, String value1, String label2, String value2) {
+  Widget _buildInfoRow(
+      String label1, String value1, String label2, String value2) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -81,7 +95,7 @@ class _AMCDetailState extends State<AMCDetail> {
       var ut = sharedpref.getString('UT');
       final response = await http.get(
           Uri.parse(
-              '$baseuri/api/amcbookinglist/?pjc=${widget.currentlead?.pjc}'),
+              '$baseuri/api/amcbookinglist/?pjc=${widget.currentlead?.pjc}&pending=${widget.pending}'),
           headers: {"Content-Type": "application/json"});
 
       if (response.statusCode == 200) {
@@ -111,7 +125,7 @@ class _AMCDetailState extends State<AMCDetail> {
 
             // 4. Add duration and format back into the desired display string
             var amcenddate = DateFormat('dd/MM/yyyy')
-                .format(parsedStartDate.add(Duration(days: days)));
+                .format(parsedStartDate.add(Duration(days: days * 30)));
 
             // Push into our temporary local list
             parsedMeetings.add(AMCDetailModel(
@@ -191,6 +205,22 @@ class _AMCDetailState extends State<AMCDetail> {
     }
   }
 
+  Future<String?> openDialog(title, lablel) => showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: InputField(label: lablel, controller: _jcccontroller),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(_jcccontroller.text);
+                },
+                child: const Text("SUBMIT"))
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Background(
@@ -200,17 +230,19 @@ class _AMCDetailState extends State<AMCDetail> {
       childs: !_isdataLoaded
           ? const Center(child: CircularProgressIndicator())
           : filtermeeting.isEmpty
-              ? const Center(child: Text("No data found", style: TextStyle(color: Colors.grey)))
+              ? const Center(
+                  child: Text("No data found",
+                      style: TextStyle(color: Colors.grey)))
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   itemCount: filtermeeting.length,
                   itemBuilder: (context, index) {
                     final item = filtermeeting[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        // Gives a soft transparent overlay over the background
-                        color: Colors.transparent, 
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(16.0),
                         border: Border.all(
                           color: Colors.grey,
@@ -257,101 +289,424 @@ class _AMCDetailState extends State<AMCDetail> {
                               "₹${item.amount}",
                             ),
                             const SizedBox(height: 20),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 44,
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.receipt_long, size: 18),
-                                label: const Text(
-                                  "View Receipt",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Theme.of(context).primaryColor),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: () async{
-                                if (context.mounted) {
-                                QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.loading,
-                                    title: "Generating Receipt...",
-                                    barrierDismissible: false);
-                              }
-                              // String queryparam = "ino=$ino&mob=$mob";
-                              var respcode = await http.get(Uri.parse(
-                                  '$baseuri/api/amcreceipt/?amc_number=${item.amcno}')).timeout(const Duration(seconds: 120));
-                              // if (context.mounted) {
-                              //   Navigator.pop(context);
-                              // }
-                              if (respcode.statusCode == 200 ||
-                                  respcode.statusCode == 201) {
-                                // Navigator.of(context).pop();
-                                final jsonResponse = jsonDecode(respcode.body);
 
-                                // --- Extracting Mobile Numbers and Filename ---
-
-                                final List<String> mobileNumbers =
-                                    jsonResponse['mobile_numbers']
-                                        .where((item) => item != null)
-                                        .toList()
-                                        .cast<String>();
-                                final String filename =
-                                    jsonResponse['filename'];
-
-                                print(
-                                    '✅ Received Mobile Numbers: $mobileNumbers');
-                                print('✅ Filename: $filename');
-
-                                // --- Decoding and Saving the PDF File ---
-
-                                final String base64Pdf =
-                                    jsonResponse['pdf_data'];
-
-                                // 3. Base64 Decode the PDF string into raw bytes (Uint8List)
-                                final pdfBytes = base64Decode(base64Pdf);
-                                final dir = await getTemporaryDirectory();
-                                final filepath =
-                                    '${dir.path}/AMC Receipt (${widget.currentlead?.pjc})-${DateTime.now().millisecondsSinceEpoch}.pdf';
-                                File file = File(filepath);
-                                await file.writeAsBytes(pdfBytes);
-                                Navigator.of(context)
-                                    .pop(); // Close the loading dialog
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => Pdfview(
-                                      file: file,
-                                      type: "AMC Receipt",
-                                      ac: widget.currentlead?.pjc,
-                                      mobileNumbers: mobileNumbers,
-                                      sno: item.amcno,
+                            // --- CONDITIONAL BUTTON AREA ---
+                            if (widget.pending == true) ...[
+                              Row(
+                                children: [
+                                  // 1. Share Link Button
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.share, size: 16),
+                                      label: const Text(
+                                        "Share Link",
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 10),
+                                        side: BorderSide(
+                                            color:
+                                                Theme.of(context).primaryColor),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed:null
                                     ),
                                   ),
-                                );
-                                // if (context.mounted) {
-                                //   QuickAlert.show(
-                                //       context: context,
-                                //       type: QuickAlertType.success,
-                                //       title: "Report Generated",
-                                //       text: "Successfully generated Report");
-                                // }
-                                // _mobcontroller.clear();
-                                //successfully sent message
-                              } else {
-                                //something went wrong
-                                if (context.mounted) {
-                                  QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: "Could not generate receipt",
-                                      text: "Something went Wrong");
-                                }
-                              }
-                                },
+                                  const SizedBox(width: 8),
+
+                                  // 2. Add Payment Detail Button
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.payment, size: 16),
+                                      label: const Text(
+                                        "Add Payment",
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 10),
+                                        side: BorderSide(
+                                            color:
+                                                Theme.of(context).primaryColor),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        var sharedpref = await SharedPreferences
+                                            .getInstance();
+                                        var username =
+                                            sharedpref.getString('NAME');
+                                        var usermobile =
+                                            sharedpref.getString('Mobile');
+                                        var res = await showDialog(
+                                          barrierDismissible: true,
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text(
+                                                "Payment Handover Confirmation"),
+                                            content: StatefulBuilder(
+                                              // 1. Wrap with StatefulBuilder
+                                              builder: (BuildContext context,
+                                                  StateSetter setDialogState) {
+                                                return SingleChildScrollView(
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: DropdownSearch<
+                                                            String>(
+                                                          popupProps:
+                                                              const PopupProps
+                                                                  .dialog(
+                                                            dialogProps:
+                                                                DialogProps(
+                                                              barrierDismissible:
+                                                                  true,
+                                                              barrierLabel:
+                                                                  "Dismiss",
+                                                            ),
+                                                            showSelectedItems:
+                                                                true,
+                                                            showSearchBox: true,
+                                                          ),
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              [
+                                                            "Cash",
+                                                            "Cheque",
+                                                            "NEFT/RTGS"
+                                                          ],
+                                                          decoratorProps:
+                                                              const DropDownDecoratorProps(
+                                                            decoration:
+                                                                InputDecoration(
+                                                              labelText:
+                                                                  "Payment Method",
+                                                              hintText:
+                                                                  "Select Payment Method",
+                                                            ),
+                                                          ),
+                                                          onSelected: (value) {
+                                                            // 2. Use setDialogState to rebuild the dialog internally
+                                                            setDialogState(() {
+                                                              _selectedpaymentmethod =
+                                                                  value!;
+                                                            });
+
+                                                            // Also update the parent view state if needed outside the dialog
+                                                            setState(() {
+                                                              _selectedpaymentmethod =
+                                                                  value!;
+                                                            });
+                                                          },
+                                                          selectedItem:
+                                                              _selectedpaymentmethod,
+                                                        ),
+                                                      ),
+
+                                                      // 3. This condition will now actively re-evaluate inside the dialog!
+                                                      if (_selectedpaymentmethod ==
+                                                              "Cheque" ||
+                                                          _selectedpaymentmethod ==
+                                                              "NEFT/RTGS") ...[
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            label:
+                                                                "Document Number",
+                                                            controller:
+                                                                _documentNumberController,
+                                                          ),
+                                                        ),
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            label: "Bank Name",
+                                                            controller:
+                                                                _bankNameController,
+                                                          ),
+                                                        ),
+                                                      ],
+
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          label:
+                                                              "Payment Giver Name",
+                                                          controller:
+                                                              _cashGiverNameController,
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          label:
+                                                              "Payment Giver Contact",
+                                                          controller:
+                                                              _cashGiverContactController,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, {
+                                                  "receiver_name": username,
+                                                  "receiver_contact":
+                                                      usermobile,
+                                                  "giver_name":
+                                                      _cashGiverNameController
+                                                          .text,
+                                                  "giver_contact":
+                                                      _cashGiverContactController
+                                                          .text,
+                                                  "payment_method":
+                                                      _selectedpaymentmethod,
+                                                  'document_number':
+                                                      _documentNumberController
+                                                          .text,
+                                                  'bank_name':
+                                                      _bankNameController.text,
+                                                }),
+                                                child: const Text("OK"),
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                        if (res != null) {
+                                          // You can now use the res map to access the entered details
+                                          print("Cash Handover Details: $res");
+                                          // Here you can send this data to your backend or perform any other action
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.loading,
+                                            text:
+                                                'Sending OTP to ${res["giver_contact"]}',
+                                          );
+                                          var resp = await http.post(
+                                              Uri.parse(
+                                                  '$baseuri/api/amcpayment/'),
+                                              body: jsonEncode({
+                                                "amc_number":
+                                                    filtermeeting[index].amcno,
+                                                "payment_mode":
+                                                    _selectedpaymentmethod,
+                                                "receiver_name":
+                                                    res["receiver_name"],
+                                                "receiver_contact":
+                                                    res["receiver_contact"],
+                                                "giver_name": res["giver_name"],
+                                                "giver_contact":
+                                                    res["giver_contact"],
+                                                'document_number':
+                                                    res['document_number'],
+                                                'bank_name': res['bank_name'],
+                                              }),
+                                              headers: {
+                                                "Content-Type":
+                                                    "application/json"
+                                              });
+                                          if (resp.statusCode == 200) {
+                                            // enter otp dialog
+                                            Navigator.of(context)
+                                                .pop(); // Close the loading dialog
+                                            var jcc = await openDialog(
+                                                " Cash Recieve OTP",
+                                                "Enter OTP");
+                                            var otpverifyresp = await http.post(
+                                                Uri.parse(
+                                                    '$baseuri/api/amcpaymentverify/'),
+                                                body: jsonEncode({
+                                                  "amc_number":
+                                                      filtermeeting[index]
+                                                          .amcno,
+                                                  "otp": jcc,
+                                                  // 'item_codes':
+                                                  //     _selectedamcitemdetail
+                                                  //         .map((item) =>
+                                                  //             item.code)
+                                                  //         .toList(),
+                                                }),
+                                                headers: {
+                                                  "Content-Type":
+                                                      "application/json"
+                                                });
+                                            if (otpverifyresp.statusCode ==
+                                                200) {
+                                              QuickAlert.show(
+                                                  context: context,
+                                                  type: QuickAlertType.success,
+                                                  title: "AMC Payment",
+                                                  text:
+                                                      "OTP Verified successfully and payment details added");
+                                            }else{
+                                              QuickAlert.show(
+                                                  context: context,
+                                                  type: QuickAlertType.error,
+                                                  title: "AMC Payment",
+                                                  text:
+                                                      "OTP could not be verified. Please try again");
+                                            }
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  // 3. Edit Button
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.edit, size: 16),
+                                      label: const Text(
+                                        "Edit",
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 10),
+                                        side: BorderSide(
+                                            color:
+                                                Theme.of(context).primaryColor),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AMC(edit: true, amcno:filtermeeting[index]
+                                                          .amcno),
+                                      ),
+                                    ).then((_) {
+                                      // Refresh the leads list when returning
+                                      getmeetingdetail();
+                                    });
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
-                            )
+                            ] else ...[
+                              // View Receipt Button (Original)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 44,
+                                child: OutlinedButton.icon(
+                                  icon:
+                                      const Icon(Icons.receipt_long, size: 18),
+                                  label: const Text(
+                                    "View Receipt",
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(
+                                        color: Theme.of(context).primaryColor),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: () async {
+                                    if (context.mounted) {
+                                      QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.loading,
+                                          title: "Generating Receipt...",
+                                          barrierDismissible: false);
+                                    }
+                                    var respcode = await http
+                                        .get(Uri.parse(
+                                            '$baseuri/api/amcreceipt/?amc_number=${item.amcno}'))
+                                        .timeout(const Duration(seconds: 120));
+
+                                    if (respcode.statusCode == 200 ||
+                                        respcode.statusCode == 201) {
+                                      final jsonResponse =
+                                          jsonDecode(respcode.body);
+
+                                      final List<String> mobileNumbers =
+                                          jsonResponse['mobile_numbers']
+                                              .where((item) => item != null)
+                                              .toList()
+                                              .cast<String>();
+                                      final String filename =
+                                          jsonResponse['filename'];
+
+                                      print(
+                                          '✅ Received Mobile Numbers: $mobileNumbers');
+                                      print('✅ Filename: $filename');
+
+                                      final String base64Pdf =
+                                          jsonResponse['pdf_data'];
+
+                                      final pdfBytes = base64Decode(base64Pdf);
+                                      final dir = await getTemporaryDirectory();
+                                      final filepath =
+                                          '${dir.path}/AMC Receipt (${widget.currentlead?.pjc})-${DateTime.now().millisecondsSinceEpoch}.pdf';
+                                      File file = File(filepath);
+                                      await file.writeAsBytes(pdfBytes);
+
+                                      if (context.mounted) {
+                                        Navigator.of(context)
+                                            .pop(); // Close loading dialog
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => Pdfview(
+                                              file: file,
+                                              type: "AMC Receipt",
+                                              ac: widget.currentlead?.pjc,
+                                              mobileNumbers: mobileNumbers,
+                                              sno: item.amcno,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      if (context.mounted) {
+                                        Navigator.of(context)
+                                            .pop(); // Close loading dialog
+                                        QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.error,
+                                            title: "Could not generate receipt",
+                                            text: "Something went Wrong");
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
