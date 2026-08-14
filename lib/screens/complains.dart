@@ -491,81 +491,7 @@ class _ComplainState extends State<Complain> {
                             },
                             selectedItem: _selectedcomp,
                           )),
-                      if (_allowAssign)
-                        Padding(
-                            padding: const EdgeInsets.all(5.0),
-                            child: FutureBuilder<List<String>>(
-                                future: getnames(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData &&
-                                      snapshot.data != null) {
-                                    return DropdownSearch<String>(
-                                      popupProps: const PopupProps.dialog(
-                                          dialogProps: DialogProps(
-                                            barrierDismissible: true,
-                                            barrierLabel: "Dismiss",
-                                          ),
-                                          showSelectedItems: true,
-                                          showSearchBox: true),
-                                      // mode: Mode.dialog,
-                                      // showSelectedItems: true,
-                                      items: (filter, infiniteScrollProps) =>
-                                          snapshot.data!,
-                                      decoratorProps:
-                                          const DropDownDecoratorProps(
-                                        decoration: InputDecoration(
-                                          labelText: "Lead To Name",
-                                          hintText: "Select Lead To Name",
-                                        ),
-                                      ),
-                                      // dropdownSearchDecoration: const InputDecoration(
-                                      // labelText: "Menu mode",
-                                      // hintText: "country in menu mode",
-                                      // ),
-                                      // popupItemDisabled: isItemDisabled,
-                                      onSelected: (value) {
-                                        setState(() {
-                                          _selectedleadton = value!;
-                                        });
-                                      },
-                                      selectedItem: _selectedleadton,
-                                      // showSearchBox: true,
-                                      // searchFieldProps: TextFieldProps(
-                                      //   cursorColor: Colors.blue,
-                                      // ),
-                                    );
-                                  } else {
-                                    return const Center(
-                                        child: CircularProgressIndicator());
-                                  }
-                                })),
-                      if (_allowAssign)
-                        Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: InputField(
-                            label: "Follow up Date Time",
-                            controller: _meetingdatetimecontroller,
-                            readOnly: true,
-                            onTap: () async {
-                              DateTime? meet = await showOmniDateTimePicker(
-                                  context: context, minutesInterval: 15);
-                              if (meet != null) {
-                                _meetingdatetimecontroller.text =
-                                    DateFormat("dd/MM/yyyy")
-                                        .add_jm()
-                                        .format(meet);
-                              }
-                            },
-                            validator: (value) {
-                              if ((value == null || value.isEmpty) &&
-                                  (_selectedleadton != null)) {
-                                return "Please select follow up date time";
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      Padding(
+                       Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<AMCModel>.multiSelection(
                             compareFn: (item1, item2) =>
@@ -640,6 +566,81 @@ class _ComplainState extends State<Complain> {
                             },
                             selectedItem: _selectedcategory,
                           )),
+                      if (_allowAssign)
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: FutureBuilder<List<String>>(
+                                future: getnames(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData &&
+                                      snapshot.data != null) {
+                                    return DropdownSearch<String>(
+                                      popupProps: const PopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss",
+                                          ),
+                                          showSelectedItems: true,
+                                          showSearchBox: true),
+                                      // mode: Mode.dialog,
+                                      // showSelectedItems: true,
+                                      items: (filter, infiniteScrollProps) =>
+                                          snapshot.data!,
+                                      decoratorProps:
+                                          const DropDownDecoratorProps(
+                                        decoration: InputDecoration(
+                                          labelText: "Lead To Name",
+                                          hintText: "Select Lead To Name",
+                                        ),
+                                      ),
+                                      // dropdownSearchDecoration: const InputDecoration(
+                                      // labelText: "Menu mode",
+                                      // hintText: "country in menu mode",
+                                      // ),
+                                      // popupItemDisabled: isItemDisabled,
+                                      onSelected: (value) {
+                                        setState(() {
+                                          _selectedleadton = value!;
+                                        });
+                                      },
+                                      selectedItem: _selectedleadton,
+                                      // showSearchBox: true,
+                                      // searchFieldProps: TextFieldProps(
+                                      //   cursorColor: Colors.blue,
+                                      // ),
+                                    );
+                                  } else {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                })),
+                      if (_allowAssign)
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            label: "Follow up Date Time",
+                            controller: _meetingdatetimecontroller,
+                            readOnly: true,
+                            onTap: () async {
+                              DateTime? meet = await showOmniDateTimePicker(
+                                  context: context, minutesInterval: 15);
+                              if (meet != null) {
+                                _meetingdatetimecontroller.text =
+                                    DateFormat("dd/MM/yyyy")
+                                        .add_jm()
+                                        .format(meet);
+                              }
+                            },
+                            validator: (value) {
+                              if ((value == null || value.isEmpty) &&
+                                  (_selectedleadton != null)) {
+                                return "Please select follow up date time";
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                     
                       // Padding(
                       //   padding: const EdgeInsets.all(5.0),
                       //   child: InputField(

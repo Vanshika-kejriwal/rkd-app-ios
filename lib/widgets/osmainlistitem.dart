@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:business_app/models/outstanding.dart';
 import 'package:business_app/screens/pdfview.dart';
+import 'package:business_app/widgets/osSummary.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
@@ -169,17 +170,24 @@ class BillDataSource extends DataGridSource {
         .map<DataGridRow>((e) => DataGridRow(cells: [
               // Mapping fields to columns based on the observed data:
               DataGridCell<String>(
-                  columnName: 'Bill No & Date', value: e.nAME), // BillNo is NAME
+                  columnName: 'Bill No & Date',
+                  value: e.nAME), // BillNo is NAME
               DataGridCell<String>(
                 columnName: 'Days',
                 value: "${e.oD} DAYS",
               ), // Days is OD
               DataGridCell<String>(
-                  columnName: 'Bill Amt', value: double.tryParse(e.bAM ?? '0.0')!.toStringAsFixed(2)), // BAM is BAM
+                  columnName: 'Bill Amt',
+                  value: double.tryParse(e.bAM ?? '0.0')!
+                      .toStringAsFixed(2)), // BAM is BAM
               DataGridCell<String>(
                   columnName: 'Part Pay',
-                  value: double.tryParse(e.pARTPAY ?? '0.0')!.toStringAsFixed(2)), // PARTPAY is PARTPAY
-              DataGridCell<String>(columnName: 'Net Bal', value: double.tryParse(e.oS ?? '0.0')!.toStringAsFixed(2)), // OS is OS
+                  value: double.tryParse(e.pARTPAY ?? '0.0')!
+                      .toStringAsFixed(2)), // PARTPAY is PARTPAY
+              DataGridCell<String>(
+                  columnName: 'Net Bal',
+                  value: double.tryParse(e.oS ?? '0.0')!
+                      .toStringAsFixed(2)), // OS is OS
             ]))
         .toList();
   }
@@ -195,9 +203,10 @@ class BillDataSource extends DataGridSource {
     return DataGridRowAdapter(
       cells: row.getCells().map<Widget>((e) {
         return Container(
-          alignment: (e.columnName == 'Bill No & Date' || e.columnName == 'Days')
-              ? Alignment.centerLeft
-              : Alignment.centerRight,
+          alignment:
+              (e.columnName == 'Bill No & Date' || e.columnName == 'Days')
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
           padding: const EdgeInsets.all(8.0),
           // Use e.value.toString() to safely display String or double
           child: Text(e.value.toString()),
@@ -210,10 +219,11 @@ class BillDataSource extends DataGridSource {
 // --- The SfDataGrid Widget with Synced Scroll ---
 class CustomDataGridItem extends StatefulWidget {
   final Outstanding outstandingData;
-
-  const CustomDataGridItem({
+  bool summary;
+  CustomDataGridItem({
     super.key,
     required this.outstandingData,
+    required this.summary
   });
 
   @override
@@ -223,11 +233,12 @@ class CustomDataGridItem extends StatefulWidget {
 class _CustomDataGridItemState extends State<CustomDataGridItem> {
   // Controllers and Constants
   late BillDataSource _billDataSource;
+  BillDataSource _emptyDataSource = BillDataSource(billDetails: []);
   final ScrollController _externalHeaderController = ScrollController();
   final ScrollController _gridHorizontalController = ScrollController();
   static const double _totalGridWidth = 700.0; // Sum of minimum column widths
   final GlobalKey<SfDataGridState> dataGridKey = GlobalKey<SfDataGridState>();
-
+  bool showcol = true;
   @override
   void initState() {
     super.initState();
@@ -318,117 +329,145 @@ class _CustomDataGridItemState extends State<CustomDataGridItem> {
     final double gridHeight = _getRequiredGridHeight();
     // if (widget.outstandingData.bILLS != null &&
     //     widget.outstandingData.bILLS!.isNotEmpty) {
-      return Center(
-        child: SizedBox(
-          height: gridHeight,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 0),
-            child: SfDataGrid(
-              key: dataGridKey,
-              rowHeight: 40,
-              source: _billDataSource,
-              verticalScrollPhysics: const NeverScrollableScrollPhysics(),
-              horizontalScrollController: _gridHorizontalController,
-              columnWidthMode: ColumnWidthMode.fill,
-              headerRowHeight: 50,
-              stackedHeaderRows: [
-                StackedHeaderRow(cells: [
-                  StackedHeaderCell(
-                    text: '${widget.outstandingData.nAME} (${widget.outstandingData.aC})\nNet Due Amount: ${widget.outstandingData.bAM}',
-                    columnNames: ['Bill No & Date', 'Days', 'Bill Amt', 'Part Pay', 'Net Bal'],
-                    child: Container(
-                      color: Colors.transparent,
-                      padding: const EdgeInsets.all(4.0),
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${widget.outstandingData.nAME} (${widget.outstandingData.aC})',
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Net Due Amount: ${widget.outstandingData.bAM}',
-                                textAlign: TextAlign.start,
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          IconButton(onPressed: () async{
-                 final document = dataGridKey.currentState?.exportToPdfDocument(exportStackedHeaders: true, canRepeatHeaders: true, fitAllColumnsInOnePage: true);
-                   List<int> bytes = document!.saveSync();
-                  //  File('OutstandingReport.pdf').writeAsBytes(bytes, flush: true);
-                   document.dispose();
-                  final dir = await getTemporaryDirectory();
-                  // dir.delete(recursive: true);
+    if (widget.summary) {
+      return SummaryTileWidget(
+        outstandingData: widget.outstandingData,
+        dataGridKey: dataGridKey,
+      );
+    }
+    return Center(
+      child: SizedBox(
+        height: gridHeight,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 0),
+          child: SfDataGrid(
+            key: dataGridKey,
+            rowHeight: 40,
+            source: _billDataSource,
+            verticalScrollPhysics: const NeverScrollableScrollPhysics(),
+            horizontalScrollController: _gridHorizontalController,
+            columnWidthMode: ColumnWidthMode.fill,
+            headerRowHeight: 50,
+            stackedHeaderRows: [
+              StackedHeaderRow(cells: [
+                StackedHeaderCell(
+                  text:
+                      '${widget.outstandingData.nAME} (${widget.outstandingData.aC})\nNet Due Amount: ${widget.outstandingData.bAM}',
+                  columnNames: [
+                    'Bill No & Date',
+                    'Days',
+                    'Bill Amt',
+                    'Part Pay',
+                    'Net Bal'
+                  ],
+                  child: Container(
+                    color: Colors.transparent,
+                    padding: const EdgeInsets.all(4.0),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${widget.outstandingData.nAME} (${widget.outstandingData.aC})',
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Net Due Amount: ${widget.outstandingData.bAM}',
+                              textAlign: TextAlign.start,
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                            onPressed: () async {
+                              final document = dataGridKey.currentState
+                                  ?.exportToPdfDocument(
+                                      exportStackedHeaders: true,
+                                      canRepeatHeaders: true,
+                                      fitAllColumnsInOnePage: true);
+                              List<int> bytes = document!.saveSync();
+                              //  File('OutstandingReport.pdf').writeAsBytes(bytes, flush: true);
+                              document.dispose();
+                              final dir = await getTemporaryDirectory();
+                              // dir.delete(recursive: true);
 
-                  final file = File('${dir.path}/Outstanding${widget.outstandingData.aC}.pdf');
-                  await file.writeAsBytes(bytes, flush: true);
-                  // OpenFilex.open(file.path);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Pdfview(file: file,type: "Outstanding",ac: widget.outstandingData.aC,),
-                    ),
-                  );
-                }, icon: const Icon(Icons.download)),
-                        ],
-                      ),
+                              final file = File(
+                                  '${dir.path}/Outstanding${widget.outstandingData.aC}.pdf');
+                              await file.writeAsBytes(bytes, flush: true);
+                              // OpenFilex.open(file.path);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => Pdfview(
+                                    file: file,
+                                    type: "Outstanding",
+                                    ac: widget.outstandingData.aC,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.download)),
+                      ],
                     ),
                   ),
-                ]),
-              ],
-              // isScrollbarAlwaysShown: true,
+                ),
+              ]),
+            ],
+            // isScrollbarAlwaysShown: true,
 
-              // Standard Grid Columns (Visual Line 2: BillNo:, Days, etc.)
-              columns: <GridColumn>[
-                GridColumn(
+            // Standard Grid Columns (Visual Line 2: BillNo:, Days, etc.)
+            columns: <GridColumn>[
+              GridColumn(
+                  // visible: showcol,
                   columnWidthMode: ColumnWidthMode.fitByCellValue,
-                    columnName: 'Bill No & Date',
-                    label: Container(
-                        alignment: Alignment.center,
-                        child: const Text('Bill No & Date')),
-                    minimumWidth: 200),
-                GridColumn(
+                  columnName: 'Bill No & Date',
+                  label: Container(
+                      alignment: Alignment.center,
+                      child: const Text('Bill No & Date')),
+                  minimumWidth: 200),
+              GridColumn(
+                  //  visible: showcol,
                   columnWidthMode: ColumnWidthMode.fitByCellValue,
-                    columnName: 'Days',
-                    label: Container(
-                        alignment: Alignment.centerLeft,
-                        child: const Text('Days')),
-                    minimumWidth: 90),
-                GridColumn(
+                  columnName: 'Days',
+                  label: Container(
+                      alignment: Alignment.centerLeft,
+                      child: const Text('Days')),
+                  minimumWidth: 90),
+              GridColumn(
+                  //  visible: showcol,
                   // columnWidthMode: ColumnWidthMode.fitByCellValue,
-                    columnName: 'Bill Amt',
-                    label: Container(
-                        alignment: Alignment.centerRight,
-                        child: const Text('Bill Amt')),
-                    minimumWidth: 100),
-                GridColumn(
+                  columnName: 'Bill Amt',
+                  label: Container(
+                      alignment: Alignment.centerRight,
+                      child: const Text('Bill Amt')),
+                  minimumWidth: 100),
+              GridColumn(
+                  //  visible: showcol,
                   // columnWidthMode: ColumnWidthMode.fitByCellValue,
-                    columnName: 'Part Pay',
-                    label: Container(
-                        alignment: Alignment.centerRight,
-                        child: const Text('Part Pay')),
-                    minimumWidth: 100),
-                GridColumn(
+                  columnName: 'Part Pay',
+                  label: Container(
+                      alignment: Alignment.centerRight,
+                      child: const Text('Part Pay')),
+                  minimumWidth: 100),
+              GridColumn(
+                  //  visible: showcol,
                   // columnWidthMode: ColumnWidthMode.fitByCellValue,
-                    columnName: 'Net Bal',
-                    label: Container(
-                        alignment: Alignment.center,
-                        child: const Text('Net Bal')),
-                    minimumWidth: 100),
-              ],
-            ),
+                  columnName: 'Net Bal',
+                  label: Container(
+                      alignment: Alignment.center,
+                      child: const Text('Net Bal')),
+                  minimumWidth: 100),
+            ],
           ),
         ),
-      );
+      ),
+    );
     // } else {
     //   return const SizedBox
     //       .shrink(); // Return an empty widget if there are no bills
