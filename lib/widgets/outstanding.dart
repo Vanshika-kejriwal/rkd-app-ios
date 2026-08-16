@@ -538,38 +538,29 @@ class _OsListState extends State<OsList> {
         //   ),
         // );
         try {
-          SharePlus.instance.share(ShareParams(
-              files: [XFile(file.path)],));
-          Future.microtask(() async {
-            // WAIT a much longer, safer duration before attempting the delete.
-            await Future.delayed(const Duration(seconds: 2));
+          // 1. Find the render box for iPad positioning support
+          final box = context.findRenderObject() as RenderBox?;
+          final Rect? sharePositionOrigin = box != null 
+              ? box.localToGlobal(Offset.zero) & box.size 
+              : null;
 
-            try {
-              // Attempt the silent delete.
-              await file.delete();
-            } on FileSystemException catch (cleanupError) {
-              // 3. SILENTLY CONSUME the errno 39 exception
-              if (cleanupError.osError?.errorCode == 39) {
-                // The cleanup failed again, but we catch it silently.
-                // No print statements here—the goal is silence and continuity.
-              } else {
-                // Log other critical errors to a service like Firebase Crashlytics
-                // instead of printing (for Release Mode).
-              }
-            } catch (_) {
-              // Catch any other unexpected error silently.
-            }
-          });
+          // 2. Share the file with explicit MIME type & placement tracking
+          await SharePlus.instance.share(
+            ShareParams(
+              files: [XFile(file.path, mimeType: 'application/pdf')],
+              sharePositionOrigin: sharePositionOrigin,
+            ),
+          );
+
+          // ❌ REMOVE THE IMMEDIATE FILE CLEANUP CODE FROM HERE.
+          // Let iOS clear the cache naturally, or perform cleanup when 
+          // navigating away / disposing of the stateful widget.
+
         } on FileSystemException catch (e) {
-          // Catch the known cleanup error but do nothing (ignore it)
           if (e.osError?.errorCode != 39) {
-            // Check for the Directory not empty error code
-            rethrow; // Re-throw other unexpected FileSystemExceptions
-          } else {
-            // print('Warning: Clean-up failed (errno 39 - Directory not empty). Ignoring exception.');
+            rethrow; 
           }
         } catch (e) {
-          // Handle other potential exceptions
           if (kDebugMode) {
             print('An unexpected error occurred during sharing: $e');
           }
