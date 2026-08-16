@@ -539,7 +539,7 @@ class _OsListState extends State<OsList> {
         // );
         try {
           SharePlus.instance.share(ShareParams(
-              files: [XFile(file.path)], text: 'Here is your invoice.'));
+              files: [XFile(file.path)],));
           Future.microtask(() async {
             // WAIT a much longer, safer duration before attempting the delete.
             await Future.delayed(const Duration(seconds: 2));
