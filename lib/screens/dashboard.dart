@@ -8,6 +8,7 @@ import 'package:business_app/screens/lead_gen.dart';
 import 'package:business_app/screens/mmast.dart';
 import 'package:business_app/screens/my_transactions.dart';
 import 'package:business_app/screens/project_registration.dart';
+import 'package:business_app/screens/projects.dart';
 import 'package:business_app/screens/service_head.dart';
 import 'package:business_app/screens/splash_screen.dart';
 import 'package:business_app/screens/user_registration.dart';
@@ -200,13 +201,13 @@ class _DashboardState extends State<Dashboard> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const ProjectRegistration()),
+                        builder: (context) => Projects()),
                   ),
                 ),
                 if (!["consumer", "contractor", "supplier"]
                     .contains(widget.ut.toLowerCase()))
                   _buildDesignGridTile(
-                    title: "Lead Generation",
+                    title: "Leads",
                     icon: Icons.chat_bubble_outline_rounded,
                     onTap: () => Navigator.push(
                       context,

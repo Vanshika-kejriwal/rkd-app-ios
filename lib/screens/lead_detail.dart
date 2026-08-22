@@ -133,6 +133,9 @@ class _LeadDetailState extends State<LeadDetail> {
   String _mobile2 = '';
   String _pin = '';
   String _gstno = '';
+  String _managername = '';
+  String _staffname = '';
+  String _location = '';
   String _selectedstatus = '';
   String _selectedgst = '';
   LeadCategory? _selectedcategory;
@@ -659,12 +662,11 @@ class _LeadDetailState extends State<LeadDetail> {
         '$baseuri/api/leadstatcategory/?status=$_selectedstatus&type=$_selectedleadtype&pjc=$pjc&product=${_selectedfollowupproduct.first.product}&leadid=${_selectedfollowupproduct.first.leadid}&items=$items'));
     final body = json.decode(response.body);
     List<LeadCategory> names = [];
-    var ins_date="";
-    var amc_date ="";
+    var ins_date = "";
+    var amc_date = "";
     if (response.statusCode == 200) {
       for (var c in body) {
-        names
-            .add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled']));
+        names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled'], extrainfo: c['extra_info']));
         if (c["inst_date"] != null) {
           ins_date = c["inst_date"];
         }
@@ -678,6 +680,98 @@ class _LeadDetailState extends State<LeadDetail> {
         _amcdatecontroller.text = amc_date;
       });
     }
+  }
+
+  Future<List<PaidRowData>> fetchTableData() async {
+    final url = Uri.parse(
+        '$baseuri/api/paidbasischarge/?leadid=${_selectedfollowupproduct.map((item) => item.leadid).toList().join(",")}'); // Replace with your endpoint
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.map((json) => PaidRowData.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load data: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+// 3. Display the Table in the AlertDialog
+  void showResponsiveApiDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final screenSize = MediaQuery.of(context).size;
+
+        return AlertDialog(
+          title: const Text('Paid Basis Charges'),
+          content: SizedBox(
+            width: screenSize.width * 0.85,
+            height: screenSize.height * 0.6,
+            // FutureBuilder listens to the API function
+            child: FutureBuilder<List<PaidRowData>>(
+              future: fetchTableData(),
+              builder: (context, snapshot) {
+                // Show loading spinner while fetching
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Show error message if API fails
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                // Show message if data is empty
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No data found'));
+                }
+
+                final data = snapshot.data!;
+
+                // Build the dual-scroll table when data arrives
+                return SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Product')),
+                        DataColumn(label: Text('Company')),
+                        DataColumn(label: Text('Model')),
+                        DataColumn(label: Text('Condition 1')),
+                        DataColumn(label: Text('Condition 2')),
+                        DataColumn(label: Text('Charges')),
+                      ],
+                      rows: data.map((item) {
+                        return DataRow(cells: [
+                          DataCell(Text(item.col1)),
+                          DataCell(Text(item.col2)),
+                          DataCell(Text(item.col3)),
+                          DataCell(Text(item.col4)),
+                          DataCell(Text(item.col5)),
+                          DataCell(Text(item.col6))
+                        ]);
+                      }).toList(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<List<String>> getgst() async {
@@ -730,11 +824,13 @@ class _LeadDetailState extends State<LeadDetail> {
         _allProductsDone = true;
       });
     } else {
-      setState(() {
-        _leadtypes = Future.value(
-            openproducts.map((item) => item.leadtype).toSet().toList());
-        products = openproducts;
-      });
+      if (mounted) {
+        setState(() {
+          _leadtypes = Future.value(
+              openproducts.map((item) => item.leadtype).toSet().toList());
+          products = openproducts;
+        });
+      }
     }
     await getprojdetail(widget.pjc ?? widget.currentlead!.pjc);
     await getmeetingdetail();
@@ -760,10 +856,13 @@ class _LeadDetailState extends State<LeadDetail> {
             _state = body["STATE"];
             _city = body["CITY"];
             _district = body["DIST"];
+            _managername = body['MNAME'];
             _mobile1 = body["MOBILE1"];
+            _staffname = body["SNAME"];
             _mobile2 = body["MOBILE2"];
             _pin = body["PIN"];
             _gstno = body["GSTN"] ?? "";
+            _location = body['LOCATION'];
             // _formkey.currentState?.validate();
           });
         }
@@ -1073,7 +1172,15 @@ class _LeadDetailState extends State<LeadDetail> {
                             textAlign: TextAlign.start,
                           ),
                           SelectableText(
+                            "Manager Name - $_managername",
+                            textAlign: TextAlign.start,
+                          ),
+                          SelectableText(
                             "Manager Mobile- $_mobile1",
+                            textAlign: TextAlign.start,
+                          ),
+                          SelectableText(
+                            "Staff Name - $_staffname",
                             textAlign: TextAlign.start,
                           ),
                           SelectableText(
@@ -1108,6 +1215,45 @@ class _LeadDetailState extends State<LeadDetail> {
                             "GST No- $_gstno",
                             textAlign: TextAlign.start,
                           ),
+                          SelectableText.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: "Location - ",
+                                  style: const TextStyle(
+                                    color: Colors
+                                        .black, // Match your default text color
+                                  ),
+                                ),
+                                if (_location.isNotEmpty)
+                                TextSpan(
+                                  text: "View Location",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.blue,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () async {
+                                      if (_location.isEmpty) return;
+
+                                      String urlString = _location.trim();
+                                      if (!urlString.startsWith('http://') &&
+                                          !urlString.startsWith('https://')) {
+                                        urlString = 'https://$urlString';
+                                      }
+
+                                      final Uri url = Uri.parse(urlString);
+                                      await launchUrl(
+                                        url,
+                                        mode: LaunchMode.externalApplication,
+                                      );
+                                    },
+                                ),
+                              ],
+                            ),
+                            textAlign: TextAlign.start,
+                          )
                         ],
                       ),
                     ));
@@ -1583,6 +1729,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                     value;
                                                                 // getbilldetail();
                                                               });
+                                                              getcategory();
                                                             },
                                                             selectedItems:
                                                                 _selectedamcitemdetail,
@@ -1701,6 +1848,15 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                     return !item
                                                                         .enabled;
                                                                   },
+                                                                  itemBuilder:
+                                    (context, item, isDisabled, isSelected) =>
+                                        ListTile(
+                                          enabled: item.enabled,
+                                          title: Text(item.ddl12),
+                                          trailing: item.extrainfo != null
+                                              ? Text(item.extrainfo!)
+                                              : null,
+                                        ),
                                                                   dialogProps:
                                                                       const DialogProps(
                                                                     barrierDismissible:
@@ -1722,7 +1878,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                             decoration:
                                                                 InputDecoration(
                                                               labelText:
-                                                                  "Reason/Category",
+                                                                  "Service Type",
                                                               hintText:
                                                                   "Select an option",
                                                             ),
@@ -1735,6 +1891,11 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   value!;
                                                               // getcomp();
                                                             });
+                                                            if (value?.ddl12 ==
+                                                                "Paid Basis") {
+                                                              showResponsiveApiDialog(
+                                                                  context);
+                                                            }
                                                           },
                                                           selectedItem:
                                                               _selectedcategory,

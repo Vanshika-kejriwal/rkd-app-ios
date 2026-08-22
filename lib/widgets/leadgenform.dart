@@ -5,7 +5,9 @@ import "package:business_app/screens/project_registration.dart";
 import "package:business_app/services/notification_service.dart";
 // import "package:business_app/services/send_notification_service.dart";
 import "package:business_app/widgets/background.dart";
+import "package:business_app/widgets/pendinginsproductdetail.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter_native_contact_picker/flutter_native_contact_picker.dart";
 import "package:flutter_native_contact_picker/model/contact.dart";
 import 'package:http/http.dart' as http;
@@ -16,6 +18,7 @@ import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import "package:shared_preferences/shared_preferences.dart";
+import "package:url_launcher/url_launcher.dart";
 // Removed go_router import
 
 class NewLeadForm extends StatefulWidget {
@@ -78,6 +81,9 @@ class _NewLeadFormState extends State<NewLeadForm> {
   String _mobile2 = '';
   String _pin = '';
   String _gstno = '';
+  String _managername = '';
+  String _staffname = '';
+  String _location = '';
   String? _selectedPhoneNumber;
   // DateTime? _meetingdatetime;
   Future<List<String>> getut() async {
@@ -125,7 +131,8 @@ class _NewLeadFormState extends State<NewLeadForm> {
     } else if (widget.leadinfo != null &&
         widget.leadinfo!['leadtype'] == "SERVICE") {
       final response = await http.post(Uri.parse('$baseuri/api/servforc/'),
-          body: jsonEncode({"ut1": _selectedproduct, "pjc": _selectedproject!.pjc}),
+          body: jsonEncode(
+              {"ut1": _selectedproduct, "pjc": _selectedproject!.pjc}),
           headers: {"Content-Type": "application/json"});
       final body = json.decode(response.body);
       if (response.statusCode == 200) {
@@ -371,6 +378,9 @@ class _NewLeadFormState extends State<NewLeadForm> {
         _mobile2 = body["MOBILE2"];
         _pin = body["PIN"];
         _gstno = body["GSTN"] ?? "";
+        _managername = body['MNAME'];
+        _staffname = body["SNAME"];
+        _location = body['LOCATION'];
         // _formkey.currentState?.validate();
       });
       // print("Pincode doesnt exists");
@@ -443,7 +453,15 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 textAlign: TextAlign.start,
                               ),
                               SelectableText(
+                                "Manager Name - $_managername",
+                                textAlign: TextAlign.start,
+                              ),
+                              SelectableText(
                                 "Manager Mobile- $_mobile1",
+                                textAlign: TextAlign.start,
+                              ),
+                              SelectableText(
+                                "Staff Name - $_staffname",
                                 textAlign: TextAlign.start,
                               ),
                               SelectableText(
@@ -478,6 +496,49 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 "GST No- $_gstno",
                                 textAlign: TextAlign.start,
                               ),
+                              SelectableText.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: "Location - ",
+                                      style: const TextStyle(
+                                        color: Colors
+                                            .black, // Match your default text color
+                                      ),
+                                    ),
+                                    if (_location.isNotEmpty)
+                                      TextSpan(
+                                        text: "View Location",
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.blue,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () async {
+                                            if (_location.isEmpty) return;
+
+                                            String urlString = _location.trim();
+                                            if (!urlString
+                                                    .startsWith('http://') &&
+                                                !urlString
+                                                    .startsWith('https://')) {
+                                              urlString = 'https://$urlString';
+                                            }
+
+                                            final Uri url =
+                                                Uri.parse(urlString);
+                                            await launchUrl(
+                                              url,
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
+                                          },
+                                      ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.start,
+                              )
                             ],
                           ),
                         ));
@@ -526,7 +587,9 @@ class _NewLeadFormState extends State<NewLeadForm> {
                             key: _projectkey,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss"),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             filterFn: (item, filter) {
@@ -556,8 +619,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 return "${item.pname} (${item.custtype})";
                               }
                             },
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Project*",
                                 hintText: "Select a Project",
@@ -662,13 +724,15 @@ class _NewLeadFormState extends State<NewLeadForm> {
                           child: DropdownSearch<String>.multiSelection(
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
-                                showSelectedItems: true, showSearchBox: true),
+                                dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss"),
+                                showSelectedItems: true,
+                                showSearchBox: true),
                             // mode: Mode.dialog,
                             // showSelectedItems: true,
                             items: (filter, infiniteScrollProps) => _products,
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Product",
                                 hintText: "Select a Product",
@@ -702,7 +766,9 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 item1.product == item2.product,
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss"),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
@@ -711,8 +777,7 @@ class _NewLeadFormState extends State<NewLeadForm> {
                             itemAsString: (item) {
                               return "${item.company} (${item.product})";
                             },
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Company",
                                 hintText: "Select a Company",
@@ -740,17 +805,20 @@ class _NewLeadFormState extends State<NewLeadForm> {
                                 if (snapshot.hasData && snapshot.data != null) {
                                   return DropdownSearch<String>(
                                     popupProps: const PopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                        dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss"),
                                         showSelectedItems: true,
                                         showSearchBox: true),
                                     // mode: Mode.dialog,
                                     // showSelectedItems: true,
-                                    items: (filter, infiniteScrollProps) => snapshot.data!,
+                                    items: (filter, infiniteScrollProps) =>
+                                        snapshot.data!,
                                     decoratorProps:
                                         const DropDownDecoratorProps(
                                       decoration: InputDecoration(
-                                        labelText: "Lead To Name",
-                                        hintText: "Select Lead To Name",
+                                        labelText: "Assigned To",
+                                        hintText: "Select Assign To",
                                       ),
                                     ),
                                     // dropdownSearchDecoration: const InputDecoration(
@@ -806,11 +874,11 @@ class _NewLeadFormState extends State<NewLeadForm> {
                           label: "Message",
                           controller: _msgcontroller,
                         ),
-                      ), 
+                      ),
                       Padding(
                         padding: const EdgeInsets.all(5.0),
                         child: InputField(
-                          label: "Contact Number",
+                          label: " Site Contact Number",
                           controller: _mobilecontroller,
                           keyboardtype: TextInputType.phone,
                           suff: IconButton(
@@ -882,67 +950,72 @@ class _NewLeadFormState extends State<NewLeadForm> {
   }
 
   void getproductinfo(String pjc, List<String> value) async {
+    // await showDialog(
+    //   context: context,
+    //   builder: (context) => AlertDialog(
+    //     title: const Text("Installation Product Details"),
+    //     content: SizedBox(
+    //       width: double.maxFinite,
+    //       child: FutureBuilder<List<ProductAggregation>>(
+    //         future: fetchInstProductDetails(pjc, value),
+    //         builder: (context, snapshot) {
+    //           if (snapshot.connectionState == ConnectionState.waiting) {
+    //             return const Center(child: CircularProgressIndicator());
+    //           } else if (snapshot.hasError) {
+    //             return Center(child: Text('Error: ${snapshot.error}'));
+    //           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+    //             return const Center(child: Text('No data found'));
+    //           } else {
+    //             final products = snapshot.data!;
+    //             return ListView.builder(
+    //               shrinkWrap: true,
+    //               itemCount: products.length,
+    //               itemBuilder: (context, index) {
+    //                 final product = products[index];
+    //                 return ListTile(
+    //                   title: Text("${product.product} - ${product.company}"),
+    //                   subtitle: Column(
+    //                     // CRITICAL: Aligns the content to the start (left)
+    //                     crossAxisAlignment: CrossAxisAlignment.start,
+    //                     // CRITICAL: Ensures the Column takes minimum vertical space,
+    //                     // preventing layout issues inside the ListTile.
+    //                     mainAxisSize: MainAxisSize.min,
+    //                     children: [
+    //                       // 1. Display Charge and Company
+
+    //                       // 3. Iterate and display each item from the list
+    //                       // The .map().toList() creates a list of Text widgets from the List<String>
+    //                       ...product.items.map((item) {
+    //                         return Padding(
+    //                           padding: const EdgeInsets.only(
+    //                               left:
+    //                                   8.0), // Optional: Indent the items slightly
+    //                           // You can prepend a bullet point (•) or a dash (-) for better formatting
+    //                           child: Text(
+    //                               "• ${item.name} (Qty: ${item.quantity})"),
+    //                         );
+    //                       }),
+    //                     ],
+    //                   ),
+    //                 );
+    //               },
+    //             );
+    //           }
+    //         },
+    //       ),
+    //     ),
+    //     actions: [
+    //       TextButton(
+    //         onPressed: () => Navigator.of(context).pop(),
+    //         child: const Text('Close'),
+    //       ),
+    //     ],
+    //   ),
+    // );
+
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Installation Product Details"),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: FutureBuilder<List<ProductAggregation>>(
-            future: fetchInstProductDetails(pjc, value),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('No data found'));
-              } else {
-                final products = snapshot.data!;
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return ListTile(
-                      title: Text("${product.product} - ${product.company}"),
-                      subtitle: Column(
-                        // CRITICAL: Aligns the content to the start (left)
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        // CRITICAL: Ensures the Column takes minimum vertical space,
-                        // preventing layout issues inside the ListTile.
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 1. Display Charge and Company
-
-                          // 3. Iterate and display each item from the list
-                          // The .map().toList() creates a list of Text widgets from the List<String>
-                          ...product.items.map((item) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                  left:
-                                      8.0), // Optional: Indent the items slightly
-                              // You can prepend a bullet point (•) or a dash (-) for better formatting
-                              child: Text(
-                                  "• ${item.name} (Qty: ${item.quantity})"),
-                            );
-                          }),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              }
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+      builder: (context) => ProductDetailsDialog(pjc: pjc, value: value),
     );
   }
 

@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 
+import 'package:business_app/services/location.dart';
 import 'package:flutter/foundation.dart';
 import "package:flutter/material.dart";
 // import 'package:awesome_dialog/awesome_dialog.dart';
@@ -18,6 +19,7 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProjectRegistration extends StatefulWidget {
   final bool? fromUserReg;
@@ -33,7 +35,9 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
   String? _selectedut;
   String? _selectedState;
   String? _selectedDistrict;
+  String? _selectedpin;
   final List<String> _districts = [];
+  final List<String> _pincodes = [];
   String? _existpjc;
   final _add1controller = TextEditingController();
   final _add2controller = TextEditingController();
@@ -49,6 +53,9 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
   final _reracontroller = TextEditingController();
   final _projectsearchcontroller = TextEditingController();
   final _searchcontroller = TextEditingController();
+  final _snamecontroller = TextEditingController();
+  final _mnamecontroller = TextEditingController();
+  final _locationcontroller = TextEditingController();
   bool _isLoading = false;
   bool _isprojLoading = false;
   bool _editmode = false;
@@ -115,12 +122,26 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
   }
 
   Future<void> getDistricts() async {
-    final response = await http.get(Uri.parse('$baseuri/api/districts/?state=$_selectedState'));
+    final response = await http
+        .get(Uri.parse('$baseuri/api/districts/?state=$_selectedState'));
     final body = json.decode(response.body);
     // List<String> states = [];
     if (response.statusCode == 200) {
       for (var c in body) {
         _districts.add(c["DIST"]);
+      }
+    }
+  }
+
+  Future<void> getpin() async {
+    final response = await http.get(Uri.parse(
+        '$baseuri/api/pin/?state=$_selectedState&district=$_selectedDistrict'));
+    final body = json.decode(response.body);
+    // List<String> states = [];
+    if (response.statusCode == 200) {
+      _pincodes.clear();
+      for (var c in body) {
+        _pincodes.add(c["PIN"]);
       }
     }
   }
@@ -205,16 +226,19 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
         _existomob = body["OMOBILE"];
         _add1controller.text = body["ADD1"];
         _add2controller.text = body["ADD2"];
-        _pincontroller.text = body["PIN"];
+        _selectedpin = body["PIN"];
         _selectedState = body["STATE"];
         _citycontroller.text = body["CITY"];
         _selectedDistrict = body["DIST"];
+        _mnamecontroller.text = body["MNAME"];
         _mobilecontroller.text = body["MOBILE1"];
+        _snamecontroller.text = body["SNAME"];
         _mobile2controller.text = body["MOBILE2"];
         _emailcontroller.text = body["EMAIL"];
         _existemail = body["EMAIL"];
         _gstcontroller.text = body["GSTN"];
         _reracontroller.text = body["RERA"];
+        _locationcontroller.text = body["LOCATION"];
         // _formkey.currentState?.validate();
       });
       // print("Pincode doesnt exists");
@@ -234,13 +258,14 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
     setState(() {
       _loginut = ut!;
     });
-    if (ut!.toLowerCase() == "consumer" || ut.toLowerCase() == "contractor" || ut.toLowerCase() == "supplier) ") {
+    if (ut!.toLowerCase() == "consumer" ||
+        ut.toLowerCase() == "contractor" ||
+        ut.toLowerCase() == "supplier) ") {
       List<Project> projects = await getcustprojects();
       setState(() {
         _projects = projects;
       });
     }
-    
   }
 
   Future<List<Project>> getcustprojects() async {
@@ -248,7 +273,9 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
     var sharedpref = await SharedPreferences.getInstance();
     var ut = sharedpref.getString("UT");
     var mob = sharedpref.getString("Mobile");
-    if (ut!.toLowerCase() == "consumer" || ut.toLowerCase() == "contractor" || ut.toLowerCase() == "supplier") {
+    if (ut!.toLowerCase() == "consumer" ||
+        ut.toLowerCase() == "contractor" ||
+        ut.toLowerCase() == "supplier") {
       response =
           await http.get(Uri.parse('$baseuri/api/custprojlist/?mob=$mob'));
     } else {
@@ -291,7 +318,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
       _ownermobilecontroller.clear();
       _add1controller.clear();
       _add2controller.clear();
-      _pincontroller.clear();
+      _selectedpin = null;
       _selectedState = null;
       _citycontroller.clear();
       _selectedDistrict = null;
@@ -369,7 +396,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                               _ownermobilecontroller.clear();
                               _add1controller.clear();
                               _add2controller.clear();
-                              _pincontroller.clear();
+                              _selectedpin = null;
                               _selectedState = null;
                               _citycontroller.clear();
                               _selectedDistrict = null;
@@ -378,6 +405,8 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                               _emailcontroller.clear();
                               _gstcontroller.clear();
                               _reracontroller.clear();
+                              _mnamecontroller.clear();
+                              _snamecontroller.clear();
                               showTextField = false;
                               _editmode = false;
                             });
@@ -525,26 +554,26 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                         children: [
                           if (!["consumer", "contractor", "supplier"]
                               .contains(_loginut.toLowerCase()))
-                          Padding(
-                            padding: const EdgeInsets.all(5.0),
-                            child: InputField(
-                              controller: _searchcontroller,
-                              label: "Search Here",
-                              suff: _isprojLoading
-                                  ? const SizedBox(
-                                      width:
-                                          24, // Give it a fixed size to avoid layout shifts
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : IconButton(
-                                      onPressed: () {
-                                        _fetchprojectsAndOpenDropdown();
-                                      },
-                                      icon: const Icon(Icons.search)),
+                            Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: InputField(
+                                controller: _searchcontroller,
+                                label: "Search Here",
+                                suff: _isprojLoading
+                                    ? const SizedBox(
+                                        width:
+                                            24, // Give it a fixed size to avoid layout shifts
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
+                                    : IconButton(
+                                        onPressed: () {
+                                          _fetchprojectsAndOpenDropdown();
+                                        },
+                                        icon: const Icon(Icons.search)),
+                              ),
                             ),
-                          ),
                           Padding(
                               padding: const EdgeInsets.all(5.0),
                               child: showTextField || _editmode
@@ -569,9 +598,13 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                   : DropdownSearch<Project>(
                                       key: _projectkey,
                                       // controller
-                                      compareFn: (item1, item2) => item1.pjc == item2.pjc,
+                                      compareFn: (item1, item2) =>
+                                          item1.pjc == item2.pjc,
                                       popupProps: PopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss",),
+                                        dialogProps: DialogProps(
+                                          barrierDismissible: true,
+                                          barrierLabel: "Dismiss",
+                                        ),
                                         // showSelectedItems: true,
                                         showSearchBox: true,
                                         searchFieldProps: TextFieldProps(
@@ -584,7 +617,8 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
 
-                                      items: (filter, infiniteScrollProps) => _projects,
+                                      items: (filter, infiniteScrollProps) =>
+                                          _projects,
                                       itemAsString: (item) {
                                         return "${item.pname} (${item.custtype})";
                                       },
@@ -605,8 +639,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       },
                                       decoratorProps:
                                           const DropDownDecoratorProps(
-                                        decoration:
-                                            InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Project*",
                                           hintText: "Select a Project",
                                         ),
@@ -635,7 +668,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                             _ownermobilecontroller.clear();
                                             _add1controller.clear();
                                             _add2controller.clear();
-                                            _pincontroller.clear();
+                                            _selectedpin = null;
                                             _selectedState = null;
                                             _citycontroller.clear();
                                             _selectedDistrict = null;
@@ -644,6 +677,8 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                             _emailcontroller.clear();
                                             _gstcontroller.clear();
                                             _reracontroller.clear();
+                                            _mnamecontroller.clear();
+                                            _snamecontroller.clear();
                                             showTextField = true;
                                             _editmode = true;
                                           });
@@ -669,7 +704,8 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         snapshot.data != null) {
                                       return DropdownSearch<String>(
                                         enabled: _editmode,
-                                        items: (filter, infiniteScrollProps) => snapshot.data!,
+                                        items: (filter, infiniteScrollProps) =>
+                                            snapshot.data!,
                                         // itemAsString: (item) {
                                         //   return item.pname;
                                         // },
@@ -693,9 +729,12 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                           return null;
                                         },
                                         popupProps: PopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
-                                          itemBuilder:
-                                              (context, item, isSelected, onTap) {
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss",
+                                          ),
+                                          itemBuilder: (context, item,
+                                              isSelected, onTap) {
                                             return ListTile(
                                               title: Text(item),
                                             );
@@ -741,8 +780,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         selectedItem: _selectedut,
                                         decoratorProps:
                                             const DropDownDecoratorProps(
-                                          decoration:
-                                              InputDecoration(
+                                          decoration: InputDecoration(
                                             labelText: "Select an item",
                                           ),
                                         ),
@@ -917,7 +955,8 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                           setState(() {
                                             _mobsearchedProj = getprojects(
                                                 searchterm:
-                                                    _ownermobilecontroller.text);
+                                                    _ownermobilecontroller
+                                                        .text);
                                           });
                                           List<Project>? prj =
                                               await _mobsearchedProj;
@@ -945,6 +984,14 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         }
                                       },
                                       icon: const Icon(Icons.contacts)),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              readOnly: !_editmode,
+                              label: "Manager Name",
+                              controller: _mnamecontroller,
                             ),
                           ),
                           Padding(
@@ -1023,6 +1070,14 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         }
                                       },
                                       icon: const Icon(Icons.contacts)),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              readOnly: !_editmode,
+                              label: "Staff Name",
+                              controller: _snamecontroller,
                             ),
                           ),
                           Padding(
@@ -1133,7 +1188,8 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       snapshot.data != null) {
                                     return DropdownSearch<String>(
                                       enabled: _editmode,
-                                      items: (filter, infiniteScrollProps) => snapshot.data!,
+                                      items: (filter, infiniteScrollProps) =>
+                                          snapshot.data!,
                                       // itemAsString: (item) {
                                       //   return item.pname;
                                       // },
@@ -1157,7 +1213,10 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                         return null;
                                       },
                                       popupProps: PopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
+                                        dialogProps: DialogProps(
+                                          barrierDismissible: true,
+                                          barrierLabel: "Dismiss",
+                                        ),
                                         itemBuilder:
                                             (context, item, isSelected, onTap) {
                                           return ListTile(
@@ -1177,8 +1236,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                       selectedItem: _selectedState,
                                       decoratorProps:
                                           const DropDownDecoratorProps(
-                                        decoration:
-                                            InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Select a State",
                                         ),
                                       ),
@@ -1200,14 +1258,17 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                 },
                                 enabled: _editmode,
                                 popupProps: const PopupProps.dialog(
-                                    dialogProps: DialogProps(barrierDismissible: true, barrierLabel: "Dismiss",),
+                                    dialogProps: DialogProps(
+                                      barrierDismissible: true,
+                                      barrierLabel: "Dismiss",
+                                    ),
                                     showSelectedItems: true,
                                     showSearchBox: true),
                                 // mode: Mode.dialog,
                                 // showSelectedItems: true,
-                                items: (filter, infiniteScrollProps) => _districts,
-                                decoratorProps:
-                                    const DropDownDecoratorProps(
+                                items: (filter, infiniteScrollProps) =>
+                                    _districts,
+                                decoratorProps: const DropDownDecoratorProps(
                                   decoration: InputDecoration(
                                     labelText: "District*",
                                     hintText: "Select a District",
@@ -1221,6 +1282,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                     _citycontroller.text = _selectedDistrict!;
                                     // getcomp();
                                   });
+                                  getpin();
                                 },
                                 selectedItem: _selectedDistrict,
                               )),
@@ -1233,34 +1295,66 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(5.0),
-                            child: InputField(
-                              readOnly: !_editmode,
-                              label: "Pin Code",
-                              controller: _pincontroller,
-                              keyboardtype: TextInputType.number,
-                              onChanged: (value) async {
-                                // if (value.length == 6) {
-                                //   final response = await http.get(
-                                //       Uri.parse('$baseuri/api/loca/$value/'));
-                                //   if (response.statusCode == 200) {
-                                //     final body = json.decode(response.body);
-                                //     _statecontroller.text = body["STATE"];
-                                //     _citycontroller.text = body["CITY"];
-                                //     _districtcontroller.text = body["CITY"];
-                                //     // print("Pincode doesnt exists");
-                                //   } else {
-                                //     QuickAlert.show(
-                                //         context: context,
-                                //         type: QuickAlertType.error,
-                                //         title: "Error",
-                                //         text:
-                                //             "Pincode doesnot exist. Please enter a valid Pincode");
-                                //   }
-                                // }
-                              },
-                            ),
-                          ),
+                              padding: const EdgeInsets.all(5.0),
+                              child: DropdownSearch<String>(
+                                enabled: _editmode,
+                                popupProps: const PopupProps.dialog(
+                                    dialogProps: DialogProps(
+                                      barrierDismissible: true,
+                                      barrierLabel: "Dismiss",
+                                    ),
+                                    showSelectedItems: true,
+                                    showSearchBox: true),
+                                // mode: Mode.dialog,
+                                // showSelectedItems: true,
+                                items: (filter, infiniteScrollProps) =>
+                                    _pincodes,
+                                decoratorProps: const DropDownDecoratorProps(
+                                  decoration: InputDecoration(
+                                    labelText: "Pin Code",
+                                    hintText: "Select a Pin Code",
+                                  ),
+                                ),
+
+                                onSelected: (value) {
+                                  setState(() {
+                                    // _company.clear();
+                                    _selectedpin = value;
+                                    // _citycontroller.text = _selectedDistrict!;
+                                    // getcomp();
+                                  });
+                                },
+                                selectedItem: _selectedpin,
+                              )),
+                          // Padding(
+                          //   padding: const EdgeInsets.all(5.0),
+                          //   child: InputField(
+                          //     readOnly: !_editmode,
+                          //     label: "Pin Code",
+                          //     controller: _pincontroller,
+                          //     keyboardtype: TextInputType.number,
+                          //     onChanged: (value) async {
+                          //       // if (value.length == 6) {
+                          //       //   final response = await http.get(
+                          //       //       Uri.parse('$baseuri/api/loca/$value/'));
+                          //       //   if (response.statusCode == 200) {
+                          //       //     final body = json.decode(response.body);
+                          //       //     _statecontroller.text = body["STATE"];
+                          //       //     _citycontroller.text = body["CITY"];
+                          //       //     _districtcontroller.text = body["CITY"];
+                          //       //     // print("Pincode doesnt exists");
+                          //       //   } else {
+                          //       //     QuickAlert.show(
+                          //       //         context: context,
+                          //       //         type: QuickAlertType.error,
+                          //       //         title: "Error",
+                          //       //         text:
+                          //       //             "Pincode doesnot exist. Please enter a valid Pincode");
+                          //       //   }
+                          //       // }
+                          //     },
+                          //   ),
+                          // ),
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
@@ -1376,6 +1470,41 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                 controller: _reracontroller,
                               ),
                             ),
+                          // Padding(
+                          //   padding: const EdgeInsets.all(5.0),
+                          //   child: InputField(
+                          //     readOnly: !_editmode,
+                          //     label: "Google Map Location link",
+                          //     controller: _locationcontroller,
+                          //   ),
+                          // ),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: InputField(
+                              readOnly: !_editmode,
+                              label: "Google Map Location link",
+                              controller: _locationcontroller,
+                              // Pass a suffix icon if your InputField widget supports it:
+                              suff: _locationcontroller.text.isNotEmpty &&
+                                      !_editmode
+                                  ? IconButton(
+                                      icon: const Icon(Icons.open_in_new),
+                                      onPressed: () async {
+                                        String text =
+                                            _locationcontroller.text.trim();
+                                        if (!text.startsWith('http://') &&
+                                            !text.startsWith('https://')) {
+                                          text = 'https://$text';
+                                        }
+                                        final Uri url = Uri.parse(text);
+                                        await launchUrl(url,
+                                            mode:
+                                                LaunchMode.externalApplication);
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ),
                           if (_isLoading)
                             const Center(
                                 child: CircularProgressIndicator(
@@ -1387,6 +1516,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                   ? null
                                   : (() async {
                                       if (_formkey.currentState!.validate()) {
+                                        var loca = await getLocation();
                                         if (_existpjc != null) {
                                           setState(() {
                                             _isLoading = true;
@@ -1400,15 +1530,22 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                                 _ownermobilecontroller.text,
                                             'ADD1': _add1controller.text,
                                             'ADD2': _add2controller.text,
-                                            'PIN': _pincontroller.text,
+                                            'PIN': _selectedpin,
                                             'STATE': _selectedState,
                                             'DIST': _selectedDistrict,
                                             'CITY': _citycontroller.text,
+                                            'MNAME': _mnamecontroller.text,
                                             'MOBILE1': _mobilecontroller.text,
+                                            'SNAME': _snamecontroller.text,
                                             'MOBILE2': _mobile2controller.text,
                                             'EMAIL': _emailcontroller.text,
                                             'GSTN': _gstcontroller.text,
                                             'RERA': _reracontroller.text,
+                                            'LOCATION': _locationcontroller.text
+                                                    .trim()
+                                                    .isEmpty
+                                                ? loca
+                                                : _locationcontroller.text
                                           };
                                           final resp = await http.patch(
                                               Uri.parse(
@@ -1459,16 +1596,23 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                                 _ownermobilecontroller.text,
                                             'ADD1': _add1controller.text,
                                             'ADD2': _add2controller.text,
-                                            'PIN': _pincontroller.text,
+                                            'PIN': _selectedpin,
                                             'STATE': _selectedState,
                                             'DIST': _selectedDistrict,
                                             'CITY': _citycontroller.text,
+                                            'MNAME': _mnamecontroller.text,
                                             'MOBILE1': _mobilecontroller.text,
+                                            'SNAME': _snamecontroller.text,
                                             'MOBILE2': _mobile2controller.text,
                                             'EMAIL': _emailcontroller.text,
                                             'GSTN': _gstcontroller.text,
                                             'RERA': _reracontroller.text,
-                                            'CREATEDBY_MOB': loggedinmob
+                                            'CREATEDBY_MOB': loggedinmob,
+                                            'LOCATION': _locationcontroller.text
+                                                    .trim()
+                                                    .isEmpty
+                                                ? loca
+                                                : _locationcontroller.text
                                           };
                                           final resp = await http.post(
                                               Uri.parse(
@@ -1639,7 +1783,7 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
         setState(() {
           _add1controller.text = body[0]["ADD1"];
           _add2controller.text = body[0]["ADD2"];
-          _pincontroller.text = body[0]["PIN"];
+          _selectedpin = body[0]["PIN"];
           _selectedState = body[0]["STATE"];
           _citycontroller.text = body[0]["CITY"];
           _selectedDistrict = body[0]["DIST"];

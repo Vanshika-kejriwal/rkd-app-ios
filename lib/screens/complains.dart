@@ -7,6 +7,7 @@ import 'package:business_app/screens/project_registration.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart';
@@ -227,8 +228,11 @@ class _ComplainState extends State<Complain> {
         }),
         headers: {"Content-Type": "application/json"});
     final body = json.decode(response.body);
-    print(body);
-    print(response.statusCode);
+    if (kDebugMode) {
+      print(body);
+      print(response.statusCode);
+    }
+
     List<AMCModel> comp = [];
     if (response.statusCode == 200) {
       for (var c in body) {
@@ -255,9 +259,10 @@ class _ComplainState extends State<Complain> {
     if (response.statusCode == 200) {
       _category.clear();
       for (var c in body) {
-       
-        _category
-            .add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled']));
+        _category.add(LeadCategory(
+            ddl12: c['DDL12'],
+            enabled: c['is_enabled'],
+            extrainfo: c['extra_info']));
       }
     }
   }
@@ -491,7 +496,7 @@ class _ComplainState extends State<Complain> {
                             },
                             selectedItem: _selectedcomp,
                           )),
-                       Padding(
+                      Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<AMCModel>.multiSelection(
                             compareFn: (item1, item2) =>
@@ -530,17 +535,25 @@ class _ComplainState extends State<Complain> {
                       Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: DropdownSearch<LeadCategory>(
-                            itemAsString: (item) {
-                              return item.ddl12;
-                            },
                             compareFn: (item1, item2) {
                               return item1.ddl12 == item2.ddl12;
                             },
+                            itemAsString: (item) => item.ddl12,
                             // enabled: !_resendotp,
                             popupProps: PopupProps.dialog(
+                                itemBuilder:
+                                    (context, item, isDisabled, isSelected) =>
+                                        ListTile(
+                                          enabled: item.enabled,
+                                          title: Text(item.ddl12),
+                                          trailing: item.extrainfo != null
+                                              ? Text(item.extrainfo!)
+                                              : null,
+                                        ),
                                 disabledItemFn: (item) {
                                   return !item.enabled;
                                 },
+                               
                                 dialogProps: const DialogProps(
                                   barrierDismissible: true,
                                   barrierLabel: "Dismiss",
@@ -552,7 +565,7 @@ class _ComplainState extends State<Complain> {
                             items: (filter, infiniteScrollProps) => _category,
                             decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
-                                labelText: "Reason/Category",
+                                labelText: "Service Type",
                                 hintText: "Select an option",
                               ),
                             ),
@@ -589,8 +602,8 @@ class _ComplainState extends State<Complain> {
                                       decoratorProps:
                                           const DropDownDecoratorProps(
                                         decoration: InputDecoration(
-                                          labelText: "Lead To Name",
-                                          hintText: "Select Lead To Name",
+                                          labelText: "Assigned To",
+                                          hintText: "Select Assigned To",
                                         ),
                                       ),
                                       // dropdownSearchDecoration: const InputDecoration(
@@ -640,7 +653,7 @@ class _ComplainState extends State<Complain> {
                             },
                           ),
                         ),
-                     
+
                       // Padding(
                       //   padding: const EdgeInsets.all(5.0),
                       //   child: InputField(
@@ -669,7 +682,7 @@ class _ComplainState extends State<Complain> {
                       Padding(
                         padding: const EdgeInsets.all(5.0),
                         child: InputField(
-                          label: "Contact Number",
+                          label: "Site Contact Number",
                           controller: _mobilecontroller,
                           keyboardtype: TextInputType.phone,
                           sufficon: IconButton(

@@ -215,14 +215,17 @@ class Invoice {
 class ItemDetail {
   final String name;
   final String quantity;
+  final String billdate;
 
-  ItemDetail({required this.name, required this.quantity});
+  ItemDetail(
+      {required this.name, required this.quantity, required this.billdate});
 
   // Factory to create ItemDetail from the concatenated string "item name|||quantity"
   factory ItemDetail.fromConcatenatedString(String concatenatedString) {
     final parts = concatenatedString.split('|||');
     return ItemDetail(
       name: parts[0].trim(),
+      billdate: parts[2].trim(),
       quantity: parts.length > 1
           ? parts[1].trim()
           : 'N/A', // Handle case where quantity might be missing
@@ -324,6 +327,37 @@ class AMCDetailModel {
 class LeadCategory {
   String ddl12;
   bool enabled;
+  String? extrainfo;
 
-  LeadCategory({required this.ddl12, required this.enabled});
+  LeadCategory({required this.ddl12, required this.enabled, this.extrainfo});
+}
+
+class PaidRowData {
+  final String col1;
+  final String col2;
+  final String col3;
+  final String col4;
+  final String col5;
+  final String col6;
+
+  PaidRowData({
+    required this.col1,
+    required this.col2,
+    required this.col3,
+    required this.col4,
+    required this.col5,
+    required this.col6,
+  });
+
+  factory PaidRowData.fromJson(Map<String, dynamic> json) {
+    return PaidRowData(
+      col1: json['Product_Type']?.toString() ?? '',
+      col2: json['Company']?.toString() ?? '',
+      col3: json['Model']?.toString() ?? '',
+      col4: json['F1']?.toString() ?? '',
+      col5: json['F2']?.toString() ?? '',
+      col6: json['_12_MONTHS']?.toString() ??
+          '', //"Product_Type", "Company", "Model","F1", "F2","_12_MONTHS"
+    );
+  }
 }

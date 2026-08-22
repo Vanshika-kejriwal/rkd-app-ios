@@ -494,544 +494,546 @@ class _AMCState extends State<AMC> {
       appbar: true,
       appbartitle: const Text("AMC Purchase"),
       appbaractions: const [],
-      childs: Center(
-        child: SizedBox(
-          width: swidth * 0.8,
-          child: Form(
-              key: _formkey,
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: FutureBuilder<List<Project>>(
-                              future: _projects,
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData && snapshot.data != null) {
-                                  return DropdownSearch<Project>(
-                                    enabled: widget.edit==true? false:true,
-                                    compareFn: (item1, item2) =>
-                                        item1.pjc == item2.pjc,
-                                    popupProps: const PopupProps.dialog(
-                                        dialogProps: DialogProps(
-                                          barrierDismissible: true,
-                                          barrierLabel: "Dismiss",
-                                        ),
-                                        // showSelectedItems: true,
-                                        showSearchBox: true),
-                                    filterFn: (item, filter) {
-                                      return item.pname == "Add New" ||
-                                          item.pname
-                                              .toLowerCase()
-                                              .contains(filter.toLowerCase()) ||
-                                          item.custtype
-                                              .toLowerCase()
-                                              .contains(filter.toLowerCase());
-                                    },
-                                    // filterFn: (item, filter) {
-                                    //   return item == "Add New" ||
-                                    //       item
-                                    //           .toLowerCase()
-                                    //           .contains(filter.toLowerCase());
-                                    // },
-                                    // mode: Mode.dialog,
-                                    // showSelectedItems: true,
-                                    items: (filter, infiniteScrollProps) =>
-                                        snapshot.data!,
-                                    itemAsString: (item) {
-                                      if (item.pname == "Add New") {
-                                        return item.pname;
-                                      } else {
-                                        return "${item.pname} (${item.custtype})";
-                                      }
-                                    },
-                                    decoratorProps:
-                                        const DropDownDecoratorProps(
-                                      decoration: InputDecoration(
-                                        labelText: "Project*",
-                                        hintText: "Select a Project",
-                                      ),
-                                    ),
-                                    // dropdownSearchDecoration: const InputDecoration(
-                                    // labelText: "Menu mode",
-                                    // hintText: "country in menu mode",
-                                    // ),
-                                    // popupItemDisabled: isItemDisabled,
-                                    onSelected: (value) async {
-                                      setState(() {
-                                        // _projects.clear();
-                                        _selectedproject = value;
-                                        _amcitemdetail.clear();
-                                        _selectedproduct = null;
-                                        _selectedcomp = null;
-                                        _selectedamcitemdetail = [];
-                                        _selectedmodel = null;
-                                        _selectedamctype = null;
-                                        _selectedduration = null;
-                                        _billDateController.clear();
-                                        _billNumberController.clear();
-                                        _billQuantityController.clear();
-                                        getproduct();
-                                      });
-                                      if (value!.pname == "Add New") {
-                                        final result = await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const ProjectRegistration(),
-                                            ));
-                                        // final result = await context
-                                        //     .go('/project_registration');
-                                        if (result == true) {
-                                          setState(() {
-                                            // _projects.clear();
-                                            _projects = getprojects();
-                                          });
+      childs: SafeArea(
+        child: Center(
+          child: SizedBox(
+            width: swidth * 0.8,
+            child: Form(
+                key: _formkey,
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: FutureBuilder<List<Project>>(
+                                future: _projects,
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData && snapshot.data != null) {
+                                    return DropdownSearch<Project>(
+                                      enabled: widget.edit==true? false:true,
+                                      compareFn: (item1, item2) =>
+                                          item1.pjc == item2.pjc,
+                                      popupProps: const PopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss",
+                                          ),
+                                          // showSelectedItems: true,
+                                          showSearchBox: true),
+                                      filterFn: (item, filter) {
+                                        return item.pname == "Add New" ||
+                                            item.pname
+                                                .toLowerCase()
+                                                .contains(filter.toLowerCase()) ||
+                                            item.custtype
+                                                .toLowerCase()
+                                                .contains(filter.toLowerCase());
+                                      },
+                                      // filterFn: (item, filter) {
+                                      //   return item == "Add New" ||
+                                      //       item
+                                      //           .toLowerCase()
+                                      //           .contains(filter.toLowerCase());
+                                      // },
+                                      // mode: Mode.dialog,
+                                      // showSelectedItems: true,
+                                      items: (filter, infiniteScrollProps) =>
+                                          snapshot.data!,
+                                      itemAsString: (item) {
+                                        if (item.pname == "Add New") {
+                                          return item.pname;
+                                        } else {
+                                          return "${item.pname} (${item.custtype})";
                                         }
-                                      }
-                                    },
-                                    selectedItem: _selectedproject,
-                                    // showSearchBox: true,
-                                    // searchFieldProps: TextFieldProps(
-                                    //   cursorColor: Colors.blue,
-                                    // ),
-                                  );
-                                } else {
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                }
-                              })),
-                      // Padding(
-                      //     padding: const EdgeInsets.all(5.0),
-                      //     child: DropdownSearch<String>(
-                      //       enabled: _isenabled,
-                      //       popupProps: const PopupProps.dialog(
-                      //           showSelectedItems: true, showSearchBox: true),
-                      //       filterFn: (item, filter) {
-                      //         return item == "Add New" ||
-                      //             item
-                      //                 .toLowerCase()
-                      //                 .contains(filter.toLowerCase());
-                      //       },
-                      //       // mode: Mode.dialog,
-                      //       // showSelectedItems: true,
-                      //       items: _projects,
-                      //       dropdownDecoratorProps:
-                      //           const DropDownDecoratorProps(
-                      //         dropdownSearchDecoration: InputDecoration(
-                      //           labelText: "Project",
-                      //           hintText: "Select a Project",
-                      //         ),
-                      //       ),
-                      //       // dropdownSearchDecoration: const InputDecoration(
-                      //       // labelText: "Menu mode",
-                      //       // hintText: "country in menu mode",
-                      //       // ),
-                      //       // popupItemDisabled: isItemDisabled,
-                      //       onChanged: (value) async {
-                      //         if (value == "Add New") {
-                      //           final result = await Navigator.push(
-                      //               context,
-                      //               MaterialPageRoute(
-                      //                 builder: (context) =>
-                      //                     const ProjectRegistration(),
-                      //               ));
-                      //           if (result) {
-                      //             setState(() {
-                      //               _projects.clear();
-                      //               getprojects();
-                      //             });
-                      //           }
-                      //         }
-                      //         setState(() {
-                      //           _products.clear();
-                      //           _selectedproject = value;
-                      //           getproduct();
-                      //         });
-                      //       },
-                      //       selectedItem: _selectedproject,
-                      //       // showSearchBox: true,
-                      //       // searchFieldProps: TextFieldProps(
-                      //       //   cursorColor: Colors.blue,
-                      //       // ),
-                      //     )),
-                      Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<String>(
-                            enabled: widget.edit==true? false:true,
-                            popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(
-                                  barrierDismissible: true,
-                                  barrierLabel: "Dismiss",
+                                      },
+                                      decoratorProps:
+                                          const DropDownDecoratorProps(
+                                        decoration: InputDecoration(
+                                          labelText: "Project*",
+                                          hintText: "Select a Project",
+                                        ),
+                                      ),
+                                      // dropdownSearchDecoration: const InputDecoration(
+                                      // labelText: "Menu mode",
+                                      // hintText: "country in menu mode",
+                                      // ),
+                                      // popupItemDisabled: isItemDisabled,
+                                      onSelected: (value) async {
+                                        setState(() {
+                                          // _projects.clear();
+                                          _selectedproject = value;
+                                          _amcitemdetail.clear();
+                                          _selectedproduct = null;
+                                          _selectedcomp = null;
+                                          _selectedamcitemdetail = [];
+                                          _selectedmodel = null;
+                                          _selectedamctype = null;
+                                          _selectedduration = null;
+                                          _billDateController.clear();
+                                          _billNumberController.clear();
+                                          _billQuantityController.clear();
+                                          getproduct();
+                                        });
+                                        if (value!.pname == "Add New") {
+                                          final result = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const ProjectRegistration(),
+                                              ));
+                                          // final result = await context
+                                          //     .go('/project_registration');
+                                          if (result == true) {
+                                            setState(() {
+                                              // _projects.clear();
+                                              _projects = getprojects();
+                                            });
+                                          }
+                                        }
+                                      },
+                                      selectedItem: _selectedproject,
+                                      // showSearchBox: true,
+                                      // searchFieldProps: TextFieldProps(
+                                      //   cursorColor: Colors.blue,
+                                      // ),
+                                    );
+                                  } else {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                })),
+                        // Padding(
+                        //     padding: const EdgeInsets.all(5.0),
+                        //     child: DropdownSearch<String>(
+                        //       enabled: _isenabled,
+                        //       popupProps: const PopupProps.dialog(
+                        //           showSelectedItems: true, showSearchBox: true),
+                        //       filterFn: (item, filter) {
+                        //         return item == "Add New" ||
+                        //             item
+                        //                 .toLowerCase()
+                        //                 .contains(filter.toLowerCase());
+                        //       },
+                        //       // mode: Mode.dialog,
+                        //       // showSelectedItems: true,
+                        //       items: _projects,
+                        //       dropdownDecoratorProps:
+                        //           const DropDownDecoratorProps(
+                        //         dropdownSearchDecoration: InputDecoration(
+                        //           labelText: "Project",
+                        //           hintText: "Select a Project",
+                        //         ),
+                        //       ),
+                        //       // dropdownSearchDecoration: const InputDecoration(
+                        //       // labelText: "Menu mode",
+                        //       // hintText: "country in menu mode",
+                        //       // ),
+                        //       // popupItemDisabled: isItemDisabled,
+                        //       onChanged: (value) async {
+                        //         if (value == "Add New") {
+                        //           final result = await Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                 builder: (context) =>
+                        //                     const ProjectRegistration(),
+                        //               ));
+                        //           if (result) {
+                        //             setState(() {
+                        //               _projects.clear();
+                        //               getprojects();
+                        //             });
+                        //           }
+                        //         }
+                        //         setState(() {
+                        //           _products.clear();
+                        //           _selectedproject = value;
+                        //           getproduct();
+                        //         });
+                        //       },
+                        //       selectedItem: _selectedproject,
+                        //       // showSearchBox: true,
+                        //       // searchFieldProps: TextFieldProps(
+                        //       //   cursorColor: Colors.blue,
+                        //       // ),
+                        //     )),
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<String>(
+                              enabled: widget.edit==true? false:true,
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss",
+                                  ),
+                                  showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) => _products,
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Product",
+                                  hintText: "Select a Product",
                                 ),
-                                showSelectedItems: true,
-                                showSearchBox: true),
-                            // mode: Mode.dialog,
-                            // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) => _products,
-                            decoratorProps: const DropDownDecoratorProps(
-                              decoration: InputDecoration(
-                                labelText: "Product",
-                                hintText: "Select a Product",
                               ),
-                            ),
-
-                            onSelected: (value) {
-                              setState(() {
-                                _company.clear();
-                                _models.clear();
-                                _amctypes.clear();
-                                _selectedproduct = value;
-                                checkrunningamc();
-                                getcomp();
-                              });
-                            },
-                            selectedItem: _selectedproduct,
-                          )),
-                      Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<LeadProduct>(
-                            compareFn: (item1, item2) =>
-                                item1.company == item2.company &&
-                                item1.product == item2.product,
-                            // enabled: _isenabled,
-                            popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(
-                                  barrierDismissible: true,
-                                  barrierLabel: "Dismiss",
+        
+                              onSelected: (value) {
+                                setState(() {
+                                  _company.clear();
+                                  _models.clear();
+                                  _amctypes.clear();
+                                  _selectedproduct = value;
+                                  checkrunningamc();
+                                  getcomp();
+                                });
+                              },
+                              selectedItem: _selectedproduct,
+                            )),
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<LeadProduct>(
+                              compareFn: (item1, item2) =>
+                                  item1.company == item2.company &&
+                                  item1.product == item2.product,
+                              // enabled: _isenabled,
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss",
+                                  ),
+                                  // showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) => _company,
+                              itemAsString: (item) {
+                                return "${item.company} (${item.product})";
+                              },
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Company",
+                                  hintText: "Select a Company",
                                 ),
-                                // showSelectedItems: true,
-                                showSearchBox: true),
-                            // mode: Mode.dialog,
-                            // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) => _company,
-                            itemAsString: (item) {
-                              return "${item.company} (${item.product})";
-                            },
-                            decoratorProps: const DropDownDecoratorProps(
-                              decoration: InputDecoration(
-                                labelText: "Company",
-                                hintText: "Select a Company",
                               ),
-                            ),
-
-                            onSelected: (value) {
-                              setState(() {
-                                _selectedcomp = value;
-                                _models.clear();
-                                _amcitemdetail.clear();
-                                _amctypes.clear();
-                                getmodel();
-                                getitemdetail();
-                              });
-                            },
-                            selectedItem: _selectedcomp,
-                          )),
-
-                      // if (_allowAssign)
-                      Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<String>(
-                            popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(
-                                  barrierDismissible: true,
-                                  barrierLabel: "Dismiss",
+        
+                              onSelected: (value) {
+                                setState(() {
+                                  _selectedcomp = value;
+                                  _models.clear();
+                                  _amcitemdetail.clear();
+                                  _amctypes.clear();
+                                  getmodel();
+                                  getitemdetail();
+                                });
+                              },
+                              selectedItem: _selectedcomp,
+                            )),
+        
+                        // if (_allowAssign)
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<String>(
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss",
+                                  ),
+                                  showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) => _models,
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Model",
+                                  hintText: "Select Model",
                                 ),
-                                showSelectedItems: true,
-                                showSearchBox: true),
-                            // mode: Mode.dialog,
-                            // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) => _models,
-                            decoratorProps: const DropDownDecoratorProps(
-                              decoration: InputDecoration(
-                                labelText: "Model",
-                                hintText: "Select Model",
                               ),
-                            ),
-                            // dropdownSearchDecoration: const InputDecoration(
-                            // labelText: "Menu mode",
-                            // hintText: "country in menu mode",
-                            // ),
-                            // popupItemDisabled: isItemDisabled,
-                            onSelected: (value) {
-                              setState(() {
-                                _selectedmodel = value!;
-                                getamctype();
-                              });
-                            },
-                            selectedItem: _selectedmodel,
-                            // showSearchBox: true,
-                            // searchFieldProps: TextFieldProps(
-                            //   cursorColor: Colors.blue,
-                            // ),
-                          )),
-                      // if (_allowAssign)
-                      Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<AMCModel>.multiSelection(
-                            compareFn: (item1, item2) =>
-                                item1.code == item2.code &&
-                                item1.item == item2.item,
-                            popupProps: const MultiSelectionPopupProps.dialog(
-                                dialogProps: DialogProps(
-                                  barrierDismissible: true,
-                                  barrierLabel: "Dismiss",
+                              // dropdownSearchDecoration: const InputDecoration(
+                              // labelText: "Menu mode",
+                              // hintText: "country in menu mode",
+                              // ),
+                              // popupItemDisabled: isItemDisabled,
+                              onSelected: (value) {
+                                setState(() {
+                                  _selectedmodel = value!;
+                                  getamctype();
+                                });
+                              },
+                              selectedItem: _selectedmodel,
+                              // showSearchBox: true,
+                              // searchFieldProps: TextFieldProps(
+                              //   cursorColor: Colors.blue,
+                              // ),
+                            )),
+                        // if (_allowAssign)
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<AMCModel>.multiSelection(
+                              compareFn: (item1, item2) =>
+                                  item1.code == item2.code &&
+                                  item1.item == item2.item,
+                              popupProps: const MultiSelectionPopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss",
+                                  ),
+                                  // showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) =>
+                                  _amcitemdetail,
+                              itemAsString: (item) {
+                                return "${item.item} (${item.idatec})";
+                              },
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "Item Detail",
+                                  hintText: "Select Item",
                                 ),
-                                // showSelectedItems: true,
-                                showSearchBox: true),
-                            // mode: Mode.dialog,
-                            // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) =>
-                                _amcitemdetail,
-                            itemAsString: (item) {
-                              return "${item.item} (${item.idatec})";
-                            },
-                            decoratorProps: const DropDownDecoratorProps(
-                              decoration: InputDecoration(
-                                labelText: "Item Detail",
-                                hintText: "Select Item",
                               ),
-                            ),
-
-                            onSelected: (value) {
-                              setState(() {
-                                _selectedamcitemdetail = value;
-                                getbilldetail();
-                              });
-                            },
-                            selectedItems: _selectedamcitemdetail,
-                          )),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          onTap: () => showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                          ).then((selectedDate) {
-                            if (selectedDate != null) {
-                              setState(() {
-                                _billDateController.text =
-                                    "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
-                              });
-                            }
-                          }),
-                          label: "Bill Date",
-                          controller: _billDateController,
+        
+                              onSelected: (value) {
+                                setState(() {
+                                  _selectedamcitemdetail = value;
+                                  getbilldetail();
+                                });
+                              },
+                              selectedItems: _selectedamcitemdetail,
+                            )),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            onTap: () => showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                            ).then((selectedDate) {
+                              if (selectedDate != null) {
+                                setState(() {
+                                  _billDateController.text =
+                                      "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
+                                });
+                              }
+                            }),
+                            label: "Bill Date",
+                            controller: _billDateController,
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Bill Number",
-                          controller: _billNumberController,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Bill Quantity",
-                          controller: _billQuantityController,
-                          onChanged: (val) {
-                            getrate(custom: true);
-                          },
-                        ),
-                      ),
-                      Padding(
+                        Padding(
                           padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<String>(
-                            popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(
-                                  barrierDismissible: true,
-                                  barrierLabel: "Dismiss",
-                                ),
-                                showSelectedItems: true,
-                                showSearchBox: true),
-                            // mode: Mode.dialog,
-                            // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) => _amctypes,
-                            decoratorProps: const DropDownDecoratorProps(
-                              decoration: InputDecoration(
-                                labelText: "AMC Type",
-                                hintText: "Select AMC Type",
-                              ),
-                            ),
-                            // dropdownSearchDecoration: const InputDecoration(
-                            // labelText: "Menu mode",
-                            // hintText: "country in menu mode",
-                            // ),
-                            // popupItemDisabled: isItemDisabled,
-                            onSelected: (value) {
-                              setState(() {
-                                _selectedamctype = value!;
-                                _selectedduration = null;
-                                _rateController.clear();
-                                _amountController.clear();
-                              });
+                          child: InputField(
+                            label: "Bill Number",
+                            controller: _billNumberController,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            label: "Bill Quantity",
+                            controller: _billQuantityController,
+                            onChanged: (val) {
+                              getrate(custom: true);
                             },
-                            selectedItem: _selectedamctype,
-                            // showSearchBox: true,
-                            // searchFieldProps: TextFieldProps(
-                            //   cursorColor: Colors.blue,
-                            // ),
-                          )),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          onTap: () => showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                          ).then((selectedDate) {
-                            if (selectedDate != null) {
-                              setState(() {
-                                _amcstartDateController.text =
-                                    DateFormat('dd/MM/yyyy')
-                                        .format(selectedDate);
-                              });
-                            }
-                          }),
-                          label: "AMC Start Date",
-                          controller: _amcstartDateController,
+                          ),
                         ),
-                      ),
-                      Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: DropdownSearch<String>(
-                            // enabled: _isenabled,
-                            popupProps: const PopupProps.dialog(
-                                dialogProps: DialogProps(
-                                  barrierDismissible: true,
-                                  barrierLabel: "Dismiss",
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<String>(
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss",
+                                  ),
+                                  showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) => _amctypes,
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "AMC Type",
+                                  hintText: "Select AMC Type",
                                 ),
-                                showSelectedItems: true,
-                                showSearchBox: true),
-                            // mode: Mode.dialog,
-                            // showSelectedItems: true,
-                            items: (filter, infiniteScrollProps) => [
-                              "12 Months",
-                              "24 Months",
-                              "36 Months",
+                              ),
+                              // dropdownSearchDecoration: const InputDecoration(
+                              // labelText: "Menu mode",
+                              // hintText: "country in menu mode",
+                              // ),
+                              // popupItemDisabled: isItemDisabled,
+                              onSelected: (value) {
+                                setState(() {
+                                  _selectedamctype = value!;
+                                  _selectedduration = null;
+                                  _rateController.clear();
+                                  _amountController.clear();
+                                });
+                              },
+                              selectedItem: _selectedamctype,
+                              // showSearchBox: true,
+                              // searchFieldProps: TextFieldProps(
+                              //   cursorColor: Colors.blue,
+                              // ),
+                            )),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            onTap: () => showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                            ).then((selectedDate) {
+                              if (selectedDate != null) {
+                                setState(() {
+                                  _amcstartDateController.text =
+                                      DateFormat('dd/MM/yyyy')
+                                          .format(selectedDate);
+                                });
+                              }
+                            }),
+                            label: "AMC Start Date",
+                            controller: _amcstartDateController,
+                          ),
+                        ),
+                        Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: DropdownSearch<String>(
+                              // enabled: _isenabled,
+                              popupProps: const PopupProps.dialog(
+                                  dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss",
+                                  ),
+                                  showSelectedItems: true,
+                                  showSearchBox: true),
+                              // mode: Mode.dialog,
+                              // showSelectedItems: true,
+                              items: (filter, infiniteScrollProps) => [
+                                "12 Months",
+                                "24 Months",
+                                "36 Months",
+                              ],
+                              decoratorProps: const DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: "AMC Duration",
+                                  hintText: "Select AMC Duration",
+                                ),
+                              ),
+        
+                              onSelected: (value) {
+                                setState(() {
+                                  // _company.clear();
+                                  _selectedduration = value;
+                                  getrate();
+                                });
+                              },
+                              selectedItem: _selectedduration,
+                            )),
+        
+                        // Padding(
+                        //   padding: const EdgeInsets.all(5.0),
+                        //   child: InputField(
+                        //     label: "Follow up Date Time",
+                        //     controller: _meetingdatetimecontroller,
+                        //     readOnly: true,
+                        //     onTap: () async {
+                        //       DateTime? meet = await showOmniDateTimePicker(
+                        //           context: context, minutesInterval: 15);
+                        //       if (meet != null) {
+                        //         _meetingdatetimecontroller.text =
+                        //             DateFormat("dd/MM/yyyy")
+                        //                 .add_jm()
+                        //                 .format(meet);
+                        //       }
+                        //     },
+                        //   ),
+                        // ),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            label: "Rate $_ratetype",
+                            controller: _rateController,
+                            // readOnly: true,
+                            onChanged: (p0) {
+                              getrate(custom: true);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            label: "Amount",
+                            controller: _amtController,
+                            readOnly: true,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            label: "GST Amount",
+                            controller: _gstamtController,
+                            readOnly: true,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: InputField(
+                            label: "Total Amount",
+                            controller: _amountController,
+                            readOnly: true,
+                          ),
+                        ),
+                        if (_isLoading)
+                          const Center(
+                              child:
+                                  CircularProgressIndicator(color: Colors.brown)),
+                        Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : (() {
+                                        if (_formkey.currentState!.validate()) {
+                                          submitdata("online");
+                                        }
+                                      }),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        const Color.fromRGBO(252, 101, 8, 1),
+                                    foregroundColor: Colors.white),
+                                child: const Text("Save Details"),
+                              ),
+                              // ElevatedButton(
+                              //   onPressed: _isLoading
+                              //       ? null
+                              //       : (() {
+                              //           if (_formkey.currentState!.validate()) {
+                              //             submitdata("cash");
+                              //           }
+                              //         }),
+                              //   style: ElevatedButton.styleFrom(
+                              //       backgroundColor:
+                              //           const Color.fromRGBO(252, 101, 8, 1),
+                              //       foregroundColor: Colors.white),
+                              //   child: const Text("Pay Cash"),
+                              // ),
                             ],
-                            decoratorProps: const DropDownDecoratorProps(
-                              decoration: InputDecoration(
-                                labelText: "AMC Duration",
-                                hintText: "Select AMC Duration",
-                              ),
-                            ),
-
-                            onSelected: (value) {
-                              setState(() {
-                                // _company.clear();
-                                _selectedduration = value;
-                                getrate();
-                              });
-                            },
-                            selectedItem: _selectedduration,
-                          )),
-
-                      // Padding(
-                      //   padding: const EdgeInsets.all(5.0),
-                      //   child: InputField(
-                      //     label: "Follow up Date Time",
-                      //     controller: _meetingdatetimecontroller,
-                      //     readOnly: true,
-                      //     onTap: () async {
-                      //       DateTime? meet = await showOmniDateTimePicker(
-                      //           context: context, minutesInterval: 15);
-                      //       if (meet != null) {
-                      //         _meetingdatetimecontroller.text =
-                      //             DateFormat("dd/MM/yyyy")
-                      //                 .add_jm()
-                      //                 .format(meet);
-                      //       }
-                      //     },
-                      //   ),
-                      // ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Rate $_ratetype",
-                          controller: _rateController,
-                          // readOnly: true,
-                          onChanged: (p0) {
-                            getrate(custom: true);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Amount",
-                          controller: _amtController,
-                          readOnly: true,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "GST Amount",
-                          controller: _gstamtController,
-                          readOnly: true,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: InputField(
-                          label: "Total Amount",
-                          controller: _amountController,
-                          readOnly: true,
-                        ),
-                      ),
-                      if (_isLoading)
-                        const Center(
-                            child:
-                                CircularProgressIndicator(color: Colors.brown)),
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            ElevatedButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : (() {
-                                      if (_formkey.currentState!.validate()) {
-                                        submitdata("online");
-                                      }
-                                    }),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color.fromRGBO(252, 101, 8, 1),
-                                  foregroundColor: Colors.white),
-                              child: const Text("Save Details"),
-                            ),
-                            // ElevatedButton(
-                            //   onPressed: _isLoading
-                            //       ? null
-                            //       : (() {
-                            //           if (_formkey.currentState!.validate()) {
-                            //             submitdata("cash");
-                            //           }
-                            //         }),
-                            //   style: ElevatedButton.styleFrom(
-                            //       backgroundColor:
-                            //           const Color.fromRGBO(252, 101, 8, 1),
-                            //       foregroundColor: Colors.white),
-                            //   child: const Text("Pay Cash"),
-                            // ),
-                          ],
-                        ),
-                      )
-                    ],
+                          ),
+                        )
+                      ],
+                    ),
                   ),
-                ),
-              )),
+                )),
+          ),
         ),
       ),
     );

@@ -28,6 +28,7 @@ class Servicecheckout extends StatefulWidget {
   String pname;
   String pjc;
   List<Product> products;
+
   Servicecheckout(
       {super.key,
       required this.pname,
@@ -192,13 +193,13 @@ class _ServicecheckoutState extends State<Servicecheckout> {
         '$baseuri/api/leadstatcategory/?status=$_selectedstatus&type=SERVICE&pjc=${widget.pjc}&product=${_selectedfollowupproduct?.product}&items=${_selectedinstallationitems.map((item) => item.code).toList().join(",")}'));
     final body = json.decode(response.body);
     List<LeadCategory> names = [];
-    var ins_date="";
-    var amc_date ="";
+    var ins_date = "";
+    var amc_date = "";
     if (response.statusCode == 200) {
       for (var c in body) {
-        print(c['DDL12']);
-        print(c['inst_date']);
-        names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled']));
+        // print(c['DDL12']);
+        // print(c['inst_date']);
+        names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled'], extrainfo: c['extra_info']));
         if (c["inst_date"] != null) {
           ins_date = c["inst_date"];
         }
@@ -212,6 +213,98 @@ class _ServicecheckoutState extends State<Servicecheckout> {
         _amcdatecontroller.text = amc_date;
       });
     }
+  }
+
+  Future<List<PaidRowData>> fetchTableData() async {
+    final url = Uri.parse(
+        '$baseuri/api/paidbasischarge/?leadid=${_selectedfollowupproduct?.leadid}'); // Replace with your endpoint
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.map((json) => PaidRowData.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load data: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+// 3. Display the Table in the AlertDialog
+  void showResponsiveApiDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final screenSize = MediaQuery.of(context).size;
+
+        return AlertDialog(
+          title: const Text('Paid Basis Charges'),
+          content: SizedBox(
+            width: screenSize.width * 0.85,
+            height: screenSize.height * 0.6,
+            // FutureBuilder listens to the API function
+            child: FutureBuilder<List<PaidRowData>>(
+              future: fetchTableData(),
+              builder: (context, snapshot) {
+                // Show loading spinner while fetching
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Show error message if API fails
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                // Show message if data is empty
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No data found'));
+                }
+
+                final data = snapshot.data!;
+
+                // Build the dual-scroll table when data arrives
+                return SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Product')),
+                        DataColumn(label: Text('Company')),
+                        DataColumn(label: Text('Model')),
+                        DataColumn(label: Text('Condition 1')),
+                        DataColumn(label: Text('Condition 2')),
+                        DataColumn(label: Text('Charges')),
+                      ],
+                      rows: data.map((item) {
+                        return DataRow(cells: [
+                          DataCell(Text(item.col1)),
+                          DataCell(Text(item.col2)),
+                          DataCell(Text(item.col3)),
+                          DataCell(Text(item.col4)),
+                          DataCell(Text(item.col5)),
+                          DataCell(Text(item.col6))
+                        ]);
+                      }).toList(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<List<String>> getnames() async {
@@ -942,6 +1035,15 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   disabledItemFn: (item) {
                                     return !item.enabled;
                                   },
+                                  itemBuilder:
+                                    (context, item, isDisabled, isSelected) =>
+                                        ListTile(
+                                          enabled: item.enabled,
+                                          title: Text(item.ddl12),
+                                          trailing: item.extrainfo != null
+                                              ? Text(item.extrainfo!)
+                                              : null,
+                                        ),
                                   dialogProps: const DialogProps(
                                       barrierDismissible: true,
                                       barrierLabel: "Dismiss"),
@@ -955,7 +1057,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               },
                               decoratorProps: const DropDownDecoratorProps(
                                 decoration: InputDecoration(
-                                  labelText: "Reason/Category",
+                                  labelText: "Service Type",
                                   hintText: "Select an option",
                                 ),
                               ),
@@ -966,6 +1068,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   _selectedcategory = value!;
                                   // getcomp();
                                 });
+                                if (value?.ddl12 == "Paid Basis") {
+                                  showResponsiveApiDialog(context);
+                                }
                               },
                               selectedItem: _selectedcategory,
                             )),
