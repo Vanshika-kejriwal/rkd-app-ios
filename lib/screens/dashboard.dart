@@ -20,6 +20,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 // Removed go_router import
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Dashboard extends StatefulWidget {
   final String ut;
@@ -270,6 +271,33 @@ class _DashboardState extends State<Dashboard> {
         ),
         appbartitle: const Text("R K Distributors"),
         appbaractions: [
+           // policy buttons
+          PopupMenuButton<String>(
+          icon: const Icon(Icons.policy),
+          tooltip: 'View Policies',
+          onSelected: (String value) {
+            // Handle policy selection here
+            launchUrl(Uri.parse(value));
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'https://www.dropbox.com/scl/fi/meyna2oal0d363cx240fe/About-Us.pdf?rlkey=txlx7wahhj5o0ntv9tyw1e8w4&raw=1',
+              child: Text('About Us'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'https://www.dropbox.com/scl/fi/us21078a3d8q84hn5q9af/RKD-T-C.PDF?rlkey=3ksir38ds7v1q2p6fmogvv49b&raw=1',
+              child: Text('Terms & Conditions'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'https://www.dropbox.com/scl/fi/j8cpzell3uqw1ajhwve6x/RKD-PP.pdf?rlkey=wd4t1tzl5y0wqccq7yf9wxowy&raw=1',
+              child: Text('Privacy Policy'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'https://www.dropbox.com/scl/fi/6qlf33sia4orenv9tp0wz/Return-Rufund-Cancel.pdf?rlkey=tdwxqw5jepjw1b3ruen3c0lv0&raw=1',
+              child: Text('Returns & Refunds'),
+            ),
+          ],
+        ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {

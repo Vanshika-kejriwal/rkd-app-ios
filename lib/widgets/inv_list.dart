@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class InvList extends StatefulWidget {
   String? biillno;
+  String? shipto;
   String leadtype;
   String pjc;
   DateTimeRange? filterdate;
@@ -33,6 +34,7 @@ class InvList extends StatefulWidget {
       required this.pjc,
       this.filterdate,
       this.biillno,
+      this.shipto,
       this.searchQuery,
       required this.onfilterChange,
       this.selectedfilters});
@@ -94,7 +96,7 @@ class _InvListState extends State<InvList> {
         } else {
           response = await http.get(
               Uri.parse(
-                  '$baseuri/api/inv_list/?pjc=${widget.pjc}&start=${widget.filterdate!.start.toString().split(" ")[0]}&end=${widget.filterdate!.end.toString().split(" ")[0]}&billno=${widget.biillno}'),
+                  '$baseuri/api/inv_list/?pjc=${widget.pjc}&start=${widget.filterdate!.start.toString().split(" ")[0]}&end=${widget.filterdate!.end.toString().split(" ")[0]}&billno=${widget.biillno}&shipto=${widget.shipto}'),
               headers: {"Content-Type": "application/json"});
         }
         // print(response.headers);
@@ -161,9 +163,11 @@ class _InvListState extends State<InvList> {
           initleads = leads;
           _foundleads = leads;
           // filtervalues();
-          setState(() {
+          if(mounted){
+            setState(() {
             _isDataLoaded = true;
           });
+          }
         }
       } else {
         //     setState(() {
@@ -242,7 +246,8 @@ class _InvListState extends State<InvList> {
     if (oldWidget.pjc != widget.pjc ||
         oldWidget.filterdate != widget.filterdate ||
         oldWidget.biillno != widget.biillno ||
-        oldWidget.leadtype != widget.leadtype) {
+        oldWidget.leadtype != widget.leadtype ||
+        oldWidget.shipto != widget.shipto) {
       getleads();
     }
     // if ((oldWidget.selectedfilters != widget.selectedfilters)) {

@@ -49,10 +49,12 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
   bool _isprojLoading = false;
   // enum DetailOrSummary { Detail, Summary }
   List<Amast> _projects = [];
+  List<Amast> _shiptoprojects = [];
   List<Amast> _company = [];
   List<InvItem> _hilightitems = [];
   List<InvItem> _selectedhilightitems = [];
   Amast? _selectedproject;
+  Amast? _selectedshipto;
   int _selectedBillDetailType = 1;
   List<Amast> _selectedcompany = [];
   final GlobalKey<DropdownSearchState<Amast>> _projectkey =
@@ -286,7 +288,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
     List<Amast> company = [Amast(ac: "00", name: "ALL")];
 
     response = await http.get(Uri.parse(
-        '$baseuri/api/invcompanylist/?ac=${_selectedproject!.ac}&start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}'));
+        '$baseuri/api/invcompanylist/?ac=${_selectedproject!.ac}&start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}&shipto=${_selectedshipto?.ac}'));
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       for (var c in body) {
@@ -304,12 +306,34 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
     // return company;
   }
 
+  getshipto() async {
+    http.Response response;
+    List<Amast> company = [Amast(ac: "00", name: "ALL")];
+
+    response = await http.get(Uri.parse(
+        '$baseuri/api/shiptolist/?ac=${_selectedproject!.ac}&start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}'));
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      for (var c in body) {
+        // String name = c['PNAME'];
+        // String ctype = c['CUSTTYPE'];
+        company.add(Amast(ac: c["AC"], name: "${c["NAME"]}"));
+      }
+    }
+    setState(() {
+      _selectedshipto = company[0];
+      // _selectedhilightitems = [];
+      _shiptoprojects = company;
+      // getitemsforhilight();
+    });
+  }
+
   getitemsforhilight() async {
     http.Response response;
     List<InvItem> company = [];
 
     response = await http.get(Uri.parse(
-        '$baseuri/api/invhilightitem/?pjc=${_selectedproject!.ac}&start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}&mc=${_selectedcompany.map((e) => e.ac).join(",")}'));
+        '$baseuri/api/invhilightitem/?pjc=${_selectedproject!.ac}&start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}&mc=${_selectedcompany.map((e) => e.ac).join(",")}&shipto=${_selectedshipto?.ac}'));
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       for (var c in body) {
@@ -509,12 +533,103 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                         _filteredDate = getCurrentFinancialYear();
                         _datecontroller.text =
                             "${DateFormat("dd/MM/yyyy").format(_filteredDate!.start)}-${DateFormat("dd/MM/yyyy").format(_filteredDate!.end)}";
+                        
+                        
+                      });
+                      if ((_type == "BillDetail") || (_type == "Invoices")) {
+                          await getshipto();
+                        }
+                        if (_type == "BillDetail") {
+                          getcompany();
+                        }
+                    },
+                    selectedItem: _selectedproject,
+                    // showSearchBox: true,
+                    // searchFieldProps: TextFieldProps(
+                    //   cursorColor: Colors.blue,
+                    // ),
+                  )),
+            if ((_type == "Invoices") || (_type == "BillDetail"))
+              Padding(
+                  padding: const EdgeInsets.all(1.0),
+                  child: DropdownSearch<Amast>(
+                    // key: _projectkey,
+                    compareFn: (item1, item2) {
+                      return item1.ac == item2.ac;
+                    },
+                    popupProps: PopupProps.dialog(
+                        dialogProps: DialogProps(
+                          barrierDismissible: true,
+                          barrierLabel: "Dismiss",
+                        ),
+                        title: Padding(
+                          padding: const EdgeInsets.all(1.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Select Ship To",
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              IconButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  icon: const Icon(Icons.close))
+                            ],
+                          ),
+                        ),
+                        // showSelectedItems: true,
+                        showSearchBox: true),
+                    filterFn: (item, filter) {
+                      return item.name == "Add New" ||
+                          item.name
+                              .toLowerCase()
+                              .contains(filter.toLowerCase()) ||
+                          item.ac.toLowerCase().contains(filter.toLowerCase());
+                    },
+                    // filterFn: (item, filter) {
+                    //   return item == "Add New" ||
+                    //       item
+                    //           .toLowerCase()
+                    //           .contains(filter.toLowerCase());
+                    // },
+                    // mode: Mode.dialog,
+                    // showSelectedItems: true,
+                    items: (filter, infiniteScrollProps) => _shiptoprojects,
+                    itemAsString: (item) {
+                      if (item.name == "Add New") {
+                        return item.name;
+                      } else {
+                        return "${item.name} (${item.ac})";
+                      }
+                    },
+                    decoratorProps: const DropDownDecoratorProps(
+                      decoration: InputDecoration(
+                        labelText: "Ship To",
+                        hintText: "Select Ship To",
+                      ),
+                    ),
+                    // dropdownSearchDecoration: const InputDecoration(
+                    // labelText: "Menu mode",
+                    // hintText: "country in menu mode",
+                    // ),
+                    // popupItemDisabled: isItemDisabled,
+                    onSelected: (value) async {
+                      setState(() {
+                        // _projects.clear();
+                        _selectedshipto = value;
+                        // _pjc = value!.ac;
+                        _filteredDate = getCurrentFinancialYear();
+                        _datecontroller.text =
+                            "${DateFormat("dd/MM/yyyy").format(_filteredDate!.start)}-${DateFormat("dd/MM/yyyy").format(_filteredDate!.end)}";
                         if (_type == "BillDetail") {
                           getcompany();
                         }
                       });
                     },
-                    selectedItem: _selectedproject,
+                    selectedItem: _selectedshipto,
                     // showSearchBox: true,
                     // searchFieldProps: TextFieldProps(
                     //   cursorColor: Colors.blue,
@@ -547,6 +662,9 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                         _filteredDate = null;
                       }
                     });
+                    // if(_type == "Invoices"){
+                    //   getshipto();
+                    // }
                   },
                 ),
               ),
@@ -554,6 +672,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
               child: (_type == "Invoices") || (_type == "CNDN")
                   ? InvList(
                       biillno: _billno,
+                      shipto: _selectedshipto?.ac,
                       leadtype: _type,
                       pjc: _pjc,
                       filterdate: _filteredDate,
@@ -722,6 +841,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                                 _filteredDate = null;
                                               }
                                             });
+                                            // getshipto();
                                           },
                                         ),
                                       ),
@@ -960,6 +1080,7 @@ class _AllTransState extends State<AllTrans> with TickerProviderStateMixin {
                                             );
                                             var query = {
                                               "ac": _pjc,
+                                              "sac": _selectedshipto?.ac,
                                               'start': _filteredDate!.start
                                                   .toString()
                                                   .split(" ")[0],
