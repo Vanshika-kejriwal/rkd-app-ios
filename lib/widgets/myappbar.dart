@@ -10,7 +10,7 @@ class MyAppbar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      leadingWidth: 90,
+      // leadingWidth: 90,
         leading: leading,
         backgroundColor: Color(0xFFFFBF4D),
         title: title,
