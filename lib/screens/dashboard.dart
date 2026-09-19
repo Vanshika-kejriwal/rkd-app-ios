@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:business_app/permissions/permitrequest.dart';
+import 'package:business_app/screens/PickupDelivery.dart';
 import 'package:business_app/screens/amchead.dart';
 import 'package:business_app/screens/attendence.dart';
 import 'package:business_app/screens/complainnav.dart';
@@ -7,7 +8,6 @@ import 'package:business_app/screens/installation.dart';
 import 'package:business_app/screens/lead_gen.dart';
 import 'package:business_app/screens/mmast.dart';
 import 'package:business_app/screens/my_transactions.dart';
-import 'package:business_app/screens/project_registration.dart';
 import 'package:business_app/screens/projects.dart';
 import 'package:business_app/screens/service_head.dart';
 import 'package:business_app/screens/splash_screen.dart';
@@ -263,6 +263,16 @@ class _DashboardState extends State<Dashboard> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => AMChead()),
+                    ),
+                  ),
+                if (!["consumer", "contractor", "supplier"]
+                    .contains(widget.ut.toLowerCase()))
+                  _buildDesignGridTile(
+                    title: "Pickup and Delivery",
+                    icon: Icons.local_shipping_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PickupDelivery()),
                     ),
                   ),
               ],

@@ -89,9 +89,11 @@ class _ServiceEditState extends State<ServiceEdit> {
     final response = await http.get(
         Uri.parse('$baseuri/api/servforp/?project=${_selectedproject!.pjc}'));
     if (response.statusCode != 200) {
-      print("SERVER SENT HTML INSTEAD OF JSON:");
-      print(response
-          .body); // This will print the actual error page to your console
+      if (kDebugMode) {
+        print("SERVER SENT HTML INSTEAD OF JSON:");
+        print(response.body);
+      }
+      // This will print the actual error page to your console
     }
     final body = json.decode(response.body);
     Set<LeadProduct> product = {};
@@ -272,21 +274,15 @@ class _ServiceEditState extends State<ServiceEdit> {
     });
     // var sharedpref = await SharedPreferences.getInstance();
     // var username = sharedpref.getString('NAME');
-    final List<String> comp =
-        _selectedcomp.map((item) => item.mc!).toList();
+    final List<String> comp = _selectedcomp.map((item) => item.mc!).toList();
     final Map<String, dynamic> data = {
-      
       'PJC': _selectedproject!.pjc,
       'lead_companies': comp,
-
       'MEETING_DATETIME': _meetingdatetimecontroller.text,
-      
     };
-   
-    final resp = await http.post(
-        Uri.parse('$baseuri/api/servforp/'),
-        body: jsonEncode(data),
-        headers: {"Content-Type": "application/json"});
+
+    final resp = await http.post(Uri.parse('$baseuri/api/servforp/'),
+        body: jsonEncode(data), headers: {"Content-Type": "application/json"});
     if (resp.statusCode == 200 || resp.statusCode == 201) {
       setState(() {
         _isLoading = false;
@@ -301,7 +297,6 @@ class _ServiceEditState extends State<ServiceEdit> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text("Data saved successfully"),
           backgroundColor: Colors.green[400]));
-      
     } else {
       setState(() {
         _isLoading = false;
@@ -491,7 +486,9 @@ class _ServiceEditState extends State<ServiceEdit> {
                             key: _projectkey,
                             enabled: _isenabled,
                             popupProps: const PopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss"),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             filterFn: (item, filter) {
@@ -521,8 +518,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                                 return "${item.pname} (${item.custtype})";
                               }
                             },
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Project*",
                                 hintText: "Select a Project",
@@ -663,7 +659,9 @@ class _ServiceEditState extends State<ServiceEdit> {
                           child: DropdownSearch<LeadProduct>.multiSelection(
                             // enabled: _isenabled,
                             popupProps: const MultiSelectionPopupProps.dialog(
-                              dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                dialogProps: DialogProps(
+                                    barrierDismissible: true,
+                                    barrierLabel: "Dismiss"),
                                 // showSelectedItems: true,
                                 showSearchBox: true),
                             // mode: Mode.dialog,
@@ -672,8 +670,7 @@ class _ServiceEditState extends State<ServiceEdit> {
                             itemAsString: (item) {
                               return "${item.product} - ${item.company}";
                             },
-                            decoratorProps:
-                                const DropDownDecoratorProps(
+                            decoratorProps: const DropDownDecoratorProps(
                               decoration: InputDecoration(
                                 labelText: "Product",
                                 hintText: "Select a Product",
@@ -749,13 +746,13 @@ class _ServiceEditState extends State<ServiceEdit> {
                           readOnly: true,
                           onTap: () async {
                             DateTime? meet = await showOmniDateTimePicker(
-                                context: context, minutesInterval: 15,
+                                context: context,
+                                minutesInterval: 15,
                                 type: OmniDateTimePickerType.date);
-                                
+
                             if (meet != null) {
                               _meetingdatetimecontroller.text =
-                                  DateFormat("dd/MM/yyyy")
-                                      .format(meet);
+                                  DateFormat("dd/MM/yyyy").format(meet);
                             }
                           },
                         ),

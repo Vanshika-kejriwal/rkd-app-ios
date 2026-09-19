@@ -662,22 +662,22 @@ class _LeadDetailState extends State<LeadDetail> {
         '$baseuri/api/leadstatcategory/?status=$_selectedstatus&type=$_selectedleadtype&pjc=$pjc&product=${_selectedfollowupproduct.first.product}&leadid=${_selectedfollowupproduct.first.leadid}&items=$items'));
     final body = json.decode(response.body);
     List<LeadCategory> names = [];
-    var ins_date = "";
-    var amc_date = "";
+    var insDate = "";
+    var amcDate = "";
     if (response.statusCode == 200) {
       for (var c in body) {
         names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled'], extrainfo: c['extra_info']));
         if (c["inst_date"] != null) {
-          ins_date = c["inst_date"];
+          insDate = c["inst_date"];
         }
         if (c["amc_date"] != null) {
-          amc_date = c["amc_date"];
+          amcDate = c["amc_date"];
         }
       }
       setState(() {
         _category = names;
-        _installdatecontroller.text = ins_date;
-        _amcdatecontroller.text = amc_date;
+        _installdatecontroller.text = insDate;
+        _amcdatecontroller.text = amcDate;
       });
     }
   }
@@ -960,8 +960,8 @@ class _LeadDetailState extends State<LeadDetail> {
     final response = await http.post(Uri.parse('$baseuri/api/amcitemdetail/'),
         body: jsonEncode({
           'pjc': widget.currentlead!.pjc,
-          "product": _selectedfollowupproduct.first!.product,
-          "leadid": _selectedfollowupproduct.first!.leadid
+          "product": _selectedfollowupproduct.first.product,
+          "leadid": _selectedfollowupproduct.first.leadid
         }),
         headers: {"Content-Type": "application/json"});
     final body = json.decode(response.body);

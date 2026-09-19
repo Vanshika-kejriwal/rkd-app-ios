@@ -377,7 +377,9 @@ class _InvListState extends State<InvList> {
                         child: IconButton(
                             onPressed: () {
                               var selectedinv = _controller.getSelectedItems();
-                              print("Selected Invoices: $selectedinv");
+                              if (kDebugMode) {
+                                print("Selected Invoices: $selectedinv");
+                              }
                               if (widget.leadtype == "CNDN") {
                                 getinvoicepdf(
                                     context,

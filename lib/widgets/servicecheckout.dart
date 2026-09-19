@@ -193,24 +193,24 @@ class _ServicecheckoutState extends State<Servicecheckout> {
         '$baseuri/api/leadstatcategory/?status=$_selectedstatus&type=SERVICE&pjc=${widget.pjc}&product=${_selectedfollowupproduct?.product}&items=${_selectedinstallationitems.map((item) => item.code).toList().join(",")}'));
     final body = json.decode(response.body);
     List<LeadCategory> names = [];
-    var ins_date = "";
-    var amc_date = "";
+    var insDate = "";
+    var amcDate = "";
     if (response.statusCode == 200) {
       for (var c in body) {
         // print(c['DDL12']);
         // print(c['inst_date']);
         names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled'], extrainfo: c['extra_info']));
         if (c["inst_date"] != null) {
-          ins_date = c["inst_date"];
+          insDate = c["inst_date"];
         }
         if (c["amc_date"] != null) {
-          amc_date = c["amc_date"];
+          amcDate = c["amc_date"];
         }
       }
       setState(() {
         _category = names;
-        _installdatecontroller.text = ins_date;
-        _amcdatecontroller.text = amc_date;
+        _installdatecontroller.text = insDate;
+        _amcdatecontroller.text = amcDate;
       });
     }
   }

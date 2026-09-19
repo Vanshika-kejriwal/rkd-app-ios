@@ -233,7 +233,7 @@ class CustomDataGridItem extends StatefulWidget {
 class _CustomDataGridItemState extends State<CustomDataGridItem> {
   // Controllers and Constants
   late BillDataSource _billDataSource;
-  BillDataSource _emptyDataSource = BillDataSource(billDetails: []);
+  final BillDataSource _emptyDataSource = BillDataSource(billDetails: []);
   final ScrollController _externalHeaderController = ScrollController();
   final ScrollController _gridHorizontalController = ScrollController();
   static const double _totalGridWidth = 700.0; // Sum of minimum column widths

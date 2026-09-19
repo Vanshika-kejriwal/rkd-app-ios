@@ -33,7 +33,7 @@ class _ComplainState extends State<Complain> {
   String? _selectedut;
   Project? _selectedproject;
   LeadCategory? _selectedcategory;
-  List<LeadCategory> _category = [];
+  final List<LeadCategory> _category = [];
   String? _selectedleadton;
   bool _isLoading = false;
   bool _allowAssign = false;

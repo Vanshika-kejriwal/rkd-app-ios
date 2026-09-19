@@ -129,9 +129,12 @@ class _AMCRateState extends State<AMCRate> {
                                             final String filename =
                                                 jsonResponse['filename'];
             
-                                            print(
+                                            if (kDebugMode) {
+                                              print(
                                                 '✅ Received Mobile Numbers: $mobileNumbers');
-                                            print('✅ Filename: $filename');
+                                                print('✅ Filename: $filename');
+                                            }
+                                            
             
                                             // --- Decoding and Saving the PDF File ---
             

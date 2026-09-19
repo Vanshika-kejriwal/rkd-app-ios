@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
 
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/utils.dart';
@@ -67,12 +66,12 @@ class _SiteInfoState extends State<SiteInfo> {
   // late Future<List<Project>>? _projects;
   List<Project> _projects = [];
   final _formkey = GlobalKey<FormState>();
-  bool _verifyEmail = false;
-  bool _isVerifiedEmail = false;
+  final bool _verifyEmail = false;
+  final bool _isVerifiedEmail = false;
   String? _existemail;
-  bool _newEmail = false;
-  bool _verifyomob = false;
-  bool _isVerifiedomob = false;
+  final bool _newEmail = false;
+  final bool _verifyomob = false;
+  final bool _isVerifiedomob = false;
   String? _existomob;
   final _emailotpcontroller = TextEditingController();
   // static const platform = MethodChannel('com.example.myapp/otp');

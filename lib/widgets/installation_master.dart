@@ -44,7 +44,7 @@ class _InstMastState extends State<InstMast> {
           await http.get(Uri.parse('$baseuri/api/get_instproduct_type/?type=${widget.service ? "service" : "installation"}'));
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
-        print(data);
+        // print(data);
         for (var item in data) {
           products.add(item['PNM'] as String);
         }
@@ -52,7 +52,9 @@ class _InstMastState extends State<InstMast> {
         throw Exception('Failed to load product types');
       }
     } catch (error) {
-      print('Error fetching product types: $error');
+      if (kDebugMode) {
+        print('Error fetching product types: $error');
+      }
     }
     return products;
   }
@@ -647,7 +649,9 @@ class _InstMastState extends State<InstMast> {
           .get(Uri.parse('$baseuri/api/get_institems/?product=$data'));
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
-        print(data);
+        if (kDebugMode) {
+          print(data);
+        }
         for (var item in data) {
           if (item['ITEM'] != null) {
             itemsList.add(Institem(
@@ -670,7 +674,9 @@ class _InstMastState extends State<InstMast> {
         throw Exception('Failed to load items');
       }
     } catch (error) {
-      print('Error fetching items: $error');
+      if (kDebugMode) {
+        print('Error fetching items: $error');
+      }
     }
     return itemsList;
   }
@@ -694,7 +700,9 @@ class _InstMastState extends State<InstMast> {
         }
       });
     } catch (error) {
-      print('Error fetching company list: $error');
+      if (kDebugMode) {
+        print('Error fetching company list: $error');
+      }
     }
     return company;
   }
@@ -702,7 +710,7 @@ class _InstMastState extends State<InstMast> {
   Future<List<Amast>> getnewcompany(String? data) async {
     List<Amast> company = [];
     try {
-      print(data);
+      // print(data);
       http.post(Uri.parse('$baseuri/api/get_newcompanylist/'),
           body: {"product": data}).then((response) {
         if (response.statusCode == 200) {
@@ -721,7 +729,9 @@ class _InstMastState extends State<InstMast> {
         }
       });
     } catch (error) {
-      print('Error fetching company list: $error');
+      if (kDebugMode) {
+        print('Error fetching company list: $error');
+      }
     }
     return company;
   }
@@ -755,13 +765,17 @@ class _InstMastState extends State<InstMast> {
             _nfdcontroller.clear();
             _amcdcontroller.clear();
           });
-          print("No details found for this ID.");
+          if (kDebugMode) {
+            print("No details found for this ID.");
+          }
         }
 
         getitems(data1.ac);
       }
     } catch (error) {
-      print('Error fetching project details: $error');
+      if (kDebugMode) {
+        print('Error fetching project details: $error');
+      }
     }
   }
 
@@ -772,7 +786,9 @@ class _InstMastState extends State<InstMast> {
           await http.get(Uri.parse('$baseuri/api/get_newinstproduct_type/'));
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
-        print(data);
+        if (kDebugMode) {
+          print(data);
+        }
         for (var item in data) {
           products.add(item['PNM'] as String);
         }

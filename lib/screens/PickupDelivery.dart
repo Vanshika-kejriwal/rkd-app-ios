@@ -1,28 +1,20 @@
-import "package:business_app/screens/project_registration.dart";
-import "package:business_app/services/notification_service.dart";
-import "package:business_app/widgets/background.dart";
-import "package:business_app/widgets/siteinfo.dart";
-import "package:flutter/material.dart";
-// Removed go_router import
+import 'package:business_app/widgets/PendingDelivery.dart';
+import 'package:business_app/widgets/PendingPickup.dart';
+import 'package:business_app/widgets/TransportDetail.dart';
+import 'package:business_app/widgets/background.dart';
+import 'package:flutter/material.dart';
 
-class Projects extends StatefulWidget {
-  bool? fromForm;
-  bool assignExisting;
-  Map<String, dynamic>? leadinfo;
-  Projects(
-      {super.key,
-      this.fromForm = false,
-      this.assignExisting = false,
-      this.leadinfo});
+class PickupDelivery extends StatefulWidget {
+  const PickupDelivery({super.key});
 
   @override
-  State<Projects> createState() => _ProjectsState();
+  State<PickupDelivery> createState() => _PickupDeliveryState();
 }
 
-class _ProjectsState extends State<Projects> {
+class _PickupDeliveryState extends State<PickupDelivery> {
   final bool _assignExisting = false;
   Map<String, dynamic>? _leadinfo;
-  NotificationService notificationService = NotificationService();
+  // NotificationService notificationService = NotificationService();
   final List<Widget> _appbaraction = [];
 
   @override
@@ -72,11 +64,10 @@ class _ProjectsState extends State<Projects> {
         //   //   ),
         //   // );
         // }),
-        ProjectRegistration(),
-        SiteInfo()
-        // AMC(),
-        // AMCList(pending: true,),
-        // const AMCRate()
+        PendingPickup(),
+        TransportDetail(),
+        PendingDelivery(),
+        // CompletedDelivery()
       ];
 
   @override
@@ -98,9 +89,9 @@ class _ProjectsState extends State<Projects> {
         },
         destinations: const [
           // NavigationDestination(icon: Icon(Icons.assignment), label: "Pending"),
-          NavigationDestination(icon: Icon(Icons.new_label), label: "Project"),
-          NavigationDestination(icon: Icon(Icons.info), label: "Site Info"),
-          // NavigationDestination(icon: Icon(Icons.pending), label: " Pending AMC"),
+          NavigationDestination(icon: Icon(Icons.new_label), label: "Pending Pickup"),
+          NavigationDestination(icon: Icon(Icons.info), label: "Transport Detail"),
+          NavigationDestination(icon: Icon(Icons.delivery_dining), label: " Pending Delivery"),
           // NavigationDestination(icon: Icon(Icons.price_check), label: "AMC Rate"),
         ],
       ),

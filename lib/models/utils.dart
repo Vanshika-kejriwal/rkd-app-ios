@@ -193,13 +193,15 @@ class Invoice {
   String date;
   String amount;
   String tt;
+  String? name;
 
   Invoice(
       {required this.ac,
       required this.gstvno,
       required this.date,
       required this.amount,
-      required this.tt});
+      required this.tt,
+      this.name});
 
   @override
   bool operator ==(Object other) =>
@@ -360,4 +362,14 @@ class PaidRowData {
           '', //"Product_Type", "Company", "Model","F1", "F2","_12_MONTHS"
     );
   }
+}
+
+class PendingTransport {
+  String pickupno;
+  String name;
+  String city;
+  String? deltype; // Optional field for delivery type
+
+  PendingTransport(
+      {required this.pickupno, required this.name, required this.city, this.deltype});
 }
