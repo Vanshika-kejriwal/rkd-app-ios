@@ -13,6 +13,7 @@ import 'package:business_app/screens/service_head.dart';
 import 'package:business_app/screens/splash_screen.dart';
 import 'package:business_app/screens/user_registration.dart';
 import 'package:business_app/services/notification_service.dart';
+import 'package:business_app/widgets/SMS.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/customer_business_profile.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -273,6 +274,16 @@ class _DashboardState extends State<Dashboard> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => PickupDelivery()),
+                    ),
+                  ),
+                  if (!["consumer", "contractor", "supplier","employee"]
+                    .contains(widget.ut.toLowerCase()))
+                  _buildDesignGridTile(
+                    title: "SMS Services",
+                    icon: Icons.sms_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Sms()),
                     ),
                   ),
               ],
