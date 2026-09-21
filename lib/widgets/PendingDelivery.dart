@@ -52,9 +52,13 @@ class _PendingDeliveryState extends State<PendingDelivery> {
       final connectivityProvider =
           Provider.of<NetworkProvider>(context, listen: false);
       try {
+        final Map<String, String> queryParameters = {};
+        if (ut!.toLowerCase() == "employee" && mob != null && mob.isNotEmpty) {
+          queryParameters['mob'] = mob;
+        }
         response = await http.get(
             Uri.parse(
-                '$baseuri/api/pendingdelivery/'),
+                '$baseuri/api/pendingdelivery/').replace(queryParameters: queryParameters.isNotEmpty ? queryParameters : null),
             headers: {"Content-Type": "application/json"});
 
         // print(response.headers);
@@ -78,6 +82,7 @@ class _PendingDeliveryState extends State<PendingDelivery> {
                 name: lead['Customer_Name'] as String,
                 city: lead['City'] as String,
                 deltype: lead['Deliverytype'] as String?, // Optional field
+                extramob: lead["EXTRA_MOB"] as String?
               ));
 
               // DateTime followup = DateFormat('yyyy-MM-ddTHH:mm:ss.SSSSSS')
@@ -146,7 +151,7 @@ class _PendingDeliveryState extends State<PendingDelivery> {
             )
           : leads.isEmpty
               ? const Center(
-                  child: Text("No Pending Pickups to Show"),
+                  child: Text("No Pending Deliveries to Show"),
                 )
               : Column(
                 children: [

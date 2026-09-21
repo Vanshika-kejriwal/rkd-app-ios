@@ -8,6 +8,8 @@ import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:flutter_native_contact_picker/model/contact.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -33,6 +35,10 @@ class _TransportFormState extends State<TransportForm> {
   late TextEditingController _biltynumberController;
   File? _biltyImage; // Single image
   final List<File> _goodsImages = []; // Up to 3 images
+  final TextEditingController _mobileController = TextEditingController();
+  String? _selectedPhoneNumber;
+  final FlutterNativeContactPicker _contactPicker =
+      FlutterNativeContactPicker();
 
   final ImagePicker _picker = ImagePicker();
   final int _maxGoodsImages = 3;
@@ -67,6 +73,9 @@ class _TransportFormState extends State<TransportForm> {
     _biltydateController = TextEditingController();
     _biltynumberController = TextEditingController();
     _namelist = gettname();
+    if (widget.selectedInvoices[0].extramob != null) {
+      _mobileController.text = widget.selectedInvoices[0].extramob!;
+    }
   }
 
   _showoptionsbottomsheet(BuildContext context, {String fieldType = 'bilty'}) {
@@ -196,6 +205,84 @@ class _TransportFormState extends State<TransportForm> {
                       child: Center(
                           child: SingleChildScrollView(
                               child: Column(children: [
+                                if (widget.selectedInvoices.isNotEmpty) // Adjust variable name based on your single item property
+        Container(
+          margin: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8.0),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Selected Transport Details:",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.deepOrange,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight: 200, // Limits height and allows scrolling if content is large
+                ),
+                child: SingleChildScrollView(
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(vertical: 2.0),
+                    elevation: 0,
+                    color: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6.0),
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Name (Bold)
+                          Text(
+                            widget.selectedInvoices[0].name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          // City and Delivery Type
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "City: ${widget.selectedInvoices[0].city}",
+                                style: const TextStyle(fontSize: 12, color: Colors.black),
+                              ),
+                              Text(
+                                "Type: ${widget.selectedInvoices[0].deltype ?? 'N/A'}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(5.0),
           child: FutureBuilder<List<String>>(
@@ -449,110 +536,133 @@ class _TransportFormState extends State<TransportForm> {
                 ),
               )
             : const SizedBox.shrink(),
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: InputField(
+            label: "Mobile Number",
+            keyboardtype: TextInputType.phone,
+            controller: _mobileController,
+            sufficon: IconButton(
+                onPressed: () async {
+                  Contact? contact = await _contactPicker.selectPhoneNumber();
+                  setState(() {
+                    _selectedPhoneNumber = contact?.selectedPhoneNumber;
+                    if (_selectedPhoneNumber != null) {
+                      var phno = _selectedPhoneNumber!.replaceAll(" ", "");
+                      _mobileController.text = phno.substring(phno.length - 10);
+                      _selectedPhoneNumber = null;
+                    }
+                  });
+                },
+                icon: const Icon(Icons.contacts)),
+          ),
+        ),
         if (_isloading) Center(child: const CircularProgressIndicator()),
         Padding(
           padding: const EdgeInsets.all(5.0),
           child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color.fromRGBO(252, 101, 8, 1),
-                                  foregroundColor: Colors.white),
-              onPressed:_isloading? null: () async {
-                setState(() {
-                  _isloading = true;
-                });
-
-                var url = Uri.parse('$baseuri/api/updatepickup/');
-                var request = http.MultipartRequest("POST", url);
-
-                // 1. Add Text Fields
-                request.fields["Pickup_no"] =
-                    widget.selectedInvoices.first.pickupno;
-                request.fields["tname"] = selectedtname!;
-                request.fields["tmobile"] = selectedtmobile!;
-                request.fields["biltynumber"] = _biltynumberController.text;
-                request.fields["biltydate"] = _biltydateController.text;
-
-                // 2. Attach single Bilty Image file
-                if (_biltyImage != null) {
-                  request.files.add(await http.MultipartFile.fromPath(
-                    'biltyimage', // Backend field name matching request.FILES
-                    _biltyImage!.path,
-                    filename: path.basename(_biltyImage!.path),
-                  ));
-                }
-
-                // 3. Attach Multiple Goods Pictures into an array
-                for (var i = 0; i < _goodsImages.length; i++) {
-                  request.files.add(await http.MultipartFile.fromPath(
-                    'goodsimages', // Keep key name identical; Django will read it as a list
-                    _goodsImages[i].path,
-                    filename: path.basename(_goodsImages[i].path),
-                  ));
-                }
-
-                // 4. Fire Request
-                try {
-                  var streamedResponse = await request.send();
-                  var response =
-                      await http.Response.fromStream(streamedResponse);
-
-                  // if (response.statusCode == 202) {
-                  //   print("Upload queued successfully!");
-                  // } else {
-                  //   print("Upload failed: ${response.body}");
-                  // }
-                  if (response.statusCode == 200 ||
-                      response.statusCode == 201) {
-                    if (mounted) {
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
+                  foregroundColor: Colors.white),
+              onPressed: _isloading
+                  ? null
+                  : () async {
                       setState(() {
-                        _isloading = false;
+                        _isloading = true;
                       });
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text("Data saved successfully"),
-                        backgroundColor: Colors.green[400]));
-                    Navigator.pop(context);
-                  } else {
-                    if (mounted) {
-                      setState(() {
-                        _isloading = false;
-                      });
-                    }
-                    if (kDebugMode) {
-                      print("Upload failed: ${response.body}");
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text("Something Went Wrong"),
-                        backgroundColor: Colors.red));
-                  }
-                } catch (e) {
-                  if (kDebugMode) {
-                    print("Network Error: $e");
-                  }
-                }
 
-                // if (response.statusCode == 200 || response.statusCode == 201) {
-                //   if (mounted) {
-                //     setState(() {
-                //       _isloading = false;
-                //     });
-                //   }
-                //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                //       content: const Text("Data saved successfully"),
-                //       backgroundColor: Colors.green[400]));
-                //   Navigator.pop(context);
-                // } else {
-                //   if (mounted) {
-                //     setState(() {
-                //       _isloading = false;
-                //     });
-                //   }
-                //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                //       content: const Text("Something Went Wrong"),
-                //       backgroundColor: Colors.red));
-                // }
-              },
+                      var url = Uri.parse('$baseuri/api/updatepickup/');
+                      var request = http.MultipartRequest("POST", url);
+
+                      // 1. Add Text Fields
+                      request.fields["Pickup_no"] =
+                          widget.selectedInvoices.first.pickupno;
+                      request.fields["tname"] = selectedtname!;
+                      request.fields["tmobile"] = selectedtmobile!;
+                      request.fields["biltynumber"] =
+                          _biltynumberController.text;
+                      request.fields["biltydate"] = _biltydateController.text;
+                      request.fields['extra_contact'] = _mobileController.text;
+                      // 2. Attach single Bilty Image file
+                      if (_biltyImage != null) {
+                        request.files.add(await http.MultipartFile.fromPath(
+                          'biltyimage', // Backend field name matching request.FILES
+                          _biltyImage!.path,
+                          filename: path.basename(_biltyImage!.path),
+                        ));
+                      }
+
+                      // 3. Attach Multiple Goods Pictures into an array
+                      for (var i = 0; i < _goodsImages.length; i++) {
+                        request.files.add(await http.MultipartFile.fromPath(
+                          'goodsimages', // Keep key name identical; Django will read it as a list
+                          _goodsImages[i].path,
+                          filename: path.basename(_goodsImages[i].path),
+                        ));
+                      }
+
+                      // 4. Fire Request
+                      try {
+                        var streamedResponse = await request.send();
+                        var response =
+                            await http.Response.fromStream(streamedResponse);
+
+                        // if (response.statusCode == 202) {
+                        //   print("Upload queued successfully!");
+                        // } else {
+                        //   print("Upload failed: ${response.body}");
+                        // }
+                        if (response.statusCode == 200 ||
+                            response.statusCode == 201) {
+                          if (mounted) {
+                            setState(() {
+                              _isloading = false;
+                            });
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text("Data saved successfully"),
+                              backgroundColor: Colors.green[400]));
+                          Navigator.pop(context);
+                        } else {
+                          if (mounted) {
+                            setState(() {
+                              _isloading = false;
+                            });
+                          }
+                          if (kDebugMode) {
+                            print("Upload failed: ${response.body}");
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text("Something Went Wrong"),
+                              backgroundColor: Colors.red));
+                        }
+                      } catch (e) {
+                        if (kDebugMode) {
+                          print("Network Error: $e");
+                        }
+                      }
+
+                      // if (response.statusCode == 200 || response.statusCode == 201) {
+                      //   if (mounted) {
+                      //     setState(() {
+                      //       _isloading = false;
+                      //     });
+                      //   }
+                      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: const Text("Data saved successfully"),
+                      //       backgroundColor: Colors.green[400]));
+                      //   Navigator.pop(context);
+                      // } else {
+                      //   if (mounted) {
+                      //     setState(() {
+                      //       _isloading = false;
+                      //     });
+                      //   }
+                      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: const Text("Something Went Wrong"),
+                      //       backgroundColor: Colors.red));
+                      // }
+                    },
               child: Text("Save Detail")),
         )
       ]))))))),

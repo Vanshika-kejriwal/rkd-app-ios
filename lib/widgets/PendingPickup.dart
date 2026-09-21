@@ -84,7 +84,7 @@ class _PendingPickupState extends State<PendingPickup> {
       if (response.statusCode == 200) {
         final body = json.decode(response.body);
         List fetchedData = body is List ? body : (body['results'] ?? []);
-
+        print(body);
         if (fetchedData.isEmpty) {
           _hasMoreData = false;
         } else {
@@ -100,16 +100,22 @@ class _PendingPickupState extends State<PendingPickup> {
             );
           }).toList();
 
-          if(mounted){
+          if (mounted) {
             setState(() {
-            if (_currentPage == 1) {
-              leads = newInvoices;
-            } else {
-              leads.addAll(newInvoices);
-            }
-            _foundleads = leads;
-            _currentPage++;
-          });
+              if (_currentPage == 1) {
+                leads = newInvoices;
+              } else {
+                // Prevent duplicate appending if the scroll trigger fires twice quickly
+                leads.addAll(newInvoices);
+              }
+              
+              // Create a brand new list reference so Flutter detects the change
+              _foundleads = List.from(leads); 
+              // _controller.setItems(_foundleads);
+              _currentPage++;
+              _isDataLoaded = true;
+              _isLoadingMore = false;
+            });
           }
         }
 
@@ -238,6 +244,7 @@ class _PendingPickupState extends State<PendingPickup> {
                           return false;
                         },
                         child: MultiSelectCheckList<Invoice>(
+                          key: ValueKey(_foundleads.length),
                           itemsDecoration: MultiSelectDecorations(
                             decoration: BoxDecoration(
                               color: Colors.grey.shade200,

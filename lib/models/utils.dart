@@ -369,7 +369,12 @@ class PendingTransport {
   String name;
   String city;
   String? deltype; // Optional field for delivery type
+  String? extramob;
 
   PendingTransport(
-      {required this.pickupno, required this.name, required this.city, this.deltype});
+      {required this.pickupno,
+      required this.name,
+      required this.city,
+      this.deltype,
+      this.extramob});
 }

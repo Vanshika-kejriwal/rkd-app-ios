@@ -26,8 +26,7 @@ class _SmsState extends State<Sms> {
   final TextEditingController _increasepController = TextEditingController();
   final TextEditingController _hikedateController = TextEditingController(
       text: DateFormat('dd/MM/yyyy').format(DateTime.now()));
-  final TextEditingController _billdaysController=TextEditingController();
-
+  final TextEditingController _billdaysController = TextEditingController();
 
   Future<List<LeadProduct>>? getcomp() async {
     List<LeadProduct> data = [];
@@ -237,12 +236,13 @@ class _SmsState extends State<Sms> {
       var response = await http.post(Uri.parse("$baseuri/api/pricehikemsg/"),
           body: result);
       if (response.statusCode == 202) {
+        var body = json.decode(response.body);
         Navigator.of(context).pop();
         QuickAlert.show(
-          context: context,
-          type: QuickAlertType.success,
-          title: "Price Hike Message",
-          text: "Strated sending Messages");
+            context: context,
+            type: QuickAlertType.success,
+            title: "Price Hike Message",
+            text: "Strated sending ${body['no_of_messages']} Messages");
       }
     }
   }
