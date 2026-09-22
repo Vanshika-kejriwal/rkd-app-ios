@@ -88,7 +88,8 @@ class _TransportDetailState extends State<TransportDetail> {
                 name: lead['Customer_Name'] as String,
                 city: lead['City'] as String,
                 deltype: lead['Deliverytype'] as String?, // Optional field
-                extramob: lead['EXTRA_MOB'] as String?
+                extramob: lead['EXTRA_MOB'] as String?,
+                invoices: lead['invoices']
               ));
 
               // DateTime followup = DateFormat('yyyy-MM-ddTHH:mm:ss.SSSSSS')
@@ -331,11 +332,15 @@ class _TransportDetailState extends State<TransportDetail> {
                                   ],
                                 ),
                                 subtitle: Row(
-                                  // mainAxisAlignment:
-                                  // MainAxisAlignment.spaceAround,
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _foundleads[index].city,
+                                      textAlign: TextAlign.left,
+                                    ),
+                                    Text(
+                                      _foundleads[index].deltype!,
                                       textAlign: TextAlign.left,
                                     ),
                                     // const Spacer(),

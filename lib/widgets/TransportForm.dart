@@ -261,7 +261,7 @@ class _TransportFormState extends State<TransportForm> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "City: ${widget.selectedInvoices[0].city}",
+                                "Invoices: ${widget.selectedInvoices[0].invoices}",
                                 style: const TextStyle(fontSize: 12, color: Colors.black),
                               ),
                               Text(
