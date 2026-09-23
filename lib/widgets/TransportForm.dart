@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/utils.dart';
+import 'package:business_app/screens/pdfview.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
@@ -14,6 +15,9 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 class TransportForm extends StatefulWidget {
   final List<PendingTransport> selectedInvoices;
@@ -218,13 +222,87 @@ class _TransportFormState extends State<TransportForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Selected Transport Details:",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.deepOrange,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Selected Transport Details:",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
+                  TextButton(
+                        onPressed: (() {
+                          QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.loading,
+                            title: 'Generating Invoice...',
+                            barrierDismissible: false,
+                          );
+                          var gstvno = widget.selectedInvoices
+                              [0].gstvno;
+                          http
+                              .get(
+                            Uri.parse(
+                                '$baseuri/api/invoiceprint/?gstvno=$gstvno'),
+                          )
+                              .then((response) async {
+                            if (response.statusCode == 200) {
+                              final jsonResponse = jsonDecode(response.body);
+
+                              // --- Extracting Mobile Numbers and Filename ---
+
+                              final List<String> mobileNumbers =
+                                  jsonResponse['mobile_numbers']
+                                      .where((item) => item != null)
+                                      .toList()
+                                      .cast<String>();
+                              final String filename = jsonResponse['filename'];
+
+                              if (kDebugMode) {
+                                print(
+                                    '✅ Received Mobile Numbers: $mobileNumbers');
+                                print('✅ Filename: $filename');
+                              }
+
+                              // --- Decoding and Saving the PDF File ---
+
+                              final String base64Pdf = jsonResponse['pdf_data'];
+                              var billfilename = gstvno!.split(',').length > 1
+                                  ? 'Invoices'
+                                  : gstvno;
+                              // 3. Base64 Decode the PDF string into raw bytes (Uint8List)
+                              final pdfBytes = base64Decode(base64Pdf);
+                              final dir = await getTemporaryDirectory();
+                              final filepath =
+                                  '${dir.path}/$billfilename-${DateTime.now().millisecondsSinceEpoch}.pdf';
+                              File file = File(filepath);
+                              await file.writeAsBytes(pdfBytes);
+                              Navigator.of(context)
+                                  .pop(); // Close the loading dialog
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => Pdfview(
+                                    mobileNumbers: mobileNumbers,
+                                    file: file,
+                                    type: widget.selectedInvoices.length > 1
+                                        ? "All invoices"
+                                        : "invoice",
+                                    // ac: ac,
+                                  ),
+                                ),
+                              );
+
+                              // final body = json.decode(response.body);
+                              // String pdfurl = body['pdf_url'];
+                              // Utils.openUrl(pdfurl);
+                            }
+                          });
+                        }),
+                        child: Text("View Bills"))
+                ],
               ),
               const SizedBox(height: 6),
               ConstrainedBox(

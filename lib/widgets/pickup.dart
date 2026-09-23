@@ -1,15 +1,21 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/utils.dart';
+import 'package:business_app/screens/pdfview.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 class PickupForm extends StatefulWidget {
   final List<Invoice> selectedInvoices;
@@ -50,7 +56,8 @@ class _PickupFormState extends State<PickupForm> {
   }
 
   Future<void> getvhno() async {
-    final response = await http.get(Uri.parse('$baseuri/api/pickupvhno/?ename=$_selectedename'));
+    final response = await http
+        .get(Uri.parse('$baseuri/api/pickupvhno/?ename=$_selectedename'));
     final body = json.decode(response.body);
     // print('Response body: $body'); // Debugging line to check the response
     List<String> comp = [];
@@ -131,13 +138,89 @@ class _PickupFormState extends State<PickupForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Selected Invoices (${widget.selectedInvoices.length}):",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.deepOrange,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Selected Invoices (${widget.selectedInvoices.length}):",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                    TextButton(
+                        onPressed: (() {
+                          QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.loading,
+                            title: 'Generating Invoice...',
+                            barrierDismissible: false,
+                          );
+                          var gstvno = widget.selectedInvoices
+                              .map(((e) => e.gstvno))
+                              .toList()
+                              .join(",");
+                          http
+                              .get(
+                            Uri.parse(
+                                '$baseuri/api/invoiceprint/?gstvno=$gstvno'),
+                          )
+                              .then((response) async {
+                            if (response.statusCode == 200) {
+                              final jsonResponse = jsonDecode(response.body);
+
+                              // --- Extracting Mobile Numbers and Filename ---
+
+                              final List<String> mobileNumbers =
+                                  jsonResponse['mobile_numbers']
+                                      .where((item) => item != null)
+                                      .toList()
+                                      .cast<String>();
+                              final String filename = jsonResponse['filename'];
+
+                              if (kDebugMode) {
+                                print(
+                                    '✅ Received Mobile Numbers: $mobileNumbers');
+                                print('✅ Filename: $filename');
+                              }
+
+                              // --- Decoding and Saving the PDF File ---
+
+                              final String base64Pdf = jsonResponse['pdf_data'];
+                              var billfilename = gstvno.split(',').length > 1
+                                  ? 'Invoices'
+                                  : gstvno;
+                              // 3. Base64 Decode the PDF string into raw bytes (Uint8List)
+                              final pdfBytes = base64Decode(base64Pdf);
+                              final dir = await getTemporaryDirectory();
+                              final filepath =
+                                  '${dir.path}/$billfilename-${DateTime.now().millisecondsSinceEpoch}.pdf';
+                              File file = File(filepath);
+                              await file.writeAsBytes(pdfBytes);
+                              Navigator.of(context)
+                                  .pop(); // Close the loading dialog
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => Pdfview(
+                                    mobileNumbers: mobileNumbers,
+                                    file: file,
+                                    type: widget.selectedInvoices.length > 1
+                                        ? "All invoices"
+                                        : "invoice",
+                                    // ac: ac,
+                                  ),
+                                ),
+                              );
+
+                              // final body = json.decode(response.body);
+                              // String pdfurl = body['pdf_url'];
+                              // Utils.openUrl(pdfurl);
+                            }
+                          });
+                        }),
+                        child: Text("View Bills"))
+                  ],
                 ),
                 const SizedBox(height: 6),
                 ConstrainedBox(
@@ -394,78 +477,73 @@ class _PickupFormState extends State<PickupForm> {
               }),
         ),
         Padding(
-          padding: const EdgeInsets.all(5.0),
-          child:  DropdownSearch<String>(
-                  items: (filter, loadProps) => _vhn,
-                  selectedItem: selectedvhn,
-                  decoratorProps: const DropDownDecoratorProps(
-                    decoration: InputDecoration(
-                      labelText: 'Select or Add Vehicle Number',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  popupProps: PopupProps.dialog(
-                    showSearchBox: true,
-                    dialogProps: const DialogProps(
-                      barrierDismissible: true,
-                      barrierLabel:
-                          "Dismiss", // Allows tapping outside to dismiss
-                    ),
-                    // Add a custom widget at the bottom of the popup for adding new items
-                    containerBuilder: (ctx, popupWidget) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _vhnAddController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Add new item...',
-                                      isDense: true,
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
+            padding: const EdgeInsets.all(5.0),
+            child: DropdownSearch<String>(
+              items: (filter, loadProps) => _vhn,
+              selectedItem: selectedvhn,
+              decoratorProps: const DropDownDecoratorProps(
+                decoration: InputDecoration(
+                  labelText: 'Select or Add Vehicle Number',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              popupProps: PopupProps.dialog(
+                showSearchBox: true,
+                dialogProps: const DialogProps(
+                  barrierDismissible: true,
+                  barrierLabel: "Dismiss", // Allows tapping outside to dismiss
+                ),
+                // Add a custom widget at the bottom of the popup for adding new items
+                containerBuilder: (ctx, popupWidget) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _vhnAddController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Add new item...',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
                                 ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    final newItem =
-                                        _vhnAddController.text.trim();
-                                    if (newItem.isNotEmpty &&
-                                        _vhn
-                                            .contains(newItem)) {
-                                      setState(() {
-                                        _vhn.add(newItem);
-                                        selectedvhn = newItem;
-                                      });
-                                      _vhnAddController.clear();
-                                      // Close the popup/menu
-                                      Navigator.pop(ctx);
-                                    }
-                                  },
-                                  child: const Text('Add'),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const Divider(height: 1),
-                          Flexible(child: popupWidget),
-                        ],
-                      );
-                    },
-                  ),
-                  onSelected: (value) {
-                    setState(() {
-                      selectedvhn = value;
-                    });
-                  },
-                )
-              
-        ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                final newItem = _vhnAddController.text.trim();
+                                if (newItem.isNotEmpty &&
+                                    _vhn.contains(newItem)) {
+                                  setState(() {
+                                    _vhn.add(newItem);
+                                    selectedvhn = newItem;
+                                  });
+                                  _vhnAddController.clear();
+                                  // Close the popup/menu
+                                  Navigator.pop(ctx);
+                                }
+                              },
+                              child: const Text('Add'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Flexible(child: popupWidget),
+                    ],
+                  );
+                },
+              ),
+              onSelected: (value) {
+                setState(() {
+                  selectedvhn = value;
+                });
+              },
+            )),
         Padding(
             padding: const EdgeInsets.all(5.0),
             child: DropdownSearch<String>(

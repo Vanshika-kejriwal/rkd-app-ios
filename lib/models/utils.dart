@@ -371,6 +371,7 @@ class PendingTransport {
   String? deltype; // Optional field for delivery type
   String? extramob;
   String? invoices;
+  String? gstvno;
 
   PendingTransport(
       {required this.pickupno,
@@ -378,5 +379,6 @@ class PendingTransport {
       required this.city,
       this.deltype,
       this.extramob,
-      this.invoices});
+      this.invoices,
+      this.gstvno});
 }

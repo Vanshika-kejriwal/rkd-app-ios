@@ -89,7 +89,8 @@ class _TransportDetailState extends State<TransportDetail> {
                 city: lead['City'] as String,
                 deltype: lead['Deliverytype'] as String?, // Optional field
                 extramob: lead['EXTRA_MOB'] as String?,
-                invoices: lead['invoices']
+                invoices: lead['invoices'],
+                gstvno: lead['gstvno']
               ));
 
               // DateTime followup = DateFormat('yyyy-MM-ddTHH:mm:ss.SSSSSS')

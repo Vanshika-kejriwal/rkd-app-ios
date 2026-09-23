@@ -54,44 +54,40 @@ class _PendingPickupState extends State<PendingPickup> {
   void showOldBillDialog(BuildContext context) async {
     final TextEditingController billController = TextEditingController();
 
-    // Example dummy lists and states (Replace with your actual API integration)
+    // Cumulative list to hold selected invoices across multiple searches
+    List<Invoice> selectedInvoices = [];
     bool isLoading = false;
-    Invoice? selectedInvoice;
     List<dynamic> fetchedItems = [];
 
-    var result = await showDialog(
+    var result = await showDialog<List<Invoice>>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            // Function to handle your API call
             Future<void> fetchItemsFromApi(String billNo) async {
               if (billNo.isEmpty) return;
 
               setState(() {
                 isLoading = true;
-                selectedInvoice = null;
               });
 
               try {
-                // TODO: Replace this with your actual HTTP/Dio API call
-                final response = await http
-                    .get(Uri.parse('$baseuri/api/inv_list/?billno=$billNo'));
+                final response = await http.get(
+                  Uri.parse('$baseuri/api/inv_list/?billno=$billNo'),
+                );
                 var body = json.decode(response.body);
-                print(body);
-                var invoices = [];
-                // await Future.delayed(
-                //     const Duration(seconds: 1)); // Simulating network delay
+                var invoices = <Invoice>[];
+
                 for (var c in body) {
                   invoices.add(Invoice(
-                      ac: c['AC'],
-                      tt: c['TT'],
-                      gstvno: c['GSTVNO'],
-                      date: c['DATE'],
-                      amount:
-                          c['AMOUNT'] == null ? "" : c['AMOUNT'].toString()));
+                    ac: c['AC'],
+                    tt: c['TT'],
+                    gstvno: c['GSTVNO'],
+                    date: c['DATE'],
+                    amount: c['AMOUNT'] == null ? "" : c['AMOUNT'].toString(),
+                  ));
                 }
-                // Dummy fetched data results
+
                 setState(() {
                   fetchedItems = invoices;
                   isLoading = false;
@@ -102,13 +98,12 @@ class _PendingPickupState extends State<PendingPickup> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Failed to fetch items: $e')),
-                  // print(body);
                 );
               }
             }
 
             return AlertDialog(
-              title: const Text('Enter Old Bill Number'),
+              title: const Text('Select Old Bills'),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -116,7 +111,7 @@ class _PendingPickupState extends State<PendingPickup> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 1. TextField for entering bill number
+                      // 1. Search TextField
                       TextField(
                         controller: billController,
                         decoration: InputDecoration(
@@ -132,12 +127,48 @@ class _PendingPickupState extends State<PendingPickup> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 3. API Response Section (Items List)
+                      // --- NEW: Selected Invoices Chips (allows quick removal) ---
+                      if (selectedInvoices.isNotEmpty) ...[
+                        const Text(
+                          'Selected Bills (Tap X to remove):',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6.0,
+                          runSpacing: 4.0,
+                          children: selectedInvoices.map((invoice) {
+                            return Chip(
+                              backgroundColor: Colors.blue[550],
+                              labelStyle: const TextStyle(
+                                  color: Colors.black, fontSize: 12),
+                              label: Text(invoice.gstvno),
+                              deleteIconColor: Colors.red,
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () {
+                                setState(() {
+                                  selectedInvoices.removeWhere(
+                                      (inv) => inv.gstvno == invoice.gstvno);
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const Divider(height: 24),
+                      ],
+                      // ---------------------------------------------------------
+
                       const Text(
                         'Fetched Items:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
+
+                      // 2. API Response List View
                       isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : fetchedItems.isEmpty
@@ -148,32 +179,42 @@ class _PendingPickupState extends State<PendingPickup> {
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: fetchedItems.length,
                                   itemBuilder: (context, index) {
+                                    final Invoice item = fetchedItems[index];
+
+                                    // Check if this item is already selected
                                     final bool isSelected =
-                                        selectedInvoice == fetchedItems[index];
+                                        selectedInvoices.any(
+                                            (inv) => inv.gstvno == item.gstvno);
+
                                     return ListTile(
                                       selected: isSelected,
-                                      selectedTileColor: Colors.blue[100],
+                                      selectedTileColor: Colors.blue[50],
                                       onTap: () {
                                         setState(() {
-                                          selectedInvoice = fetchedItems[
-                                              index]; // Update selected item
+                                          if (isSelected) {
+                                            selectedInvoices.removeWhere(
+                                                (inv) =>
+                                                    inv.gstvno == item.gstvno);
+                                          } else {
+                                            selectedInvoices.add(item);
+                                          }
                                         });
                                       },
                                       leading: Icon(
                                         isSelected
-                                            ? Icons.radio_button_checked
-                                            : Icons.radio_button_unchecked,
+                                            ? Icons.check_box
+                                            : Icons.check_box_outline_blank,
                                         color: isSelected
                                             ? Colors.blue
                                             : Colors.grey,
                                       ),
-                                      title: Text(fetchedItems[index].gstvno),
+                                      title: Text(item.gstvno),
                                       subtitle: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(fetchedItems[index].date),
-                                          Text(fetchedItems[index].amount)
+                                          Text(item.date),
+                                          Text(item.amount),
                                         ],
                                       ),
                                     );
@@ -185,17 +226,14 @@ class _PendingPickupState extends State<PendingPickup> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(context, null),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: selectedInvoice == null
-                      ? null // Disable 'Done' button if no invoice is selected
-                      : () {
-                          // Return the selected single Invoice object back
-                          Navigator.pop(context, selectedInvoice);
-                        },
-                  child: const Text('Proceed'),
+                  onPressed: selectedInvoices.isEmpty
+                      ? null
+                      : () => Navigator.pop(context, selectedInvoices),
+                  child: Text('Proceed (${selectedInvoices.length})'),
                 ),
               ],
             );
@@ -203,38 +241,72 @@ class _PendingPickupState extends State<PendingPickup> {
         );
       },
     );
-    print('Returned invoice: ${result}');
-    if (result != null) {
-      print(result);
-      // process cancel api
+
+    // 3. Handle the returned list of invoices
+    if (result != null && result.isNotEmpty) {
       QuickAlert.show(
-          context: context,
-          type: QuickAlertType.loading,
-          title: "Cancel Pickup",
-          text: "Processing Cancellation of pickup");
-      var response =
-          await http.post(Uri.parse('$baseuri/api/cancel_pickup/'), body: {
-        'old_vno': result.gstvno,
-        'old_date': result.date,
-        'new_vno': _controller.getSelectedItems()[0].gstvno,
-        'new_date': _controller.getSelectedItems()[0].date
-      });
-      if (response.statusCode == 404) {
-        Navigator.of(context).pop();
-        QuickAlert.show(
+        context: context,
+        type: QuickAlertType.loading,
+        title: "Cancel Pickups",
+        text: "Processing cancellation for selected bills...",
+      );
+
+      try {
+        // Construct a single payload containing all selected old bills and the new bill details
+        final Map<String, dynamic> batchPayload = {
+          'new_vno': _controller.getSelectedItems()[0].gstvno,
+          'new_date': _controller.getSelectedItems()[0].date,
+          'old_bills': result
+              .map((inv) => {
+                    'old_vno': inv.gstvno,
+                    'old_date': inv.date,
+                  })
+              .toList(),
+        };
+
+        var response = await http.post(
+          Uri.parse('$baseuri/api/cancel_pickup/'),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: json.encode(batchPayload),
+        );
+
+        Navigator.of(context).pop(); // Dismiss loading alert
+
+        if (response.statusCode == 404) {
+          var body = json.decode(response.body);
+          QuickAlert.show(
             context: context,
             type: QuickAlertType.error,
             title: "Cancel Pickup",
             text:
-                "The Selected old bill ${result.gstvno} has not been delivered. Please select a valid old bill.");
-      }else if(response.statusCode == 200){
-        Navigator.of(context).pop();
-        QuickAlert.show(
+                "${body['message']}",
+          );
+        } else if (response.statusCode == 200) {
+          QuickAlert.show(
             context: context,
             type: QuickAlertType.success,
-            title: "Cancel Pickup",
+            title: "Cancel Pickups",
             text:
-                "Pickup for new bill ${_controller.getSelectedItems()[0].gstvno} has been cencelled successfully.");
+                "Pickup cancellations for the selected bills have been completed successfully.",
+          );
+        } else {
+          QuickAlert.show(
+            context: context,
+            type: QuickAlertType.error,
+            title: "Error",
+            text: "Unexpected server response: ${response.statusCode}",
+          );
+        }
+      } catch (e) {
+        Navigator.of(context).pop();
+        QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: "Error",
+          text: "Failed to process cancellations: $e",
+        );
       }
     }
   }

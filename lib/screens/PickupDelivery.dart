@@ -1,3 +1,4 @@
+import 'package:business_app/widgets/CompletedDelivery.dart';
 import 'package:business_app/widgets/PendingDelivery.dart';
 import 'package:business_app/widgets/PendingPickup.dart';
 import 'package:business_app/widgets/TransportDetail.dart';
@@ -92,7 +93,7 @@ class _PickupDeliveryState extends State<PickupDelivery> {
           NavigationDestination(icon: Icon(Icons.new_label), label: "Pending Pickup"),
           NavigationDestination(icon: Icon(Icons.info), label: "Transport Detail"),
           NavigationDestination(icon: Icon(Icons.delivery_dining), label: " Pending Delivery"),
-          // NavigationDestination(icon: Icon(Icons.price_check), label: "AMC Rate"),
+          // NavigationDestination(icon: Icon(Icons.delivery_dining), label: "Completed"),
         ],
       ),
       childs: pages[_currentidx],
