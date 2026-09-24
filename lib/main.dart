@@ -84,7 +84,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       home: UpgradeAlert(
-          upgrader: Upgrader(debugLogging: true),
+          upgrader: Upgrader(debugLogging: true, durationUntilAlertAgain: Duration(days: 1)),
           // barrierDismissible: false,
           showIgnore: false,
           showLater: false,

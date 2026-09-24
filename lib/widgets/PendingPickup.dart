@@ -280,8 +280,7 @@ class _PendingPickupState extends State<PendingPickup> {
             context: context,
             type: QuickAlertType.error,
             title: "Cancel Pickup",
-            text:
-                "${body['message']}",
+            text: "${body['message']}",
           );
         } else if (response.statusCode == 200) {
           QuickAlert.show(
@@ -352,6 +351,7 @@ class _PendingPickupState extends State<PendingPickup> {
         } else {
           List<Invoice> newInvoices = fetchedData.map((lead) {
             // print(lead['AMOUNT']);
+            print(" time ${lead['TIME']}");
             return Invoice(
               ac: lead['AC'],
               gstvno: lead['GSTVNO'],
@@ -359,6 +359,7 @@ class _PendingPickupState extends State<PendingPickup> {
               amount: lead['AMOUNT'],
               tt: lead['TT'],
               name: lead['NAME'],
+              time: lead['TIME'],
             );
           }).toList();
 
@@ -568,20 +569,20 @@ class _PendingPickupState extends State<PendingPickup> {
                                     subtitle: Row(
                                       children: [
                                         Text(
-                                          e.gstvno,
+                                          "${e.gstvno.length > 4 ? e.gstvno.substring(e.gstvno.length - 4) : e.gstvno}, ${DateFormat("dd/MM/yyyy").format(DateFormat("yyyy-MM-dd").parse(e.date))} ${DateFormat("hh:mm:ss a").format(DateFormat("HH:mm:ss").parse(e.time!))}",
                                           textAlign: TextAlign.left,
                                           style: const TextStyle(fontSize: 14),
                                         ),
                                         const Spacer(),
-                                        Text(
-                                          DateFormat("dd/MM/yyyy").format(
-                                              DateFormat("yyyy-MM-dd")
-                                                  .parse(e.date)),
-                                          style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        const Spacer(),
+                                        // Text(
+                                        //   DateFormat("dd/MM/yyyy").format(
+                                        //       DateFormat("yyyy-MM-dd")
+                                        //           .parse(e.date)),
+                                        //   style: const TextStyle(
+                                        //       fontSize: 14,
+                                        //       fontWeight: FontWeight.bold),
+                                        // ),
+                                        // const Spacer(),
                                         Text(
                                           e.amount,
                                           textAlign: TextAlign.right,

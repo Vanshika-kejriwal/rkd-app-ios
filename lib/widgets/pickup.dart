@@ -51,13 +51,16 @@ class _PickupFormState extends State<PickupForm> {
       for (var c in body) {
         comp.add(c["Deliverytype"]);
       }
+      int oldidx = comp.indexOf("By Hand");
+      String item = comp.removeAt(oldidx);
+      comp.insert(0, item);
     }
     return comp;
   }
 
-  Future<void> getvhno() async {
-    final response = await http
-        .get(Uri.parse('$baseuri/api/pickupvhno/?ename=$_selectedename'));
+  Future<void> getvhno(String ename) async {
+    final response =
+        await http.get(Uri.parse('$baseuri/api/pickupvhno/?ename=$ename'));
     final body = json.decode(response.body);
     // print('Response body: $body'); // Debugging line to check the response
     List<String> comp = [];
@@ -87,9 +90,9 @@ class _PickupFormState extends State<PickupForm> {
     return comp;
   }
 
-  Future<void> getemobile() async {
+  Future<void> getemobile(String ename) async {
     final response = await http
-        .get(Uri.parse('$baseuri/api/getpickupemobile/?ename=$_selectedename'));
+        .get(Uri.parse('$baseuri/api/getpickupemobile/?ename=$ename'));
     final body = json.decode(response.body);
     List<String> comp = [];
     if (response.statusCode == 200) {
@@ -205,6 +208,7 @@ class _PickupFormState extends State<PickupForm> {
                                   builder: (context) => Pdfview(
                                     mobileNumbers: mobileNumbers,
                                     file: file,
+                                    ac: widget.selectedInvoices[0].ac,
                                     type: widget.selectedInvoices.length > 1
                                         ? "All invoices"
                                         : "invoice",
@@ -336,8 +340,19 @@ class _PickupFormState extends State<PickupForm> {
                           barrierLabel: "Dismiss",
                         ),
                         itemBuilder: (context, item, isSelected, onTap) {
+                          final bool isFirstOrLast =
+                              item == snapshot.data!.first ||
+                                  item == snapshot.data!.last;
+
                           return ListTile(
-                            title: Text(item),
+                            title: Text(
+                              item,
+                              style: TextStyle(
+                                fontWeight: isFirstOrLast
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
                           );
                         },
                         showSearchBox: true,
@@ -448,7 +463,8 @@ class _PickupFormState extends State<PickupForm> {
                                       setState(() {
                                         asyncSnapshot.data!.add(newItem);
                                         _selectedename = newItem;
-                                        getemobile(); // Fetch employee mobile numbers when a new employee name is added
+                                        getemobile(
+                                            newItem); // Fetch employee mobile numbers when a new employee name is added
                                       });
                                       _enameAddController.clear();
                                       // Close the popup/menu
@@ -469,9 +485,10 @@ class _PickupFormState extends State<PickupForm> {
                   onSelected: (value) {
                     setState(() {
                       _selectedename = value;
-                      getemobile(); // Fetch employee mobile numbers when an employee name is selected
-                      getvhno();
                     });
+                    getemobile(
+                        value!); // Fetch employee mobile numbers when an employee name is selected
+                    getvhno(value);
                   },
                 );
               }),
@@ -483,7 +500,7 @@ class _PickupFormState extends State<PickupForm> {
               selectedItem: selectedvhn,
               decoratorProps: const DropDownDecoratorProps(
                 decoration: InputDecoration(
-                  labelText: 'Select or Add Vehicle Number',
+                  labelText: 'Vehicle Number',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -517,7 +534,7 @@ class _PickupFormState extends State<PickupForm> {
                               onPressed: () {
                                 final newItem = _vhnAddController.text.trim();
                                 if (newItem.isNotEmpty &&
-                                    _vhn.contains(newItem)) {
+                                    !_vhn.contains(newItem)) {
                                   setState(() {
                                     _vhn.add(newItem);
                                     selectedvhn = newItem;
@@ -586,7 +603,7 @@ class _PickupFormState extends State<PickupForm> {
                                 final newItem =
                                     _emobileAddController.text.trim();
                                 if (newItem.isNotEmpty &&
-                                    _emobile.contains(newItem)) {
+                                    !_emobile.contains(newItem)) {
                                   setState(() {
                                     _emobile.add(newItem);
                                     _selectedemobile = newItem;

@@ -1617,12 +1617,14 @@ class _LeadDetailState extends State<LeadDetail> {
                                                               if (_selectedstatus ==
                                                                   "Job Not Completed") {
                                                                 _leadstat = 1;
+
                                                               } else {
                                                                 _leadstat = 2;
                                                               }
+                                                              getcategory();
                                                               if (_selectedleadtype !=
                                                                   "INSTALLATION") {
-                                                                getcategory();
+                                                                
                                                                 getitemdetail();
                                                               }
                                                             });

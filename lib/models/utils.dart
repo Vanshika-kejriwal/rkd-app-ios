@@ -194,6 +194,7 @@ class Invoice {
   String amount;
   String tt;
   String? name;
+  String? time;
 
   Invoice(
       {required this.ac,
@@ -201,7 +202,8 @@ class Invoice {
       required this.date,
       required this.amount,
       required this.tt,
-      this.name});
+      this.name,
+      this.time});
 
   @override
   bool operator ==(Object other) =>
@@ -372,6 +374,10 @@ class PendingTransport {
   String? extramob;
   String? invoices;
   String? gstvno;
+  String? ac;
+  String? ename;
+  String? emobile;
+  String? pickuptime;
 
   PendingTransport(
       {required this.pickupno,
@@ -380,5 +386,9 @@ class PendingTransport {
       this.deltype,
       this.extramob,
       this.invoices,
-      this.gstvno});
+      this.gstvno,
+      this.ac,
+      this.ename,
+      this.emobile,
+      this.pickuptime});
 }

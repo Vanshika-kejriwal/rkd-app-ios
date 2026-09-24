@@ -17,6 +17,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DeliveryForm extends StatefulWidget {
   final List<PendingTransport> selectedInvoices;
@@ -32,6 +33,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
   final ImagePicker _picker = ImagePicker();
   final int _maxGoodsImages = 3;
   final List<File> _goodsImages = [];
+  Future<List<String>>? _deltypes;
   File? _delrecImage;
   String? _taskid;
   late TextEditingController _nameController;
@@ -203,10 +205,176 @@ class _DeliveryFormState extends State<DeliveryForm> {
     super.initState();
     _nameController = TextEditingController();
     _mobileController = TextEditingController();
+    _deltypes = _fetchDeliveryTypesFromApi();
     _namelist = getDeliveryNames();
     if (widget.selectedInvoices[0].extramob != null) {
       _mobileController.text = widget.selectedInvoices[0].extramob!;
     }
+  }
+
+  Future<List<String>> _fetchDeliveryTypesFromApi() async {
+    // Example: final response = await http.get(Uri.parse('https://api.example.com/delivery-types'));
+    // if (response.statusCode == 200) { return parse(response.body); }
+
+    // Simulating network delay
+    // await Future.delayed(const Duration(seconds: 1));
+    // return ['Standard', 'Express', 'Overnight', 'Same-Day', 'Economy'];
+    final response = await http.get(Uri.parse('$baseuri/api/deltype/'));
+    final body = json.decode(response.body);
+    List<String> comp = [];
+    if (response.statusCode == 200) {
+      for (var c in body) {
+        comp.add(c["Deliverytype"]);
+      }
+      int oldidx = comp.indexOf("By Hand");
+      String item = comp.removeAt(oldidx);
+      comp.insert(0, item);
+    }
+    return comp;
+  }
+
+// 2. Updated Bottom Sheet Function
+  void _showEditDeliveryTypeBottomSheet(BuildContext context) async {
+    String tempSelectedType = widget.selectedInvoices[0].deltype ?? 'Standard';
+    bool loading = false;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: 20.0,
+                  right: 20.0,
+                  top: 20.0,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20.0,
+                ),
+                child: FutureBuilder<List<String>>(
+                  future: _deltypes,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const SizedBox(
+                        height: 200,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    } else if (snapshot.hasError ||
+                        !snapshot.hasData ||
+                        snapshot.data!.isEmpty) {
+                      return const SizedBox(
+                        height: 150,
+                        child: Center(
+                            child: Text('Failed to load delivery types')),
+                      );
+                    }
+
+                    final deliveryTypes = snapshot.data!;
+
+                    if (!deliveryTypes.contains(tempSelectedType)) {
+                      tempSelectedType = deliveryTypes.first;
+                    }
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Change Delivery Type",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Modern RadioGroup wrapping the list options
+                        RadioGroup<String>(
+                          groupValue: tempSelectedType,
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              setModalState(() {
+                                tempSelectedType = value;
+                              });
+                            }
+                          },
+                          child: Column(
+                            children:
+                                deliveryTypes.asMap().entries.map((entry) {
+                              final int index = entry.key;
+                              final String type = entry.value;
+
+                              // Check if it's the first or the last item
+                              final bool isFirstOrLast = index == 0 ||
+                                  index == deliveryTypes.length - 1;
+
+                              return RadioListTile<String>(
+                                title: Text(
+                                  type,
+                                  style: TextStyle(
+                                    fontWeight: isFirstOrLast
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                value: type,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        if (loading) CircularProgressIndicator(),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              setModalState(() {
+                                loading = true;
+                              });
+                              var response = await http.post(
+                                  Uri.parse('$baseuri/api/invoiceprint/'),
+                                  body: {
+                                    'pickup_no':
+                                        widget.selectedInvoices[0].pickupno,
+                                    'deltype': tempSelectedType
+                                  });
+                              if (response.statusCode == 200) {
+                                setModalState(() {
+                                  loading = false;
+                                });
+                                // setState(() {
+                                //   widget.selectedInvoices[0].deltype =
+                                //       tempSelectedType;
+                                // });
+
+                                Navigator.pop(context);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text(
+                                          'Delivery type updated to $tempSelectedType')),
+                                );
+                              }
+                            },
+                            child: const Text('Save Changes'),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+    Navigator.of(context).pop();
   }
 
   @override
@@ -219,31 +387,32 @@ class _DeliveryFormState extends State<DeliveryForm> {
                       child: Center(
                           child: SingleChildScrollView(
                               child: Column(children: [
-                                if (widget.selectedInvoices.isNotEmpty) // Adjust variable name based on your single item property
-        Container(
-          margin: const EdgeInsets.all(8.0),
-          padding: const EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            borderRadius: BorderRadius.circular(8.0),
-            border: Border.all(color: Colors.orange.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Selected Delivery Details:",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.deepOrange,
+        if (widget.selectedInvoices
+            .isNotEmpty) // Adjust variable name based on your single item property
+          Container(
+            margin: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(10.0),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Selected Delivery Details:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.deepOrange,
+                      ),
                     ),
-                  ),
-                  TextButton(
+                    TextButton(
                         onPressed: (() {
                           QuickAlert.show(
                             context: context,
@@ -251,8 +420,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
                             title: 'Generating Invoice...',
                             barrierDismissible: false,
                           );
-                          var gstvno = widget.selectedInvoices
-                              [0].gstvno;
+                          var gstvno = widget.selectedInvoices[0].gstvno;
                           http
                               .get(
                             Uri.parse(
@@ -296,6 +464,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
                                 MaterialPageRoute(
                                   builder: (context) => Pdfview(
                                     mobileNumbers: mobileNumbers,
+                                    ac: widget.selectedInvoices[0].ac,
                                     file: file,
                                     type: widget.selectedInvoices.length > 1
                                         ? "All invoices"
@@ -312,65 +481,135 @@ class _DeliveryFormState extends State<DeliveryForm> {
                           });
                         }),
                         child: Text("View Bills"))
-                ],
-              ),
-              const SizedBox(height: 6),
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: 200, // Limits height and allows scrolling if content is large
+                  ],
                 ),
-                child: SingleChildScrollView(
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(vertical: 2.0),
-                    elevation: 0,
-                    color: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6.0),
-                      side: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Name (Bold)
-                          Text(
-                            widget.selectedInvoices[0].name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                const SizedBox(height: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight:
+                        200, // Limits height and allows scrolling if content is large
+                  ),
+                  child: SingleChildScrollView(
+                    child: Card(
+                      margin: const EdgeInsets.symmetric(vertical: 2.0),
+                      elevation: 0,
+                      color: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6.0),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Name (Bold)
+                            Text(
+                              widget.selectedInvoices[0].name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 6),
-                          // City and Delivery Type
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Invoices: ${widget.selectedInvoices[0].invoices}",
-                                style: const TextStyle(fontSize: 12, color: Colors.black),
-                              ),
-                              Text(
-                                "Type: ${widget.selectedInvoices[0].deltype ?? 'N/A'}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                            const SizedBox(height: 6),
+                            // City and Delivery Type
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Invoices: ${widget.selectedInvoices[0].invoices}",
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.black),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Type: ${widget.selectedInvoices[0].deltype ?? 'N/A'}",
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    // const SizedBox(width: 4),
+                                    IconButton(
+                                        onPressed: (() =>
+                                            _showEditDeliveryTypeBottomSheet(
+                                                context)),
+                                        icon: Icon(Icons.edit))
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Emp: ${widget.selectedInvoices[0].ename ?? 'N/A'}",
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  "Pickup: ${widget.selectedInvoices[0].pickuptime ?? 'N/A'}",
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Tap-to-call phone number widget
+                                InkWell(
+                                  onTap: () async {
+                                    final phoneNumber = widget
+                                        .selectedInvoices[0].emobile;
+                                    if (phoneNumber != null &&
+                                        phoneNumber.isNotEmpty) {
+                                      final uri =
+                                          Uri(scheme: 'tel', path: phoneNumber);
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri);
+                                      }
+                                    }
+                                  },
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.phone,
+                                          size: 12, color: Colors.deepOrange),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        "Emp Ph: ${widget.selectedInvoices[0].emobile ?? 'N/A'}",
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         if (widget.selectedInvoices.first.deltype == "By Hand")
           Padding(
             padding: const EdgeInsets.all(5.0),
@@ -459,7 +698,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
                   selectedItem: selectedtname,
                   decoratorProps: const DropDownDecoratorProps(
                     decoration: InputDecoration(
-                      labelText: 'Select or Add Delivery To Name',
+                      labelText: 'Delivery To Name',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -558,100 +797,102 @@ class _DeliveryFormState extends State<DeliveryForm> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
                   foregroundColor: Colors.white),
-              onPressed:_isloading? null: () async {
-                setState(() {
-                  _isloading = true;
-                });
-
-                var url = Uri.parse('$baseuri/api/updatedelivery/');
-                var request = http.MultipartRequest("POST", url);
-
-                // 1. Add Text Fields
-                request.fields["Pickup_no"] =
-                    widget.selectedInvoices.first.pickupno;
-                request.fields["name"] = selectedtname ?? '';
-                request.fields["mobile"] = _mobileController.text;
-
-                // 2. Attach single Delivery Receipt Image file
-                if (_delrecImage != null) {
-                  request.files.add(await http.MultipartFile.fromPath(
-                    'delrecimage', // Backend field name matching request.FILES
-                    _delrecImage!.path,
-                    filename: path.basename(_delrecImage!.path),
-                  ));
-                }
-
-                // 3. Attach Multiple Goods Pictures into an array
-                for (var i = 0; i < _goodsImages.length; i++) {
-                  request.files.add(await http.MultipartFile.fromPath(
-                    'goodsimages', // Keep key name identical; Django will read it as a list
-                    _goodsImages[i].path,
-                    filename: path.basename(_goodsImages[i].path),
-                  ));
-                }
-
-                // 4. Fire Request
-                try {
-                  var streamedResponse = await request.send();
-                  var response =
-                      await http.Response.fromStream(streamedResponse);
-                  var body = json.decode(response.body);
-                  // if (response.statusCode == 202) {
-                  //   print("Upload queued successfully!");
-                  // } else {
-                  //   print("Upload failed: ${response.body}");
-                  // }
-                  if (response.statusCode == 200 ||
-                      response.statusCode == 201) {
-                    if (mounted) {
+              onPressed: _isloading
+                  ? null
+                  : () async {
                       setState(() {
-                        _isloading = false;
-                        _openotpfield = true;
-                        _taskid = body['task_id'];
+                        _isloading = true;
                       });
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text("Data saved successfully"),
-                        backgroundColor: Colors.green[400]));
-                    // Navigator.pop(context);
-                  } else {
-                    if (mounted) {
-                      setState(() {
-                        _isloading = false;
-                      });
-                    }
-                    if (kDebugMode) {
-                      print("Upload failed: ${response.body}");
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text("Something Went Wrong"),
-                        backgroundColor: Colors.red));
-                  }
-                } catch (e) {
-                  print("Network Error: $e");
-                }
 
-                // if (response.statusCode == 200 || response.statusCode == 201) {
-                //   if (mounted) {
-                //     setState(() {
-                //       _isloading = false;
-                //     });
-                //   }
-                //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                //       content: const Text("Data saved successfully"),
-                //       backgroundColor: Colors.green[400]));
-                //   Navigator.pop(context);
-                // } else {
-                //   if (mounted) {
-                //     setState(() {
-                //       _isloading = false;
-                //     });
-                //   }
-                //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                //       content: const Text("Something Went Wrong"),
-                //       backgroundColor: Colors.red));
-                // }
-              },
+                      var url = Uri.parse('$baseuri/api/updatedelivery/');
+                      var request = http.MultipartRequest("POST", url);
+
+                      // 1. Add Text Fields
+                      request.fields["Pickup_no"] =
+                          widget.selectedInvoices.first.pickupno;
+                      request.fields["name"] = selectedtname ?? '';
+                      request.fields["mobile"] = _mobileController.text;
+
+                      // 2. Attach single Delivery Receipt Image file
+                      if (_delrecImage != null) {
+                        request.files.add(await http.MultipartFile.fromPath(
+                          'delrecimage', // Backend field name matching request.FILES
+                          _delrecImage!.path,
+                          filename: path.basename(_delrecImage!.path),
+                        ));
+                      }
+
+                      // 3. Attach Multiple Goods Pictures into an array
+                      for (var i = 0; i < _goodsImages.length; i++) {
+                        request.files.add(await http.MultipartFile.fromPath(
+                          'goodsimages', // Keep key name identical; Django will read it as a list
+                          _goodsImages[i].path,
+                          filename: path.basename(_goodsImages[i].path),
+                        ));
+                      }
+
+                      // 4. Fire Request
+                      try {
+                        var streamedResponse = await request.send();
+                        var response =
+                            await http.Response.fromStream(streamedResponse);
+                        var body = json.decode(response.body);
+                        // if (response.statusCode == 202) {
+                        //   print("Upload queued successfully!");
+                        // } else {
+                        //   print("Upload failed: ${response.body}");
+                        // }
+                        if (response.statusCode == 200 ||
+                            response.statusCode == 201) {
+                          if (mounted) {
+                            setState(() {
+                              _isloading = false;
+                              _openotpfield = true;
+                              _taskid = body['task_id'];
+                            });
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text("Data saved successfully"),
+                              backgroundColor: Colors.green[400]));
+                          // Navigator.pop(context);
+                        } else {
+                          if (mounted) {
+                            setState(() {
+                              _isloading = false;
+                            });
+                          }
+                          if (kDebugMode) {
+                            print("Upload failed: ${response.body}");
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text("Something Went Wrong"),
+                              backgroundColor: Colors.red));
+                        }
+                      } catch (e) {
+                        print("Network Error: $e");
+                      }
+
+                      // if (response.statusCode == 200 || response.statusCode == 201) {
+                      //   if (mounted) {
+                      //     setState(() {
+                      //       _isloading = false;
+                      //     });
+                      //   }
+                      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: const Text("Data saved successfully"),
+                      //       backgroundColor: Colors.green[400]));
+                      //   Navigator.pop(context);
+                      // } else {
+                      //   if (mounted) {
+                      //     setState(() {
+                      //       _isloading = false;
+                      //     });
+                      //   }
+                      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: const Text("Something Went Wrong"),
+                      //       backgroundColor: Colors.red));
+                      // }
+                    },
               child: Text("Save and send OTP")),
         ),
         if (_openotpfield)
@@ -666,53 +907,58 @@ class _DeliveryFormState extends State<DeliveryForm> {
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
                     foregroundColor: Colors.white),
-                onPressed:_isloading? null: () async {
-                  setState(() {
-                    _isloading = true;
-                  });
+                onPressed: _isloading
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isloading = true;
+                        });
 
-                  // 2. Fire Request
-                  try {
-                    var response = await http.patch(
-                      Uri.parse('$baseuri/api/updatedelivery/'),
-                      body: {
-                        "Pickup_no": widget.selectedInvoices.first.pickupno,
-                        "mobile": _mobileController.text,
-                        "otp": _otpController.text,
-                        "task_id": _taskid
+                        // 2. Fire Request
+                        try {
+                          var response = await http.patch(
+                            Uri.parse('$baseuri/api/updatedelivery/'),
+                            body: {
+                              "Pickup_no":
+                                  widget.selectedInvoices.first.pickupno,
+                              "mobile": _mobileController.text,
+                              "otp": _otpController.text,
+                              "task_id": _taskid
+                            },
+                          );
+
+                          if (response.statusCode == 200 ||
+                              response.statusCode == 201) {
+                            if (mounted) {
+                              setState(() {
+                                _isloading = false;
+                              });
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content:
+                                    const Text("OTP verified successfully"),
+                                backgroundColor: Colors.green[400]));
+                            Navigator.pop(context);
+                          } else {
+                            if (mounted) {
+                              setState(() {
+                                _isloading = false;
+                              });
+                            }
+                            if (kDebugMode) {
+                              print(
+                                  "OTP verification failed: ${response.body}");
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: const Text("Invalid OTP"),
+                                backgroundColor: Colors.red));
+                          }
+                        } catch (e) {
+                          if (kDebugMode) {
+                            print("Network Error: $e");
+                          }
+                        }
                       },
-                    );
-
-                    if (response.statusCode == 200 ||
-                        response.statusCode == 201) {
-                      if (mounted) {
-                        setState(() {
-                          _isloading = false;
-                        });
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: const Text("OTP verified successfully"),
-                          backgroundColor: Colors.green[400]));
-                      Navigator.pop(context);
-                    } else {
-                      if (mounted) {
-                        setState(() {
-                          _isloading = false;
-                        });
-                      }
-                      if (kDebugMode) {
-                        print("OTP verification failed: ${response.body}");
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: const Text("Invalid OTP"),
-                          backgroundColor: Colors.red));
-                    }
-                  } catch (e) {
-                    if (kDebugMode) {
-                      print("Network Error: $e");
-                    }
-                  }
-                },
                 child: Text("Verify OTP")),
           ),
       ]))))))),
