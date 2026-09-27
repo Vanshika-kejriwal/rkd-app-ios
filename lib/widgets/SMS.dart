@@ -242,7 +242,9 @@ class _SmsState extends State<Sms> {
             context: context,
             type: QuickAlertType.success,
             title: "Price Hike Message",
-            text: "Strated sending ${body['no_of_messages']} Messages");
+            text: "Strated sending ${body['no_of_messages']} Messages",
+            textColor: Colors.black87);
+            
       }
     }
   }

@@ -20,7 +20,6 @@ class Mmast extends StatefulWidget {
 }
 
 class _MmastState extends State<Mmast> {
-
   bool showTextField = false;
   bool showCompTextField = false;
   bool _editmode = false;
@@ -28,7 +27,8 @@ class _MmastState extends State<Mmast> {
   final _formkey = GlobalKey<FormState>();
   final TextEditingController _productnamecontroller = TextEditingController();
   final TextEditingController _compnamecontroller = TextEditingController();
-  final TextEditingController _productsearchcontroller = TextEditingController();
+  final TextEditingController _productsearchcontroller =
+      TextEditingController();
   final TextEditingController _compsearchcontroller = TextEditingController();
   final TextEditingController _namecontroller = TextEditingController();
   final TextEditingController _dwmcontroller = TextEditingController();
@@ -43,8 +43,12 @@ class _MmastState extends State<Mmast> {
   LeadProduct? selectedItem;
   LeadProduct? selectedproduct;
   String? appmc;
-  List<LeadProduct> comp = [LeadProduct(company: "Add New", product: "Add New", mc: "Add New")];
-  List<LeadProduct> product = [LeadProduct(company: "Add New", product: "Add New", mc: "Add New")];
+  List<LeadProduct> comp = [
+    LeadProduct(company: "Add New", product: "Add New", mc: "Add New")
+  ];
+  List<LeadProduct> product = [
+    LeadProduct(company: "Add New", product: "Add New", mc: "Add New")
+  ];
 
   Future<void> getprojdetail(LeadProduct project) async {
     final response =
@@ -53,17 +57,17 @@ class _MmastState extends State<Mmast> {
       final body = json.decode(response.body);
       setState(() {
         appmc = body["APPMC"];
-        _namecontroller.text = body["NAME"]??"";
-        _dwmcontroller.text = body["DWM"]??"";
-        _nfdcontroller.text = body["NFD"]??"";
-        _amcsdcontroller.text = body["AMCSD"]??"";
-        _mccontroller.text = body["MC"]??"";
-        _online = body["ONLINE"] == "Y"?true:false;
-        _gstless = body["GSTLESS"] == "Y"?true:false;
-        _instc = body["INSC"] == "Y"?true:false;
-        _servc = body["SERC"] == "Y"?true:false;
+        _namecontroller.text = body["NAME"] ?? "";
+        _dwmcontroller.text = body["DWM"] ?? "";
+        _nfdcontroller.text = body["NFD"] ?? "";
+        _amcsdcontroller.text = body["AMCSD"] ?? "";
+        _mccontroller.text = body["MC"] ?? "";
+        _online = body["ONLINE"] == "Y" ? true : false;
+        _gstless = body["GSTLESS"] == "Y" ? true : false;
+        _instc = body["INSC"] == "Y" ? true : false;
+        _servc = body["SERC"] == "Y" ? true : false;
       });
-        // _formkey.currentState?.validate();
+      // _formkey.currentState?.validate();
       // print("Pincode doesnt exists");
     }
   }
@@ -84,9 +88,14 @@ class _MmastState extends State<Mmast> {
               onPressed: () {
                 setState(() {
                   _editmode = !_editmode;
-                  if ((_editmode) & (selectedItem != null)) {
-                    _compnamecontroller.text = selectedItem!.company;
-                    _productnamecontroller.text = selectedItem!.product;
+                  if ((_editmode) ) {
+                    if ( selectedItem != null){
+                      _compnamecontroller.text = selectedItem!.company;
+                    }
+                     if(selectedproduct != null){
+                        _productnamecontroller.text = selectedproduct!.product;
+                     }
+                     
                     _formkey.currentState?.validate();
                   }
                 });
@@ -106,8 +115,8 @@ class _MmastState extends State<Mmast> {
                         },
                         onConfirmBtnTap: () async {
                           Navigator.of(context).pop();
-                          final response = await http.delete(Uri.parse(
-                              '$baseuri/api/mmast/$appmc/'));
+                          final response = await http
+                              .delete(Uri.parse('$baseuri/api/mmast/$appmc/'));
                           if (response.statusCode.toString().startsWith("2")) {
                             QuickAlert.show(
                                 context: context,
@@ -115,7 +124,6 @@ class _MmastState extends State<Mmast> {
                                 text:
                                     "Successfully Deleted Project ${selectedItem!.company} (${selectedItem!.product})");
                             setState(() {
-                              
                               // _selectedut = null;
                               appmc = null;
                               selectedItem = null;
@@ -271,7 +279,6 @@ class _MmastState extends State<Mmast> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          
                           Padding(
                               padding: const EdgeInsets.all(5.0),
                               child: showCompTextField || _editmode
@@ -296,22 +303,26 @@ class _MmastState extends State<Mmast> {
                                   : DropdownSearch<LeadProduct>(
                                       // key: _projectkey,
                                       // controller
-                                      compareFn: (item1, item2) => item1.mc == item2.mc,
+                                      compareFn: (item1, item2) =>
+                                          item1.mc == item2.mc,
                                       popupProps: PopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss",),
+                                        dialogProps: DialogProps(
+                                          barrierDismissible: true,
+                                          barrierLabel: "Dismiss",
+                                        ),
                                         // showSelectedItems: true,
                                         showSearchBox: true,
                                         searchFieldProps: TextFieldProps(
                                             decoration: const InputDecoration(
                                               labelText: "Search for an item*",
                                             ),
-                                            controller:
-                                                _compsearchcontroller),
+                                            controller: _compsearchcontroller),
                                       ),
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
-                                  
-                                      items: (filter, infiniteScrollProps) => comp,
+
+                                      items: (filter, infiniteScrollProps) =>
+                                          comp,
                                       itemAsString: (item) {
                                         return item.company;
                                       },
@@ -328,8 +339,7 @@ class _MmastState extends State<Mmast> {
                                       },
                                       decoratorProps:
                                           const DropDownDecoratorProps(
-                                        decoration:
-                                            InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Company*",
                                           hintText: "Select a Company",
                                         ),
@@ -352,12 +362,26 @@ class _MmastState extends State<Mmast> {
                                           setState(() {
                                             _compnamecontroller.text =
                                                 _compsearchcontroller.text;
-                                           
+
                                             appmc = null;
                                             product.clear();
-                                            product.add(LeadProduct(company: "Add New", product: "Add New", mc: "Add New"));
-                                            product.addAll( comp.where((element) => element.product != "Add New").map((e) => LeadProduct(company:e.company, product: e.product, mc: e.mc)).toList());
-                                            product = {for (var item in product) item.product: item}.values.toList();
+                                            product.add(LeadProduct(
+                                                company: "Add New",
+                                                product: "Add New",
+                                                mc: "Add New"));
+                                            product.addAll(comp
+                                                .where((element) =>
+                                                    element.product !=
+                                                    "Add New")
+                                                .map((e) => LeadProduct(
+                                                    company: e.company,
+                                                    product: e.product,
+                                                    mc: e.mc))
+                                                .toList());
+                                            product = {
+                                              for (var item in product)
+                                                item.product: item
+                                            }.values.toList();
                                             showCompTextField = true;
                                             // _editmode = true;
                                           });
@@ -366,8 +390,21 @@ class _MmastState extends State<Mmast> {
                                             selectedItem = data;
                                             appmc = data.mc;
                                             product.clear();
-                                            product.add(LeadProduct(company: "Add New", product: "Add New", mc: "Add New"));
-                                            product.addAll( comp.where((element) => element.company == data.company && element.product != "Add New").map((e) => LeadProduct(company:e.company, product: e.product, mc: e.mc)).toList());
+                                            product.add(LeadProduct(
+                                                company: "Add New",
+                                                product: "Add New",
+                                                mc: "Add New"));
+                                            product.addAll(comp
+                                                .where((element) =>
+                                                    element.company ==
+                                                        data.company &&
+                                                    element.product !=
+                                                        "Add New")
+                                                .map((e) => LeadProduct(
+                                                    company: e.company,
+                                                    product: e.product,
+                                                    mc: e.mc))
+                                                .toList());
                                           });
                                           // getprojdetail(data);
                                         }
@@ -402,9 +439,13 @@ class _MmastState extends State<Mmast> {
                                   : DropdownSearch<LeadProduct>(
                                       // key: _projectkey,
                                       // controller
-                                      compareFn: (item1, item2) => item1.mc == item2.mc,
+                                      compareFn: (item1, item2) =>
+                                          item1.mc == item2.mc,
                                       popupProps: PopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss",),
+                                        dialogProps: DialogProps(
+                                          barrierDismissible: true,
+                                          barrierLabel: "Dismiss",
+                                        ),
                                         // showSelectedItems: true,
                                         showSearchBox: true,
                                         searchFieldProps: TextFieldProps(
@@ -416,8 +457,9 @@ class _MmastState extends State<Mmast> {
                                       ),
                                       // mode: Mode.dialog,
                                       // showSelectedItems: true,
-                                  
-                                      items: (filter, infiniteScrollProps) => product,
+
+                                      items: (filter, infiniteScrollProps) =>
+                                          product,
                                       itemAsString: (item) {
                                         return item.product;
                                       },
@@ -427,15 +469,14 @@ class _MmastState extends State<Mmast> {
                                         // It's case-insensitive for better UX.
                                         // print(
                                         //     'filterFn - item: "$item", filter: "$filter"');
-                                        return item.product == "Add New"  ||
+                                        return item.product == "Add New" ||
                                             item.product
                                                 .toLowerCase()
                                                 .contains(filter.toLowerCase());
                                       },
                                       decoratorProps:
                                           const DropDownDecoratorProps(
-                                        decoration:
-                                            InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Product*",
                                           hintText: "Select a Product",
                                         ),
@@ -458,18 +499,19 @@ class _MmastState extends State<Mmast> {
                                           setState(() {
                                             _productnamecontroller.text =
                                                 _productsearchcontroller.text;
-                                           
+
                                             appmc = null;
-                                            
+
                                             showTextField = true;
                                             // _editmode = true;
                                           });
                                         } else {
                                           setState(() {
                                             selectedproduct = data;
-                                            
                                           });
-                                          if (selectedItem?.company != "Add New"){
+                                          print(" new company ${selectedItem?.company}");
+                                          if (selectedItem?.company !=
+                                              "Add New" && selectedItem != null) {
                                             appmc = data.mc;
                                             getprojdetail(data);
                                           }
@@ -499,47 +541,60 @@ class _MmastState extends State<Mmast> {
                               controller: _namecontroller,
                             ),
                           ),
-                          Padding(padding: const EdgeInsets.all(5.0),
-                          child: CheckboxListTile(title: const Text('Show in App'),
-                          enabled: _editmode,
-                            value: _online, onChanged: (val){
-                              setState(() {
-                                _online = val!;
-                              });
-                          })
-                          ,),
-                          Padding(padding: const EdgeInsets.all(5.0),
-                          child: CheckboxListTile(title: const Text('GST included in Rates'),
-                          enabled: _editmode,
-                            value: _gstless, onChanged: (val){
-                              setState(() {
-                                _gstless = val!;
-                              });
-                          })
-                          ,),
-                          Padding(padding: const EdgeInsets.all(5.0),
-                          child: CheckboxListTile(title: const Text('Include for Installation Creation'),
-                          enabled: _editmode,
-                            value: _instc, onChanged: (val){
-                              setState(() {
-                                _instc = val!;
-                              });
-                          })
-                          ,),
-                          Padding(padding: const EdgeInsets.all(5.0),
-                          child: CheckboxListTile(title: const Text('Include for Service Creation'),
-                            enabled: _editmode,
-                            value: _servc, onChanged: (val){
-                              setState(() {
-                                _servc = val!;
-                              });
-                          })
-                          ,),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: CheckboxListTile(
+                                title: const Text('Show in App'),
+                                enabled: _editmode,
+                                value: _online,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _online = val!;
+                                  });
+                                }),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: CheckboxListTile(
+                                title: const Text('GST included in Rates'),
+                                enabled: _editmode,
+                                value: _gstless,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _gstless = val!;
+                                  });
+                                }),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: CheckboxListTile(
+                                title: const Text(
+                                    'Include for Installation Creation'),
+                                enabled: _editmode,
+                                value: _instc,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _instc = val!;
+                                  });
+                                }),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: CheckboxListTile(
+                                title:
+                                    const Text('Include for Service Creation'),
+                                enabled: _editmode,
+                                value: _servc,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _servc = val!;
+                                  });
+                                }),
+                          ),
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
                               readOnly: !_editmode,
-                             
                               label: "Default Waranty month",
                               controller: _dwmcontroller,
                             ),
@@ -552,7 +607,6 @@ class _MmastState extends State<Mmast> {
                               controller: _nfdcontroller,
                             ),
                           ),
-                          
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
@@ -590,7 +644,6 @@ class _MmastState extends State<Mmast> {
                               },
                             ),
                           ),
-                          
                           if (_isLoading)
                             const Center(
                                 child: CircularProgressIndicator(
@@ -613,12 +666,14 @@ class _MmastState extends State<Mmast> {
                                             'NFD': _nfdcontroller.text,
                                             'AMCSD': _amcsdcontroller.text,
                                             'MC': _mccontroller.text,
-                                            'PNM': selectedproduct!.product,
+                                            'PNM': selectedproduct != null
+                                                ? selectedproduct!.product
+                                                : _productnamecontroller.text,
                                             'FNM': selectedItem!.company,
-                                            "ONLINE": _online?"Y":"N",
-                                            "GSTLESS": _gstless?"Y":"N",
-                                            "INSC": _instc?"Y":"N",
-                                            "SERC": _servc?"Y":"N",
+                                            "ONLINE": _online ? "Y" : "N",
+                                            "GSTLESS": _gstless ? "Y" : "N",
+                                            "INSC": _instc ? "Y" : "N",
+                                            "SERC": _servc ? "Y" : "N",
                                           };
                                           final resp = await http.patch(
                                               Uri.parse(
@@ -629,7 +684,7 @@ class _MmastState extends State<Mmast> {
                                             setState(() {
                                               _isLoading = false;
                                             });
-                                            
+
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(SnackBar(
                                                     content: const Text(
@@ -664,12 +719,14 @@ class _MmastState extends State<Mmast> {
                                             'NFD': _nfdcontroller.text,
                                             'AMCSD': _amcsdcontroller.text,
                                             'MC': _mccontroller.text,
-                                            'PNM': selectedproduct!.product,
-                                            'FNM': selectedItem!.company,
-                                            "ONLINE": _online?"Y":"N",
-                                            "GSTLESS": _gstless?"Y":"N",
-                                            "INSC": _instc?"Y":"N",
-                                            "SERC": _servc?"Y":"N",
+                                            'PNM':  selectedproduct != null
+                                                ? selectedproduct!.product
+                                                : _productnamecontroller.text,
+                                            'FNM': selectedItem != null ? selectedItem!.company : _compnamecontroller.text,
+                                            "ONLINE": _online ? "Y" : "N",
+                                            "GSTLESS": _gstless ? "Y" : "N",
+                                            "INSC": _instc ? "Y" : "N",
+                                            "SERC": _servc ? "Y" : "N",
                                           };
                                           final resp = await http.post(
                                               Uri.parse(
@@ -680,8 +737,7 @@ class _MmastState extends State<Mmast> {
                                             setState(() {
                                               _isLoading = false;
                                             });
-                                            
-                                            
+
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(SnackBar(
                                                     content: const Text(
@@ -719,21 +775,26 @@ class _MmastState extends State<Mmast> {
           ),
         ));
   }
-  
+
   Future<List<LeadProduct>>? getcomp() async {
     List<LeadProduct> data = [];
     var response = await http.get(Uri.parse("$baseuri/api/getmmastcomp/"));
     if (response.statusCode == 200) {
       var jsonData = jsonDecode(response.body);
-      data.add(LeadProduct(company: "Add New", product: "Add New", mc: "Add New"));
-      data.addAll((jsonData as List).map((e) => LeadProduct(company: e["FNM"], product: e["PNM"], mc: e["APPMC"])).toList());
-      var uniqueData = {for (var item in data) item.company: item}.values.toList();
+      data.add(
+          LeadProduct(company: "Add New", product: "Add New", mc: "Add New"));
+      data.addAll((jsonData as List)
+          .map((e) =>
+              LeadProduct(company: e["FNM"], product: e["PNM"], mc: e["APPMC"]))
+          .toList());
+      var uniqueData =
+          {for (var item in data) item.company: item}.values.toList();
       setState(() {
         comp = uniqueData;
       });
     }
     return data;
   }
-  
+
   void getcompdetail(LeadProduct data) {}
 }

@@ -33,6 +33,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
   final ImagePicker _picker = ImagePicker();
   final int _maxGoodsImages = 3;
   final List<File> _goodsImages = [];
+  final List<File> _delrecImages = [];
   Future<List<String>>? _deltypes;
   File? _delrecImage;
   String? _taskid;
@@ -83,15 +84,49 @@ class _DeliveryFormState extends State<DeliveryForm> {
     try {
       if (fieldType == 'delrec') {
         // --- BILTY LOGIC (Single Image Only) ---
-        final XFile? pickedFile = await _picker.pickImage(
-          source: source,
-          imageQuality: 80,
-        );
+        //
+        if (source == ImageSource.camera) {
+          if (_goodsImages.length >= _maxGoodsImages) {
+            _showMaxLimitAlert();
+            return;
+          }
 
-        if (pickedFile != null) {
-          setState(() {
-            _delrecImage = File(pickedFile.path);
-          });
+          final XFile? pickedFile = await _picker.pickImage(
+            source: ImageSource.camera,
+            imageQuality: 80,
+          );
+
+          if (pickedFile != null) {
+            setState(() {
+              _delrecImages.add(File(pickedFile.path));
+            });
+          }
+        } else {
+          // Multi-image selection from Gallery
+          final List<XFile> pickedFiles = await _picker.pickMultiImage(
+            imageQuality: 80,
+          );
+
+          if (pickedFiles.isNotEmpty) {
+            int availableSlots = _maxGoodsImages - _delrecImages.length;
+
+            if (pickedFiles.length > availableSlots) {
+              _showMaxLimitAlert();
+              setState(() {
+                _delrecImages.addAll(
+                  pickedFiles
+                      .take(availableSlots)
+                      .map((xFile) => File(xFile.path)),
+                );
+              });
+            } else {
+              setState(() {
+                _delrecImages.addAll(
+                  pickedFiles.map((xFile) => File(xFile.path)),
+                );
+              });
+            }
+          }
         }
       } else if (fieldType == 'goods') {
         // --- GOODS PICS LOGIC (Max 3 Images) ---
@@ -337,7 +372,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
                                 loading = true;
                               });
                               var response = await http.post(
-                                  Uri.parse('$baseuri/api/invoiceprint/'),
+                                  Uri.parse('$baseuri/api/changedeltype/'),
                                   body: {
                                     'pickup_no':
                                         widget.selectedInvoices[0].pickupno,
@@ -571,8 +606,8 @@ class _DeliveryFormState extends State<DeliveryForm> {
                                 // Tap-to-call phone number widget
                                 InkWell(
                                   onTap: () async {
-                                    final phoneNumber = widget
-                                        .selectedInvoices[0].emobile;
+                                    final phoneNumber =
+                                        widget.selectedInvoices[0].emobile;
                                     if (phoneNumber != null &&
                                         phoneNumber.isNotEmpty) {
                                       final uri =
@@ -665,7 +700,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
         Padding(
           padding: const EdgeInsets.all(5.0),
           child: InputField(
-            label: "Upload Delivery Receiving",
+            label: "Upload Delivery Receiving (Max 3)",
             readOnly: true,
             onTap: () {
               // Implement file picker logic here
@@ -673,15 +708,45 @@ class _DeliveryFormState extends State<DeliveryForm> {
             },
           ),
         ),
-        _delrecImage != null
-            ? Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: Image.file(
-                  _delrecImage!,
-                  height: 150,
-                ),
-              )
-            : const SizedBox.shrink(),
+        _delrecImages.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: _delrecImages.map((image) {
+                      return Stack(
+                        children: [
+                          Image.file(
+                            image,
+                            height: 100,
+                            width: 100,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _goodsImages.remove(image);
+                                });
+                              },
+                              child: Container(
+                                color: Colors.black54,
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                )
+              : const SizedBox.shrink(),
         Padding(
           padding: const EdgeInsets.all(5.0),
           child: FutureBuilder<List<String>>(
@@ -814,11 +879,19 @@ class _DeliveryFormState extends State<DeliveryForm> {
                       request.fields["mobile"] = _mobileController.text;
 
                       // 2. Attach single Delivery Receipt Image file
-                      if (_delrecImage != null) {
+                      // if (_delrecImage != null) {
+                      //   request.files.add(await http.MultipartFile.fromPath(
+                      //     'delrecimage', // Backend field name matching request.FILES
+                      //     _delrecImage!.path,
+                      //     filename: path.basename(_delrecImage!.path),
+                      //   ));
+                      // }
+
+                      for (var i = 0; i < _delrecImages.length; i++) {
                         request.files.add(await http.MultipartFile.fromPath(
-                          'delrecimage', // Backend field name matching request.FILES
-                          _delrecImage!.path,
-                          filename: path.basename(_delrecImage!.path),
+                          'delrecimages', // Keep key name identical; Django will read it as a list
+                          _delrecImages[i].path,
+                          filename: path.basename(_delrecImages[i].path),
                         ));
                       }
 

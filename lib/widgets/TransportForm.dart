@@ -174,7 +174,7 @@ class _TransportFormState extends State<TransportForm> {
                                 loading = true;
                               });
                               var response = await http.post(
-                                  Uri.parse('$baseuri/api/invoiceprint/'),
+                                  Uri.parse('$baseuri/api/changedeltype/'),
                                   body: {
                                     'pickup_no':
                                         widget.selectedInvoices[0].pickupno,

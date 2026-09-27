@@ -16,7 +16,7 @@ abstract class SearchableScreen {
 
 class SearchQueryModel extends ChangeNotifier {
   String _searchQuery = '';
-
+  
   String get searchQuery => _searchQuery;
 
   void updateSearchQuery(String newQuery) {

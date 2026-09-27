@@ -166,6 +166,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
         _questionsanswered = true;
       });
     }
+    getcategory();
     ss(() {
       _isLoading = false;
     });
@@ -199,7 +200,10 @@ class _ServicecheckoutState extends State<Servicecheckout> {
       for (var c in body) {
         // print(c['DDL12']);
         // print(c['inst_date']);
-        names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled'], extrainfo: c['extra_info']));
+        names.add(LeadCategory(
+            ddl12: c['DDL12'],
+            enabled: c['is_enabled'],
+            extrainfo: c['extra_info']));
         if (c["inst_date"] != null) {
           insDate = c["inst_date"];
         }
@@ -705,7 +709,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
               items: (filter, infiniteScrollProps) =>
                   const ["Yes", "No", "Not Applicable"],
               selectedItem:
-                  _answers[item['q']] != "" ? _answers[item['q']] : null,
+                  _answers[item['q']] != "" ? _answers[item['q']] : "Yes",
               popupProps: const PopupProps.dialog(
                   dialogProps: DialogProps(
                       barrierDismissible: true, barrierLabel: "Dismiss"),
@@ -714,7 +718,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                   showSearchBox: true),
               decoratorProps: DropDownDecoratorProps(
                 decoration: InputDecoration(
-                  labelText: item['q'],
+                  labelText: "",
                   hintText: "Select an option",
                 ),
               ),
@@ -914,7 +918,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                           ""; // Initialize all Qs
                                     }
                                   }
-
+                                  getcategory();
                                   if (_selectedfollowupproduct?.product
                                               .toLowerCase() ==
                                           "water treatment" &&
@@ -1036,14 +1040,14 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                     return !item.enabled;
                                   },
                                   itemBuilder:
-                                    (context, item, isDisabled, isSelected) =>
-                                        ListTile(
-                                          enabled: item.enabled,
-                                          title: Text(item.ddl12),
-                                          trailing: item.extrainfo != null
-                                              ? Text(item.extrainfo!)
-                                              : null,
-                                        ),
+                                      (context, item, isDisabled, isSelected) =>
+                                          ListTile(
+                                            enabled: item.enabled,
+                                            title: Text(item.ddl12),
+                                            trailing: item.extrainfo != null
+                                                ? Text(item.extrainfo!)
+                                                : null,
+                                          ),
                                   dialogProps: const DialogProps(
                                       barrierDismissible: true,
                                       barrierLabel: "Dismiss"),
@@ -1762,9 +1766,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                       text:
                                           "Please answer the questions and save the data before sending OTP.");
                                 } else {
-                                  if (_formkey.currentState!.validate()) {
-                                    sendserviceotp(setState);
-                                  }
+                                  sendserviceotp(setState);
                                 }
                               },
                               child: const Text('Send OTP')),

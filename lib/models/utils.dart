@@ -392,3 +392,12 @@ class PendingTransport {
       this.emobile,
       this.pickuptime});
 }
+
+class CompDelVno {
+  String vno;
+  String date;
+  String amount;
+  String gstvno;
+
+  CompDelVno({required this.vno, required this.amount, required this.date, required this.gstvno});
+}

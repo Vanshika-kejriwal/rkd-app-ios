@@ -68,7 +68,7 @@ class _PickupDeliveryState extends State<PickupDelivery> {
         PendingPickup(),
         TransportDetail(),
         PendingDelivery(),
-        // CompletedDelivery()
+        CompletedDelivery()
       ];
 
   @override
@@ -93,7 +93,7 @@ class _PickupDeliveryState extends State<PickupDelivery> {
           NavigationDestination(icon: Icon(Icons.new_label), label: "Pending Pickup"),
           NavigationDestination(icon: Icon(Icons.info), label: "Transport Detail"),
           NavigationDestination(icon: Icon(Icons.delivery_dining), label: " Pending Delivery"),
-          // NavigationDestination(icon: Icon(Icons.delivery_dining), label: "Completed"),
+          NavigationDestination(icon: Icon(Icons.done), label: "Completed"),
         ],
       ),
       childs: pages[_currentidx],
