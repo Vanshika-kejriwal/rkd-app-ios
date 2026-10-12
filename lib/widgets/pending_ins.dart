@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/leads.dart';
 import 'package:business_app/services/network_provider.dart';
+import 'package:business_app/widgets/addinsmanually.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
@@ -63,6 +64,7 @@ class _PendingInsState extends State<PendingIns> {
     try {
       var sharedpref = await SharedPreferences.getInstance();
       var ut = sharedpref.getString('UT');
+
       var mob = sharedpref.getString('Mobile');
       final response = await http.get(
           Uri.parse('$baseuri/api/ins_list/?type=pending&mob=$mob&ut=$ut'));
@@ -102,7 +104,8 @@ class _PendingInsState extends State<PendingIns> {
               // 7/10/1996 5:08 PM
               return 0;
             });
-            _isAdmin = ut == 'ADMIN';
+            _isAdmin =
+                ut!.toLowerCase() == 'admin' || ut.toLowerCase() == "employee";
             _isDataLoaded = true;
           });
         }
@@ -168,11 +171,11 @@ class _PendingInsState extends State<PendingIns> {
       uniqueProducts.addAll(List<String>.from(lead.products));
       uniqueProjects.add(lead.custtype);
     }
-    if(mounted){
+    if (mounted) {
       setState(() {
-      filters["Product"] = uniqueProducts.toList();
-      filters["Project"] = uniqueProjects.toList();
-    });
+        filters["Product"] = uniqueProducts.toList();
+        filters["Project"] = uniqueProjects.toList();
+      });
     }
   }
 
@@ -263,6 +266,20 @@ class _PendingInsState extends State<PendingIns> {
         child: const Icon(Icons.share),
       ),
       appbaractions: [
+        if (_isAdmin)
+          IconButton(
+              onPressed: () {
+                // getleads();
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return const InstallationSelectionDialog(
+                        // apiUrl: "https://your-backend-api.com/api/get-installations/", // Replace with your actual API endpoint URL
+                        );
+                  },
+                );
+              },
+              icon: const Icon(Icons.add)),
         IconButton(
             onPressed: () async {
               {
@@ -284,7 +301,8 @@ class _PendingInsState extends State<PendingIns> {
                                 padding: const EdgeInsets.all(1.0),
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProducts,
-                                  items: (filter, infiniteScrollProps) => filters["Product"],
+                                  items: (filter, infiniteScrollProps) =>
+                                      filters["Product"],
                                   onSelected: (value) {
                                     setstate(() {
                                       filteredProducts = value;
@@ -292,11 +310,12 @@ class _PendingInsState extends State<PendingIns> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                          dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  decoratorProps:
-                                      const DropDownDecoratorProps(
+                                  decoratorProps: const DropDownDecoratorProps(
                                     decoration: InputDecoration(
                                       labelText: "Product Type",
                                       hintText: "Select Product Type",
@@ -316,7 +335,8 @@ class _PendingInsState extends State<PendingIns> {
                                 padding: const EdgeInsets.all(1.0),
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProjects,
-                                  items: (filter, infiniteScrollProps) => filters["Project"],
+                                  items: (filter, infiniteScrollProps) =>
+                                      filters["Project"],
                                   onSelected: (value) {
                                     setstate(() {
                                       filteredProjects = value;
@@ -324,11 +344,12 @@ class _PendingInsState extends State<PendingIns> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                          dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  decoratorProps:
-                                      const DropDownDecoratorProps(
+                                  decoratorProps: const DropDownDecoratorProps(
                                     decoration: InputDecoration(
                                       labelText: "Project",
                                       hintText: "Select Project",
@@ -358,7 +379,7 @@ class _PendingInsState extends State<PendingIns> {
                                         endInitialDate: filterdate?.end,
                                         type: OmniDateTimePickerType.date,
                                         isForceEndDateAfterStartDate: true);
-                                    
+
                                     setstate(() {
                                       _dobcontroller.text = dr == null
                                           ? ""
@@ -503,18 +524,15 @@ class _PendingInsState extends State<PendingIns> {
                                     var ut = sharedpref.getString('UT');
                                     if (ut == "ADMIN" ||
                                         ut!.toLowerCase() == "employee") {
-                                      // widget.assignlead!(
-                                      //   true,
-                                      //   {
-                                      //     "pjc": _foundleads[index].pjc,
-                                      //     "pname": _foundleads[index].pname,
-                                      //     "custtype":
-                                      //         _foundleads[index].custtype,
-                                      //     "product":
-                                      //         _foundleads[index].products
-                                      //   }
-                                      //   // leadinfo: leads[index].toJson()
-                                      //   );
+                                      widget.assignlead!(true, {
+                                        "pjc": _foundleads[index].pjc,
+                                        "pname": _foundleads[index].pname,
+                                        "custtype": _foundleads[index].custtype,
+                                        "products": _foundleads[index].products,
+                                        "leadtype": "INSTALLATION",
+                                      }
+                                          // leadinfo: leads[index].toJson()
+                                          );
                                     }
                                   },
                                 ));

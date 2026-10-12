@@ -1,7 +1,8 @@
+import "package:business_app/screens/all_leads.dart";
 import "package:business_app/services/notification_service.dart";
+import "package:business_app/widgets/InstAssign.dart";
 import "package:business_app/widgets/background.dart";
 import "package:business_app/widgets/completed_ins.dart" hide Icon;
-import "package:business_app/widgets/installationAsiggn.dart";
 import "package:business_app/widgets/installation_master.dart";
 import "package:business_app/widgets/pending_ins.dart";
 import "package:flutter/material.dart";
@@ -11,7 +12,7 @@ import "package:shared_preferences/shared_preferences.dart";
 class Installation extends StatefulWidget {
   bool? fromForm;
   bool assignExisting;
- 
+
   Map<String, dynamic>? leadinfo;
   Installation(
       {super.key,
@@ -30,7 +31,7 @@ class _InstallationState extends State<Installation> {
   final List<Widget> _appbaraction = [];
   String _loginut = "";
   int _currentidx = 0;
- @override
+  @override
   void initState() {
     super.initState();
     _loadUserType(); // renamed for clarity
@@ -51,19 +52,24 @@ class _InstallationState extends State<Installation> {
   List<NavigationDestination> _getDestinations() {
     return [
       NavigationDestination(icon: Icon(Icons.assignment), label: "Pending"),
-      const NavigationDestination(icon: Icon(Icons.done_all), label: "Completed"),
+      const NavigationDestination(
+          icon: Icon(Icons.done_all), label: "Completed"),
       if (_loginut.toLowerCase() == "admin")
-        const NavigationDestination(icon: Icon(Icons.settings), label: "Inst Mast"),
+        const NavigationDestination(
+            icon: Icon(Icons.settings), label: "Inst Mast"),
     ];
   }
 
   // Generate pages dynamically to match destinations
   List<Widget> _getPages() {
     return [
-      PendingIns(assignlead: (assignExisting, leadinfo) => _navigateToAssign(assignExisting, leadinfo)),
-      CompletedIns(assignlead: (assignExisting, leadinfo) => _navigateToAssign(assignExisting, leadinfo)),
-      if (_loginut.toLowerCase() == "admin")
-        InstMast(),
+      PendingIns(
+          assignlead: (assignExisting, leadinfo) =>
+              _navigateToAssign(assignExisting, leadinfo)),
+      CompletedIns(
+          assignlead: (assignExisting, leadinfo) =>
+              _navigateToAssign(assignExisting, leadinfo)),
+      if (_loginut.toLowerCase() == "admin") InstMast(),
     ];
   }
 
@@ -71,62 +77,88 @@ class _InstallationState extends State<Installation> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Installationasiggn(assignExisting: existing, leadinfo: info),
+        builder: (context) =>
+            InstAssign(assignExisting: existing, leadinfo: info),
       ),
     );
   }
 
- @override
-Widget build(BuildContext context) {
-  // Define these INSIDE build so they refresh when _loginut updates
-  final List<NavigationDestination> destinations = [
-    const NavigationDestination(icon: Icon(Icons.assignment), label: "Pending"),
-    const NavigationDestination(icon: Icon(Icons.done_all), label: "Completed"),
-  ];
+  @override
+  Widget build(BuildContext context) {
+    // Define these INSIDE build so they refresh when _loginut updates
+    final List<NavigationDestination> destinations = [
+      const NavigationDestination(
+          icon: Icon(Icons.assignment), label: "Pending"),
+      const NavigationDestination(
+          icon: Icon(Icons.done_all), label: "Completed"),
+    ];
 
-  final List<Widget> pageList = [
-    PendingIns(assignlead: (assign, info) => _handleNav(assign, info)),
-    CompletedIns(assignlead: (assign, info) => _handleNav(assign, info)),
-  ];
+    final List<Widget> pageList = [
+      PendingIns(assignlead: (assign, info) => _handleNav(assign, info)),
+      CompletedIns(assignlead: (assign, info) => _handleNav(assign, info)),
+    ];
 
-  // Add the Admin specific items only if condition is met
-  if (_loginut.toLowerCase() == "admin") {
-    destinations.add(const NavigationDestination(icon: Icon(Icons.settings), label: "Inst Mast"));
-    pageList.add(InstMast());
+    // Add the Admin specific items only if condition is met
+    if (_loginut.toLowerCase() == "admin") {
+      destinations.add(const NavigationDestination(
+          icon: Icon(Icons.settings), label: "Inst Mast"));
+      pageList.add(InstMast());
+    }
+    if ((_loginut.toLowerCase() == "admin") ||
+        (_loginut.toLowerCase() == "employee")) {
+      destinations.insert(
+        1,
+        const NavigationDestination(
+            icon: Icon(Icons.assignment), label: "Open"),
+      );
+      pageList.insert(
+        1,
+        const AllLeads(
+            key: ValueKey("Open"), leadtype: "Open", type: "INSTALLATION"),
+      );
+    }
+
+    return Background(
+      appbaractions: const [],
+      appbartitle: const Text(""),
+      appbar: false,
+      bottomvav: true,
+      bottomNav: NavigationBar(
+        selectedIndex: _currentidx >= destinations.length ? 0 : _currentidx,
+        backgroundColor: Color(0xFFFFBF4D),
+        onDestinationSelected: (value) {
+          setState(() {
+            _currentidx = value;
+          });
+        },
+        destinations: destinations,
+      ),
+      // Show a small loader if _loginut is still empty (optional)
+      childs: pageList[_currentidx],
+    );
   }
 
-  return Background(
-    appbaractions: const [],
-    appbartitle: const Text(""),
-    appbar: false,
-    bottomvav: true,
-    bottomNav: NavigationBar(
-      selectedIndex: _currentidx >= destinations.length ? 0 : _currentidx,
-      backgroundColor: Color(0xFFFFBF4D),
-      onDestinationSelected: (value) {
-        setState(() {
-          _currentidx = value;
-        });
-      },
-      destinations: destinations,
-    ),
-    // Show a small loader if _loginut is still empty (optional)
-    childs: pageList[_currentidx],
-  );
-}
-
 // Helper for your navigation logic
-void _handleNav(bool assignExisting, Map<String, dynamic>? leadinfo) {
-  setState(() {
-    _assignExisting = assignExisting;
-    _leadinfo = leadinfo;
-  });
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => Installationasiggn(
-          assignExisting: _assignExisting, leadinfo: _leadinfo),
-    ),
-  );
-}
+  void _handleNav(bool assignExisting, Map<String, dynamic>? leadinfo) {
+    setState(() {
+      _assignExisting = assignExisting;
+      _leadinfo = leadinfo;
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            InstAssign(assignExisting: _assignExisting, leadinfo: _leadinfo),
+      ),
+    ).then( (value) {
+      // Refresh the state when returning from InstAssign
+      setState(() {
+       if(value == true) {
+         _currentidx = 1;
+       }else{
+          _currentidx = 0;
+        } // or any other index you want to reset to
+      });
+    });
+  }
 }

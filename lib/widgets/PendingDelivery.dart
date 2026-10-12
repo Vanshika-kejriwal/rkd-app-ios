@@ -21,7 +21,6 @@ class PendingDelivery extends StatefulWidget {
 }
 
 class _PendingDeliveryState extends State<PendingDelivery> {
-
   bool _isDataLoaded = false;
   List<PendingTransport> leads = [];
   List<PendingTransport> _foundleads = [];
@@ -57,8 +56,9 @@ class _PendingDeliveryState extends State<PendingDelivery> {
           queryParameters['mob'] = mob;
         }
         response = await http.get(
-            Uri.parse(
-                '$baseuri/api/pendingdelivery/').replace(queryParameters: queryParameters.isNotEmpty ? queryParameters : null),
+            Uri.parse('$baseuri/api/pendingdelivery/').replace(
+                queryParameters:
+                    queryParameters.isNotEmpty ? queryParameters : null),
             headers: {"Content-Type": "application/json"});
 
         // print(response.headers);
@@ -78,18 +78,17 @@ class _PendingDeliveryState extends State<PendingDelivery> {
             _foundleads = [];
             body.forEach((lead) {
               leads.add(PendingTransport(
-                pickupno: lead['Pickup_no'] as String,
-                name: lead['Customer_Name'] as String,
-                city: lead['City'] as String,
-                deltype: lead['Deliverytype'] as String?, // Optional field
-                extramob: lead["EXTRA_MOB"] as String?,
-                invoices: lead['invoices'],
-                gstvno: lead['gstvno'],
-                emobile: lead["EMOBILE"],
-                ename: lead["ENAME"],
-                ac: lead["AC"],
-                pickuptime: lead["PICKUPDATETIME"]
-              ));
+                  pickupno: lead['Pickup_no'] as String,
+                  name: lead['Customer_Name'] as String,
+                  city: lead['City'] as String,
+                  deltype: lead['Deliverytype'] as String?, // Optional field
+                  extramob: lead["EXTRA_MOB"] as String?,
+                  invoices: lead['invoices'],
+                  gstvno: lead['gstvno'],
+                  emobile: lead["EMOBILE"],
+                  ename: lead["ENAME"],
+                  ac: lead["AC"],
+                  pickuptime: lead["PICKUPDATETIME"]));
 
               // DateTime followup = DateFormat('yyyy-MM-ddTHH:mm:ss.SSSSSS')
               // .parse(lead['LAST_FOLLOWUP']);
@@ -160,217 +159,218 @@ class _PendingDeliveryState extends State<PendingDelivery> {
                   child: Text("No Pending Deliveries to Show"),
                 )
               : Column(
-                children: [
-                  // Padding(
-                  //   padding: const EdgeInsets.all(5),
-                  //   child: InputField(
-                  //     label: "Search",
-                  //     onChanged: (value) {
-                  //       List<Invoice> results = [];
-                  //       if (value.isEmpty) {
-                  //         results = leads;
-                  //       } else {
-                  //         results = leads.where((lead) {
-                  //           return value
-                  //                   .toLowerCase()
-                  //                   .split(" ")
-                  //                   .where((word) => word.isNotEmpty)
-                  //                   .toList()
-                  //                   .every((word) => lead.gstvno
-                  //                       .toLowerCase()
-                  //                       .contains(word)) ||
-                  //               value
-                  //                   .toLowerCase()
-                  //                   .split(" ")
-                  //                   .where((word) => word.isNotEmpty)
-                  //                   .toList()
-                  //                   .every((word) => lead.date
-                  //                       .toLowerCase()
-                  //                       .contains(word)) ||
-                  //               value
-                  //                   .toLowerCase()
-                  //                   .split(" ")
-                  //                   .where((word) => word.isNotEmpty)
-                  //                   .toList()
-                  //                   .every((word) =>  lead.amount
-                  //                       .toLowerCase()
-                  //                       .contains(word));
-                  //         }).toList();
-                  //       }
-                  //       setState(() {
-                  //         _foundleads = results;
-                  //       });
-                  //     },
-                  //   ),
-                  // ),
-                  // Row(
-                  //   children: [
-                  //     Expanded(
-                  //       flex: 4,
-                  //       child: CheckboxListTile(
-                  //           controlAffinity: ListTileControlAffinity.leading,
-                  //           value: _selectAll,
-                  //           onChanged: (value) {
-                  //             setState(() {
-                  //               if (value == true) {
-                  //                 _controller.selectAll();
-                  //               } else {
-                  //                 _controller.deselectAll();
-                  //               }
-                  //               _selectAll = value ?? false;
-                  //             });
-                  //           },
-                  //           title: const Text("Select All")),
-                  //     ),
-                  //     Expanded(
-                  //       flex: 1,
-                  //       child: IconButton(
-                  //           onPressed: () {
-                  //             var selectedinv = _controller.getSelectedItems();
-                  //             print("Selected Invoices: $selectedinv");
-                              
-                                
-                              
-                  //           },
-                  //           icon: const Icon(Icons.note_add_outlined)),
-                  //     )
-                  //   ],
-                  // ),
-                  Expanded(
-                    // child: MultiSelectCheckList<PendingTransport>(
-                    //   itemsDecoration: MultiSelectDecorations(
-                    //     // selectedColor: Colors.deepOrange.shade100,
-                    //     decoration: BoxDecoration(
-                    //       color: Colors.grey.shade200,
-                    //       borderRadius: BorderRadius.circular(8),
-                    //       border: Border.all(
-                    //         color: Colors.grey,
-                    //         width: 1,
-                    //       ),
-                    //     ),
-                    //     selectedDecoration: BoxDecoration(
-                    //       color: Colors.deepOrange.shade200,
-                    //       borderRadius: BorderRadius.circular(8),
-                    //       border: Border.all(
-                    //         color: Colors.deepOrange,
-                    //         width: 1,
-                    //       ),
-                    //     ),
-                    //     // textStyle: const TextStyle(
-                    //     //   fontSize: 16,
-                    //     // ),
+                  children: [
+                    // Padding(
+                    //   padding: const EdgeInsets.all(5),
+                    //   child: InputField(
+                    //     label: "Search",
+                    //     onChanged: (value) {
+                    //       List<Invoice> results = [];
+                    //       if (value.isEmpty) {
+                    //         results = leads;
+                    //       } else {
+                    //         results = leads.where((lead) {
+                    //           return value
+                    //                   .toLowerCase()
+                    //                   .split(" ")
+                    //                   .where((word) => word.isNotEmpty)
+                    //                   .toList()
+                    //                   .every((word) => lead.gstvno
+                    //                       .toLowerCase()
+                    //                       .contains(word)) ||
+                    //               value
+                    //                   .toLowerCase()
+                    //                   .split(" ")
+                    //                   .where((word) => word.isNotEmpty)
+                    //                   .toList()
+                    //                   .every((word) => lead.date
+                    //                       .toLowerCase()
+                    //                       .contains(word)) ||
+                    //               value
+                    //                   .toLowerCase()
+                    //                   .split(" ")
+                    //                   .where((word) => word.isNotEmpty)
+                    //                   .toList()
+                    //                   .every((word) =>  lead.amount
+                    //                       .toLowerCase()
+                    //                       .contains(word));
+                    //         }).toList();
+                    //       }
+                    //       setState(() {
+                    //         _foundleads = results;
+                    //       });
+                    //     },
                     //   ),
-                    //   items: _foundleads
-                    //       .map((e) => CheckListCard<PendingTransport>(
-                    //             selectedColor: Colors.deepOrange[400],
-                    //             value: e,
-                    //             title: Row(
-                    //               mainAxisAlignment:
-                    //                   MainAxisAlignment.spaceBetween,
-                    //               children: [
-                    //                 Expanded(
-                    //                   child: Text(
-                    //                           "${e.name}",
-                    //                           style: const TextStyle(
-                    //                               fontWeight: FontWeight.bold),
-                    //                               softWrap: true,
-                    //                         ),
-                    //                 ),
-                                        
-                    //                 // : const Text(
-                    //                 //     "Sale Invoice",
-                    //                 //     style: TextStyle(
-                    //                 //         fontWeight: FontWeight.bold),
-                    //                 //   ),
-                                    
-                                      
-                                    
-                    //               ],
-                    //             ),
-                    //             subtitle: Text(
-                    //                   e.city,
-                    //                   textAlign: TextAlign.left,
-                    //                   style: const TextStyle(fontSize: 14),
-                    //                 ),
-                    //             // controller: _controller,
-                    //           ))
-                    //       .toList(),
-                    //   onChange: (allSelectedItems, selectedItem) {
-                    //     // Handle selection changes here
-
-                    //     if (kDebugMode) {
-                    //       print('Selected items: ${allSelectedItems.length}');
-                    //       print(selectedItem.pickupno);
-                    //     }
-                    //   },
-                    //   controller: _controller,
-                    //   // You can customize other properties as needed
                     // ),
-                    child: ListView.builder(
-                        itemCount: _foundleads.length,
-                        itemBuilder: (context, index) {
-                          return Card(
-                              color: Colors.transparent,
-                              child: ListTile(
-                                title: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                     Text(
-                                            _foundleads[index].name,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
-                                          )
-                                        
-                                    // : const Text(
-                                    //     "Sale Invoice",
-                                    //     style: TextStyle(
-                                    //         fontWeight: FontWeight.bold),
-                                    //   ),
-                                    
-                                  ],
-                                ),
-                                subtitle: Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _foundleads[index].city,
-                                      textAlign: TextAlign.left,
-                                    ),
-                                    Text(
-                                      _foundleads[index].deltype!,
-                                      textAlign: TextAlign.left,
-                                    ),
-                                    // const Spacer(),
-                                    // Text(DateFormat("dd/MM/yyyy").format(
-                                    //     DateFormat("yyyy-MM-dd")
-                                    //         .parse(_foundleads[index].date)), textAlign: TextAlign.center,),
-                                    
-                                  ],
-                                ),
-                                // isThreeLine: true,
-                                // trailing: Text(DateFormat("dd/MM/yyyy").format(
-                                //         DateFormat("yyyy-MM-dd")
-                                //             .parse(_foundleads[index].date)),),
-                                tileColor: Colors.transparent,
-                                onTap: () {
-                                  Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => DeliveryForm(
-                                      selectedInvoices: [_foundleads[index]]),
-                                ),
-                              ).then(((value) {
-                                getleads();
-                              }));
-                                  
-                                },
-                              ));
-                        }),
-                  ),
-                ],
-              ),
+                    // Row(
+                    //   children: [
+                    //     Expanded(
+                    //       flex: 4,
+                    //       child: CheckboxListTile(
+                    //           controlAffinity: ListTileControlAffinity.leading,
+                    //           value: _selectAll,
+                    //           onChanged: (value) {
+                    //             setState(() {
+                    //               if (value == true) {
+                    //                 _controller.selectAll();
+                    //               } else {
+                    //                 _controller.deselectAll();
+                    //               }
+                    //               _selectAll = value ?? false;
+                    //             });
+                    //           },
+                    //           title: const Text("Select All")),
+                    //     ),
+                    //     Expanded(
+                    //       flex: 1,
+                    //       child: IconButton(
+                    //           onPressed: () {
+                    //             var selectedinv = _controller.getSelectedItems();
+                    //             print("Selected Invoices: $selectedinv");
+
+                    //           },
+                    //           icon: const Icon(Icons.note_add_outlined)),
+                    //     )
+                    //   ],
+                    // ),
+                    Expanded(
+                      // child: MultiSelectCheckList<PendingTransport>(
+                      //   itemsDecoration: MultiSelectDecorations(
+                      //     // selectedColor: Colors.deepOrange.shade100,
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.grey.shade200,
+                      //       borderRadius: BorderRadius.circular(8),
+                      //       border: Border.all(
+                      //         color: Colors.grey,
+                      //         width: 1,
+                      //       ),
+                      //     ),
+                      //     selectedDecoration: BoxDecoration(
+                      //       color: Colors.deepOrange.shade200,
+                      //       borderRadius: BorderRadius.circular(8),
+                      //       border: Border.all(
+                      //         color: Colors.deepOrange,
+                      //         width: 1,
+                      //       ),
+                      //     ),
+                      //     // textStyle: const TextStyle(
+                      //     //   fontSize: 16,
+                      //     // ),
+                      //   ),
+                      //   items: _foundleads
+                      //       .map((e) => CheckListCard<PendingTransport>(
+                      //             selectedColor: Colors.deepOrange[400],
+                      //             value: e,
+                      //             title: Row(
+                      //               mainAxisAlignment:
+                      //                   MainAxisAlignment.spaceBetween,
+                      //               children: [
+                      //                 Expanded(
+                      //                   child: Text(
+                      //                           "${e.name}",
+                      //                           style: const TextStyle(
+                      //                               fontWeight: FontWeight.bold),
+                      //                               softWrap: true,
+                      //                         ),
+                      //                 ),
+
+                      //                 // : const Text(
+                      //                 //     "Sale Invoice",
+                      //                 //     style: TextStyle(
+                      //                 //         fontWeight: FontWeight.bold),
+                      //                 //   ),
+
+                      //               ],
+                      //             ),
+                      //             subtitle: Text(
+                      //                   e.city,
+                      //                   textAlign: TextAlign.left,
+                      //                   style: const TextStyle(fontSize: 14),
+                      //                 ),
+                      //             // controller: _controller,
+                      //           ))
+                      //       .toList(),
+                      //   onChange: (allSelectedItems, selectedItem) {
+                      //     // Handle selection changes here
+
+                      //     if (kDebugMode) {
+                      //       print('Selected items: ${allSelectedItems.length}');
+                      //       print(selectedItem.pickupno);
+                      //     }
+                      //   },
+                      //   controller: _controller,
+                      //   // You can customize other properties as needed
+                      // ),
+                      child: ListView.builder(
+                          itemCount: _foundleads.length,
+                          itemBuilder: (context, index) {
+                            return Card(
+                                color: Colors.transparent,
+                                child: ListTile(
+                                  title: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _foundleads[index].name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          // Optional: Control how many lines it can take (remove if unlimited)
+                                          // maxLines: 2,
+                                          // overflow: TextOverflow.ellipsis, // adds "..." if it exceeds max lines
+                                        ),
+                                      ),
+
+                                      // : const Text(
+                                      //     "Sale Invoice",
+                                      //     style: TextStyle(
+                                      //         fontWeight: FontWeight.bold),
+                                      //   ),
+                                    ],
+                                  ),
+                                  subtitle: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _foundleads[index].city,
+                                        textAlign: TextAlign.left,
+                                      ),
+                                      Text(
+                                        _foundleads[index].deltype!,
+                                        textAlign: TextAlign.left,
+                                      ),
+                                      // const Spacer(),
+                                      // Text(DateFormat("dd/MM/yyyy").format(
+                                      //     DateFormat("yyyy-MM-dd")
+                                      //         .parse(_foundleads[index].date)), textAlign: TextAlign.center,),
+                                    ],
+                                  ),
+                                  // isThreeLine: true,
+                                  // trailing: Text(DateFormat("dd/MM/yyyy").format(
+                                  //         DateFormat("yyyy-MM-dd")
+                                  //             .parse(_foundleads[index].date)),),
+                                  tileColor: Colors.transparent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DeliveryForm(
+                                            selectedInvoices: [
+                                              _foundleads[index]
+                                            ]),
+                                      ),
+                                    ).then(((value) {
+                                      getleads();
+                                    }));
+                                  },
+                                ));
+                          }),
+                    ),
+                  ],
+                ),
       appbar: true,
       appbaractions: const [],
       appbartitle: Text('Pending Delivery'),

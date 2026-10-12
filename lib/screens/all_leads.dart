@@ -18,10 +18,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AllLeads extends StatefulWidget {
   final String leadtype;
   final Widget? child;
+  final String? type;
   final Function(dynamic assignExisting, dynamic leadinfo)? assignlead;
 
   const AllLeads(
-      {super.key, required this.leadtype, this.child, this.assignlead});
+      {super.key, required this.leadtype, this.child, this.assignlead, this.type});
 
   @override
   State<AllLeads> createState() => _AllLeadsState();
@@ -147,10 +148,12 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                             });
                           },
                           popupProps: const MultiSelectionPopupProps.dialog(
-                            dialogProps: DialogProps(
-                              barrierDismissible: true,
-                              barrierLabel: "Dismiss",),
-                              showSelectedItems: true, showSearchBox: true),
+                              dialogProps: DialogProps(
+                                barrierDismissible: true,
+                                barrierLabel: "Dismiss",
+                              ),
+                              showSelectedItems: true,
+                              showSearchBox: true),
                           decoratorProps: const DropDownDecoratorProps(
                             decoration: InputDecoration(
                                 labelText: "Leads Assigned By*",
@@ -188,9 +191,12 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                             });
                           },
                           popupProps: const MultiSelectionPopupProps.dialog(
-                            dialogProps: DialogProps(
-                              barrierDismissible: true,barrierLabel: "Dismiss",),
-                              showSelectedItems: true, showSearchBox: true),
+                              dialogProps: DialogProps(
+                                barrierDismissible: true,
+                                barrierLabel: "Dismiss",
+                              ),
+                              showSelectedItems: true,
+                              showSearchBox: true),
                           decoratorProps: const DropDownDecoratorProps(
                             decoration: InputDecoration(
                                 labelText: "Leads Assigned To*",
@@ -214,6 +220,7 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
               ),
             Expanded(
               child: ListLeads(
+                type: widget.type,
                 leadtype: _type,
                 leadton: _selectedItemsassignedto,
                 leadbyn: _selectedItemsassignedby,
@@ -273,7 +280,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.all(1.0),
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProducts,
-                                    items: (filter, infiniteScrollProps)=>filters["Product"],
+                                    items: (filter, infiniteScrollProps) =>
+                                        filters["Product"],
                                     onSelected: (value) {
                                       setstate(() {
                                         filteredProducts = value;
@@ -281,8 +289,10 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
-                                          dialogProps: DialogProps(
-                                            barrierDismissible: true,barrierLabel: "Dismiss",),
+                                            dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss",
+                                            ),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:
@@ -306,7 +316,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.all(1.0),
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredProjects,
-                                    items: (filter, infiniteScrollProps)=>filters["Project"],
+                                    items: (filter, infiniteScrollProps) =>
+                                        filters["Project"],
                                     onSelected: (value) {
                                       setstate(() {
                                         filteredProjects = value;
@@ -314,8 +325,10 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                     },
                                     popupProps:
                                         const MultiSelectionPopupProps.dialog(
-                                          dialogProps: DialogProps(
-                                            barrierDismissible: true,barrierLabel: "Dismiss",),
+                                            dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss",
+                                            ),
                                             showSelectedItems: true,
                                             showSearchBox: true),
                                     decoratorProps:
@@ -339,7 +352,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.all(1.0),
                                   child: DropdownSearch<String>.multiSelection(
                                     selectedItems: filteredLeadtypes,
-                                    items: (filter, infiniteScrollProps)=>filters["Leadtype"],
+                                    items: (filter, infiniteScrollProps) =>
+                                        filters["Leadtype"],
                                     onSelected: (value) {
                                       setstate(() {
                                         filteredLeadtypes = value;
@@ -371,34 +385,37 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                   ),
                                 ),
                                 Padding(
-                                padding: const EdgeInsets.all(5.0),
-                                child: InputField(
-                                  label: "Date Range",
-                                  controller: _datecontroller,
-                                  readOnly: true,
-                                  onTap: () async {
-                                    var dr = await showOmniDateTimeRangePicker(
-                                        context: context,
-                                        barrierDismissible: true,
-                                        startInitialDate: filterdate?.start,
-                                        endInitialDate: filterdate?.end,
-                                        type: OmniDateTimePickerType.date,
-                                        isForceEndDateAfterStartDate: true);
-                                    
-                                    setstate(() {
-                                      _datecontroller.text = dr == null
-                                          ? ""
-                                          : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
-                                      if (dr != null) {
-                                        filterdate = DateTimeRange(
-                                            start: dr[0], end: dr[1]);
-                                      } else {
-                                        filterdate = null;
-                                      }
-                                    });
-                                  },
+                                  padding: const EdgeInsets.all(5.0),
+                                  child: InputField(
+                                    label: "Date Range",
+                                    controller: _datecontroller,
+                                    readOnly: true,
+                                    onTap: () async {
+                                      var dr =
+                                          await showOmniDateTimeRangePicker(
+                                              context: context,
+                                              barrierDismissible: true,
+                                              startInitialDate:
+                                                  filterdate?.start,
+                                              endInitialDate: filterdate?.end,
+                                              type: OmniDateTimePickerType.date,
+                                              isForceEndDateAfterStartDate:
+                                                  true);
+
+                                      setstate(() {
+                                        _datecontroller.text = dr == null
+                                            ? ""
+                                            : "${DateFormat("dd/MM/yyyy").format(dr[0])}-${DateFormat("dd/MM/yyyy").format(dr[1])}";
+                                        if (dr != null) {
+                                          filterdate = DateTimeRange(
+                                              start: dr[0], end: dr[1]);
+                                        } else {
+                                          filterdate = null;
+                                        }
+                                      });
+                                    },
+                                  ),
                                 ),
-                              ),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceAround,
@@ -421,8 +438,8 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                                                     ? []
                                                     : [
                                                         DateFormat("yyyy-MM-dd")
-                                                            .format(
-                                                                filterdate!.start),
+                                                            .format(filterdate!
+                                                                .start),
                                                         DateFormat("yyyy-MM-dd")
                                                             .format(
                                                                 filterdate!.end)
@@ -460,11 +477,12 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
                     _filteredProducts = result["Product"];
                     _filteredProjects = result["Project"];
                     _filteredLeadtypes = result["Leadtype"] ?? [];
-                    _filteredDate = result["Date"] != null && result["Date"].length == 2
-                        ? DateTimeRange(
-                            start: DateTime.parse(result["Date"][0]),
-                            end: DateTime.parse(result["Date"][1]))
-                        : null;
+                    _filteredDate =
+                        result["Date"] != null && result["Date"].length == 2
+                            ? DateTimeRange(
+                                start: DateTime.parse(result["Date"][0]),
+                                end: DateTime.parse(result["Date"][1]))
+                            : null;
                   });
                 }
               },

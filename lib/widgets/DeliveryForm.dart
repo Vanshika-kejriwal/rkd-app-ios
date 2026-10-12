@@ -86,7 +86,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
         // --- BILTY LOGIC (Single Image Only) ---
         //
         if (source == ImageSource.camera) {
-          if (_goodsImages.length >= _maxGoodsImages) {
+          if (_delrecImages.length >= _maxGoodsImages) {
             _showMaxLimitAlert();
             return;
           }
@@ -729,7 +729,7 @@ class _DeliveryFormState extends State<DeliveryForm> {
                             child: GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  _goodsImages.remove(image);
+                                  _delrecImages.remove(image);
                                 });
                               },
                               child: Container(

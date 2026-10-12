@@ -16,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ListLeads extends StatefulWidget {
   String leadtype;
+  String? type;
   List<String>? leadbyn;
   List<String>? leadton;
   String? searchQuery;
@@ -28,6 +29,7 @@ class ListLeads extends StatefulWidget {
   ListLeads(
       {super.key,
       required this.leadtype,
+      this.type,
       this.leadbyn,
       this.leadton,
       this.searchQuery,
@@ -88,7 +90,8 @@ class _ListLeadsState extends State<ListLeads> {
         final Map<String, dynamic> query = {
           'catagory': widget.leadtype,
           'leadbyn': widget.leadbyn,
-          'leadton': widget.leadton
+          'leadton': widget.leadton,
+          'type': widget.type
         };
 
         response = await http.post(Uri.parse('$baseuri/api/leads_list/'),
@@ -152,7 +155,7 @@ class _ListLeadsState extends State<ListLeads> {
                 return DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(cleanStr);
               }
             } catch (e) {
-              if (kDebugMode){
+              if (kDebugMode) {
                 print("Failed to parse date string: $cleanStr. Error: $e");
               }
               return DateTime(
@@ -184,11 +187,9 @@ class _ListLeadsState extends State<ListLeads> {
             //       DateFormat("dd/MM/yyyy h:mm a", "en_US").parse(a.lastfollowup);
             //   return datea.compareTo(dateb);
             // }
-            var dateb =
-                parseLeadDate(b.lastfollowup!);
+            var dateb = parseLeadDate(b.lastfollowup!);
             a.lastfollowup = a.lastfollowup!.replaceAll('\u202f', ' ');
-            var datea =
-                parseLeadDate(a.lastfollowup!);
+            var datea = parseLeadDate(a.lastfollowup!);
             if (widget.leadtype == "Closed") {
               return dateb.compareTo(datea);
             } else {
@@ -442,15 +443,16 @@ class _ListLeadsState extends State<ListLeads> {
               .parse(widget.selectedfilters!["Date"]![0]);
           DateTime endDate = DateFormat("yyyy-MM-dd")
               .parse(widget.selectedfilters!["Date"]![1]);
-          if(lead.lastfollowup == "OPEN" || lead.lastfollowup == ""){
+          if (lead.lastfollowup == "OPEN" || lead.lastfollowup == "") {
             datematches = false;
           } else {
             DateTime leadDate = widget.leadtype == "Unassigned"
                 ? DateFormat("dd/MM/yyyy", "en_US").parse(lead.lastfollowup!)
                 : DateFormat("dd/MM/yyyy h:mm a", "en_US")
                     .parse(lead.lastfollowup!);
-            datematches = leadDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
-                leadDate.isBefore(endDate.add(const Duration(days: 1)));
+            datematches =
+                leadDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+                    leadDate.isBefore(endDate.add(const Duration(days: 1)));
           }
           // DateTime leadDate = widget.leadtype == "Unassigned"? DateFormat("dd/MM/yyyy", "en_US").parse(lead.lastfollowup) :DateFormat("dd/MM/yyyy h:mm a", "en_US")
           //       .parse(lead.lastfollowup);
@@ -458,15 +460,15 @@ class _ListLeadsState extends State<ListLeads> {
           //   lead.lastfollowup == "OPEN" || lead.lastfollowup == ""?
           //     false
           //   :
-            
+
           //   leadDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
           //       leadDate.isBefore(endDate.add(const Duration(days: 1)));
-        }else {
+        } else {
           datematches = true;
         }
         return productmatches & projectmatches & leadtypematches & datematches;
       }).toList();
-      
+
       leads = filterLeads;
       _foundleads = filterLeads;
     }
@@ -611,7 +613,8 @@ class _ListLeadsState extends State<ListLeads> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => LeadDetail(
-                                            currentlead: _foundleads[index]),
+                                            currentlead: _foundleads[index],
+                                            type: widget.type),
                                       ),
                                     ).then((_) {
                                       // Refresh the leads list when returning

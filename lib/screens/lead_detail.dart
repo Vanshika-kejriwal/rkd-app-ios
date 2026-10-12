@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/leads.dart';
 import 'package:business_app/models/utils.dart';
+import 'package:business_app/screens/Installationcheckout.dart';
 import 'package:business_app/services/location.dart';
 import 'package:business_app/services/network_provider.dart';
 import 'package:business_app/services/notification_service.dart';
@@ -37,9 +38,11 @@ import 'package:video_compress/video_compress.dart';
 
 class LeadDetail extends StatefulWidget {
   final Lead? currentlead;
+  final String? type;
   final String? pjc;
   final String? pname;
-  const LeadDetail({super.key, this.currentlead, this.pjc, this.pname});
+  const LeadDetail(
+      {super.key, this.currentlead, this.pjc, this.pname, this.type});
 
   @override
   State<LeadDetail> createState() => _LeadDetailState();
@@ -350,7 +353,8 @@ class _LeadDetailState extends State<LeadDetail> {
   }
 
   Future<List<Product>> getproducts() async {
-    final Map<String, dynamic> query = {'PJC': _pjc};
+    final Map<String, dynamic> query = {'PJC': _pjc, 
+     if(widget.type != null) 'type': widget.type};
     final response =
         await http.post(Uri.parse('$baseuri/api/leadproducts/'), body: query);
     final body = json.decode(response.body);
@@ -379,9 +383,14 @@ class _LeadDetailState extends State<LeadDetail> {
       final body = json.decode(response.body);
       ss(() {
         _selectedstatus = body["STATUS"];
-        _selectedcategory?.ddl12 = body["CATEGORY"];
-        _selectedcategory?.enabled = true;
+        // _selectedcategory?.ddl12 = body["CATEGORY"];
+        // _selectedcategory?.enabled = true;
+        _selectedcategory = LeadCategory(
+            ddl12: body["CATEGORY"],
+            enabled: true,
+           );
         _commentcontroller.text = body["COMMENTS"];
+        _selectedinsbyour = body["IBYOUR"];
         // _selectedfollowupby = body["NEXT_FUBY"];
         // _nextfudatecontroller.text = body["NEXT_FUDATE"];
         if ((_selectedcategory?.ddl12 == "Paid Basis") |
@@ -551,8 +560,10 @@ class _LeadDetailState extends State<LeadDetail> {
     try {
       var sharedpref = await SharedPreferences.getInstance();
       var ut = sharedpref.getString('UT');
-      final response =
-          await http.get(Uri.parse('$baseuri/api/messagelist/$pjc/'));
+      final response = await http
+          .get(Uri.parse('$baseuri/api/messagelist/$pjc/').replace(queryParameters: {
+            if((widget.type) != null) "type": widget.type
+          }));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = json.decode(response.body);
@@ -666,7 +677,10 @@ class _LeadDetailState extends State<LeadDetail> {
     var amcDate = "";
     if (response.statusCode == 200) {
       for (var c in body) {
-        names.add(LeadCategory(ddl12: c['DDL12'], enabled: c['is_enabled'], extrainfo: c['extra_info']));
+        names.add(LeadCategory(
+            ddl12: c['DDL12'],
+            enabled: c['is_enabled'],
+            extrainfo: c['extra_info']));
         if (c["inst_date"] != null) {
           insDate = c["inst_date"];
         }
@@ -1226,30 +1240,30 @@ class _LeadDetailState extends State<LeadDetail> {
                                   ),
                                 ),
                                 if (_location.isNotEmpty)
-                                TextSpan(
-                                  text: "View Location",
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.blue,
-                                    decoration: TextDecoration.underline,
+                                  TextSpan(
+                                    text: "View Location",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () async {
+                                        if (_location.isEmpty) return;
+
+                                        String urlString = _location.trim();
+                                        if (!urlString.startsWith('http://') &&
+                                            !urlString.startsWith('https://')) {
+                                          urlString = 'https://$urlString';
+                                        }
+
+                                        final Uri url = Uri.parse(urlString);
+                                        await launchUrl(
+                                          url,
+                                          mode: LaunchMode.externalApplication,
+                                        );
+                                      },
                                   ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () async {
-                                      if (_location.isEmpty) return;
-
-                                      String urlString = _location.trim();
-                                      if (!urlString.startsWith('http://') &&
-                                          !urlString.startsWith('https://')) {
-                                        urlString = 'https://$urlString';
-                                      }
-
-                                      final Uri url = Uri.parse(urlString);
-                                      await launchUrl(
-                                        url,
-                                        mode: LaunchMode.externalApplication,
-                                      );
-                                    },
-                                ),
                               ],
                             ),
                             textAlign: TextAlign.start,
@@ -1283,931 +1297,114 @@ class _LeadDetailState extends State<LeadDetail> {
                     foregroundColor: Colors.white),
                 onPressed: ischeckedin && !_allProductsDone
                     ? () async {
-                        var result = await showModalBottomSheet(
-                            backgroundColor: const Color(0xffffe6bd),
-                            isScrollControlled: true,
-                            context: context,
-                            builder: (BuildContext context) {
-                              return SafeArea(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                      top:
-                                          MediaQuery.of(context).viewInsets.top,
-                                      bottom: MediaQuery.of(context)
-                                          .viewInsets
-                                          .bottom),
-                                  child: StatefulBuilder(
-                                      builder: (context, setstate) {
-                                    return Center(
-                                      child: Padding(
-                                        padding:
-                                            const EdgeInsets.only(top: 40.0),
-                                        child: Form(
-                                            key: _formkey,
-                                            child: Center(
-                                              child: SingleChildScrollView(
-                                                child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              5.0),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Expanded(
-                                                            flex: 4,
-                                                            child: Text(
-                                                              _pname,
-                                                              style: const TextStyle(
-                                                                  fontSize: 18,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold),
-                                                            ),
-                                                          ),
-                                                          const Spacer(),
-                                                          Expanded(
-                                                            flex: 1,
-                                                            child: IconButton(
-                                                                onPressed: () {
-                                                                  Navigator.of(
-                                                                          context)
-                                                                      .pop();
-                                                                },
-                                                                icon: const Icon(
-                                                                    Icons
-                                                                        .close)),
-                                                          )
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: FutureBuilder<
-                                                                List<String>>(
-                                                            future: _leadtypes,
-                                                            builder: (context,
-                                                                snapshot) {
-                                                              if (snapshot
-                                                                      .hasData &&
-                                                                  snapshot.data !=
-                                                                      null) {
-                                                                return DropdownSearch<
-                                                                    String>(
-                                                                  popupProps: const PopupProps
-                                                                      .dialog(
-                                                                      dialogProps:
-                                                                          DialogProps(
-                                                                        barrierDismissible:
-                                                                            true,
-                                                                        barrierLabel:
-                                                                            "Dismiss",
-                                                                      ),
-                                                                      showSelectedItems:
-                                                                          true,
-                                                                      showSearchBox:
-                                                                          true),
-                                                                  // mode: Mode.dialog,
-                                                                  // showSelectedItems: true,
-                                                                  items: (filter,
-                                                                          infiniteScrollProps) =>
-                                                                      snapshot
-                                                                          .data!,
-                                                                  decoratorProps:
-                                                                      const DropDownDecoratorProps(
-                                                                    decoration:
-                                                                        InputDecoration(
-                                                                      labelText:
-                                                                          "Lead Type",
-                                                                      hintText:
-                                                                          "Select a Lead Type",
-                                                                    ),
-                                                                  ),
-
-                                                                  onSelected:
-                                                                      (value) {
-                                                                    setstate(
-                                                                        () {
-                                                                      _selectedleadtype =
-                                                                          value;
-                                                                      _selectedcomplainproduct =
-                                                                          null;
-                                                                      _selectedfollowupproduct =
-                                                                          [];
-                                                                      filterproducts = products
-                                                                          .where((item) => item
-                                                                              .leadtype
-                                                                              .contains(value!))
-                                                                          .toList();
-                                                                    });
-                                                                    if (value ==
-                                                                        "SERVICE") {
-                                                                      // Navigator.of(
-                                                                      //         context)
-                                                                      //     .pop();
-                                                                      Navigator.push(
-                                                                          context,
-                                                                          MaterialPageRoute(
-                                                                              builder: (context) => Servicecheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
-                                                                          (val) {
-                                                                        Navigator.pop(
-                                                                            context);
-                                                                        Navigator.pop(
-                                                                            context);
-                                                                        // assigndata();
-                                                                      });
-                                                                    }
-                                                                  },
-                                                                  selectedItem:
-                                                                      _selectedleadtype,
-                                                                );
-                                                              } else {
-                                                                return const Center(
-                                                                    child:
-                                                                        CircularProgressIndicator());
-                                                              }
-                                                            })),
-                                                    if (_selectedleadtype ==
-                                                        "COMPLAIN") ...[
-                                                      // SINGLE SELECTION BLOCK
+                        if (widget.type == "SERVICE") {
+                          filterproducts = products
+                              .where(
+                                  (item) => item.leadtype.contains("SERVICE"))
+                              .toList();
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Servicecheckout(
+                                      pname: _pname,
+                                      pjc:
+                                          widget.pjc ?? widget.currentlead!.pjc,
+                                      products: filterproducts))).then((val) {
+                            Navigator.pop(context);
+                            // Navigator.pop(context);
+                            // assigndata();
+                          });
+                        } else if (widget.type == "INSTALLATION") {
+                          // Handle installation type
+                          filterproducts = products
+                              .where(
+                                  (item) => item.leadtype.contains("INSTALLATION"))
+                              .toList();
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Installationcheckout(
+                                      pname: _pname,
+                                      pjc:
+                                          widget.pjc ?? widget.currentlead!.pjc,
+                                      products: filterproducts))).then((val) {
+                            Navigator.pop(context);
+                            // Navigator.pop(context);
+                            // assigndata();
+                          });
+                        } else {
+                          var result = await showModalBottomSheet(
+                              backgroundColor: const Color(0xffffe6bd),
+                              isScrollControlled: true,
+                              context: context,
+                              builder: (BuildContext context) {
+                                return SafeArea(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        top: MediaQuery.of(context)
+                                            .viewInsets
+                                            .top,
+                                        bottom: MediaQuery.of(context)
+                                            .viewInsets
+                                            .bottom),
+                                    child: StatefulBuilder(
+                                        builder: (context, setstate) {
+                                      return Center(
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 40.0),
+                                          child: Form(
+                                              key: _formkey,
+                                              child: Center(
+                                                child: SingleChildScrollView(
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .center,
+                                                    children: [
                                                       Padding(
                                                         padding:
                                                             const EdgeInsets
                                                                 .all(5.0),
-                                                        child: DropdownSearch<
-                                                            Product>(
-                                                          compareFn: (Product
-                                                                  item1,
-                                                              Product item2) {
-                                                            return item1
-                                                                    .leadid ==
-                                                                item2.leadid;
-                                                          },
-                                                          itemAsString:
-                                                              (Product item) {
-                                                            return item.product;
-                                                          },
-                                                          popupProps:
-                                                              const PopupProps
-                                                                  .dialog(
-                                                            dialogProps:
-                                                                DialogProps(
-                                                              barrierDismissible:
-                                                                  true,
-                                                              barrierLabel:
-                                                                  "Dismiss",
-                                                            ),
-                                                            showSearchBox: true,
-                                                          ),
-                                                          items: (filter,
-                                                                  infiniteScrollProps) =>
-                                                              filterproducts,
-                                                          decoratorProps:
-                                                              const DropDownDecoratorProps(
-                                                            decoration:
-                                                                InputDecoration(
-                                                              labelText:
-                                                                  "Follow-up For Product",
-                                                              hintText:
-                                                                  "Select a Product",
-                                                            ),
-                                                          ),
-                                                          onSelected: (Product?
-                                                              value) async {
-                                                            setstate(() {
-                                                              _selectedcomplainproduct =
-                                                                  value;
-                                                              // Wrap in a list if _selectedfollowupproduct expects a List<Product>
-                                                              _selectedfollowupproduct =
-                                                                  value != null
-                                                                      ? [value]
-                                                                      : [];
-                                                            });
-
-                                                            await fetchcheckoutdetail(
-                                                                _selectedfollowupproduct,
-                                                                setstate);
-                                                          },
-                                                          selectedItem:
-                                                              _selectedcomplainproduct,
-                                                        ),
-                                                      ),
-                                                    ] else ...[
-                                                      // MULTI SELECTION BLOCK
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: DropdownSearch<
-                                                            Product>.multiSelection(
-                                                          compareFn: (Product
-                                                                  item1,
-                                                              Product item2) {
-                                                            return item1
-                                                                    .leadid ==
-                                                                item2.leadid;
-                                                          },
-                                                          itemAsString:
-                                                              (Product item) {
-                                                            return item.product;
-                                                          },
-                                                          popupProps:
-                                                              const MultiSelectionPopupProps
-                                                                  .dialog(
-                                                            dialogProps:
-                                                                DialogProps(
-                                                              barrierDismissible:
-                                                                  true,
-                                                              barrierLabel:
-                                                                  "Dismiss",
-                                                            ),
-                                                            showSearchBox: true,
-                                                          ),
-                                                          items: (filter,
-                                                                  infiniteScrollProps) =>
-                                                              filterproducts,
-                                                          decoratorProps:
-                                                              const DropDownDecoratorProps(
-                                                            decoration:
-                                                                InputDecoration(
-                                                              labelText:
-                                                                  "Follow-up For Product",
-                                                              hintText:
-                                                                  "Select Products",
-                                                            ),
-                                                          ),
-                                                          onSelected:
-                                                              (List<Product>
-                                                                  value) async {
-                                                            setstate(() {
-                                                              _selectedfollowupproduct =
-                                                                  value;
-                                                            });
-
-                                                            await fetchcheckoutdetail(
-                                                                _selectedfollowupproduct,
-                                                                setstate);
-                                                          },
-                                                          selectedItems:
-                                                              _selectedfollowupproduct,
-                                                        ),
-                                                      ),
-                                                    ],
-
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              5.0),
-                                                      child: DropdownSearch<
-                                                              String>(
-                                                          enabled: !_resendotp,
-                                                          popupProps: const PopupProps
-                                                              .dialog(
-                                                              dialogProps:
-                                                                  DialogProps(
-                                                                barrierDismissible:
-                                                                    true,
-                                                                barrierLabel:
-                                                                    "Dismiss",
-                                                              ),
-                                                              showSelectedItems:
-                                                                  true,
-                                                              showSearchBox:
-                                                                  false),
-                                                          // mode: Mode.dialog,
-                                                          // showSelectedItems: true,
-                                                          items: (filter,
-                                                                  infiniteScrollProps) =>
-                                                              _selectedleadtype ==
-                                                                      "INSTALLATION"
-                                                                  ? [
-                                                                      "Installation Completed",
-                                                                      "Job Not Completed"
-                                                                    ]
-                                                                  : [
-                                                                      "Job Completed ",
-                                                                      "Job Not Completed"
-                                                                    ],
-                                                          decoratorProps:
-                                                              const DropDownDecoratorProps(
-                                                            decoration:
-                                                                InputDecoration(
-                                                              labelText:
-                                                                  "Lead Status",
-                                                              hintText:
-                                                                  "Select status",
-                                                            ),
-                                                          ),
-                                                          onSelected: (value) {
-                                                            setstate(() {
-                                                              _category.clear();
-                                                              _selectedstatus =
-                                                                  value!;
-                                                              if (_selectedstatus ==
-                                                                  "Job Not Completed") {
-                                                                _leadstat = 1;
-
-                                                              } else {
-                                                                _leadstat = 2;
-                                                              }
-                                                              getcategory();
-                                                              if (_selectedleadtype !=
-                                                                  "INSTALLATION") {
-                                                                
-                                                                getitemdetail();
-                                                              }
-                                                            });
-                                                          },
-                                                          selectedItem:
-                                                              _selectedstatus),
-                                                      // child: Row(
-                                                      //   mainAxisAlignment:
-                                                      //       MainAxisAlignment
-                                                      //           .spaceAround,
-                                                      //   crossAxisAlignment:
-                                                      //       CrossAxisAlignment.center,
-                                                      //   children: [
-                                                      //     Row(
-                                                      //       children: [
-                                                      //         Radio<int>(
-                                                      //             value: 1,
-                                                      //             groupValue: _leadstat,
-                                                      //             // selected: false,
-                                                      //             onChanged:
-                                                      //                 (int? value) {
-                                                      //               setstate(() {
-                                                      //                 _leadstat =
-                                                      //                     value!;
-                                                      //               });
-                                                      //             }),
-                                                      //         const SizedBox(
-                                                      //             width: 10.0),
-                                                      //         const Text("Open")
-                                                      //       ],
-                                                      //     ),
-                                                      //     Row(
-                                                      //       children: [
-                                                      //         Radio<int>(
-                                                      //             value: 2,
-                                                      //             groupValue: _leadstat,
-                                                      //             // selected: false,
-                                                      //             onChanged:
-                                                      //                 (int? value) {
-                                                      //               setstate(() {
-                                                      //                 _leadstat =
-                                                      //                     value!;
-                                                      //               });
-                                                      //             }),
-                                                      //         const SizedBox(
-                                                      //             width: 10.0),
-                                                      //         const Text("Close")
-                                                      //       ],
-                                                      //     )
-                                                      //   ],
-                                                      // ),
-                                                    ),
-                                                    if (_selectedleadtype ==
-                                                        "COMPLAIN")
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: DropdownSearch<
-                                                              AMCModel>.multiSelection(
-                                                            compareFn: (item1,
-                                                                    item2) =>
-                                                                item1.code ==
-                                                                    item2
-                                                                        .code &&
-                                                                item1.item ==
-                                                                    item2.item,
-                                                            popupProps: const MultiSelectionPopupProps
-                                                                .dialog(
-                                                                dialogProps:
-                                                                    DialogProps(
-                                                                  barrierDismissible:
-                                                                      true,
-                                                                  barrierLabel:
-                                                                      "Dismiss",
-                                                                ),
-                                                                // showSelectedItems: true,
-                                                                showSearchBox:
-                                                                    true),
-                                                            // mode: Mode.dialog,
-                                                            // showSelectedItems: true,
-                                                            items: (filter,
-                                                                    infiniteScrollProps) =>
-                                                                _amcitemdetail,
-                                                            itemAsString:
-                                                                (item) {
-                                                              return "${item.item} (${item.idatec})";
-                                                            },
-                                                            decoratorProps:
-                                                                const DropDownDecoratorProps(
-                                                              decoration:
-                                                                  InputDecoration(
-                                                                labelText:
-                                                                    "Item Detail",
-                                                                hintText:
-                                                                    "Select Item",
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            Expanded(
+                                                              flex: 4,
+                                                              child: Text(
+                                                                _pname,
+                                                                style: const TextStyle(
+                                                                    fontSize:
+                                                                        18,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold),
                                                               ),
                                                             ),
-
-                                                            onSelected:
-                                                                (value) {
-                                                              setstate(() {
-                                                                _selectedamcitemdetail =
-                                                                    value;
-                                                                // getbilldetail();
-                                                              });
-                                                              getcategory();
-                                                            },
-                                                            selectedItems:
-                                                                _selectedamcitemdetail,
-                                                          )),
-                                                    if (_selectedstatus ==
-                                                            "Installation Completed" ||
-                                                        ((_selectedstatus ==
-                                                                "Job Completed ") &&
-                                                            (_selectedleadtype ==
-                                                                "SERVICE")))
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: FutureBuilder<
-                                                                List<InvItem>>(
-                                                            future: getinstitems(
-                                                                widget
-                                                                    .currentlead!
-                                                                    .pjc,
-                                                                _selectedfollowupproduct
-                                                                    .map((e) => e
-                                                                        .product)
-                                                                    .toList(),
-                                                                _selectedleadtype!),
-                                                            builder: (context,
-                                                                snapshot) {
-                                                              if (snapshot
-                                                                  .hasData) {
-                                                                return DropdownSearch<
-                                                                    InvItem>.multiSelection(
-                                                                  // enabled: !_resendotp,
-                                                                  popupProps: const MultiSelectionPopupProps
-                                                                      .dialog(
-                                                                      dialogProps:
-                                                                          DialogProps(
-                                                                        barrierDismissible:
-                                                                            true,
-                                                                        barrierLabel:
-                                                                            "Dismiss",
-                                                                      ),
-                                                                      showSelectedItems:
-                                                                          true,
-                                                                      showSearchBox:
-                                                                          true),
-                                                                  // mode: Mode.dialog,
-                                                                  // showSelectedItems: true,
-                                                                  items: (filter,
-                                                                          infiniteScrollProps) =>
-                                                                      snapshot
-                                                                          .data!,
-                                                                  itemAsString:
-                                                                      (item) =>
-                                                                          item.name,
-                                                                  compareFn: (item1,
-                                                                          item2) =>
-                                                                      item1
-                                                                          .id ==
-                                                                      item2.id,
-                                                                  decoratorProps:
-                                                                      const DropDownDecoratorProps(
-                                                                    decoration:
-                                                                        InputDecoration(
-                                                                      labelText:
-                                                                          "Select Products",
-                                                                      hintText:
-                                                                          "Select a Product",
-                                                                    ),
-                                                                  ),
-
-                                                                  onSelected:
-                                                                      (value) {
-                                                                    setstate(
-                                                                        () {
-                                                                      _selectedinstallationitems =
-                                                                          value;
-                                                                    });
-                                                                    if (_selectedleadtype ==
-                                                                        "INSTALLATION") {
-                                                                      getcategory();
-                                                                    }
+                                                            const Spacer(),
+                                                            Expanded(
+                                                              flex: 1,
+                                                              child: IconButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop();
                                                                   },
-                                                                  selectedItems:
-                                                                      _selectedinstallationitems,
-                                                                );
-                                                              } else {
-                                                                // print(snapshot.error);
-                                                                return const Center(
-                                                                    child:
-                                                                        CircularProgressIndicator());
-                                                              }
-                                                            }),
-                                                      ),
-                                                    // if ((_selectedstatus ==
-                                                    //     "Job Completed "))
-                                                    Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: DropdownSearch<
-                                                            LeadCategory>(
-                                                          itemAsString: (item) {
-                                                            return item.ddl12;
-                                                          },
-                                                          compareFn:
-                                                              (item1, item2) {
-                                                            return item1
-                                                                    .ddl12 ==
-                                                                item2.ddl12;
-                                                          },
-                                                          enabled: !_resendotp,
-                                                          popupProps:
-                                                              PopupProps.dialog(
-                                                                  disabledItemFn:
-                                                                      (item) {
-                                                                    return !item
-                                                                        .enabled;
-                                                                  },
-                                                                  itemBuilder:
-                                    (context, item, isDisabled, isSelected) =>
-                                        ListTile(
-                                          enabled: item.enabled,
-                                          title: Text(item.ddl12),
-                                          trailing: item.extrainfo != null
-                                              ? Text(item.extrainfo!)
-                                              : null,
-                                        ),
-                                                                  dialogProps:
-                                                                      const DialogProps(
-                                                                    barrierDismissible:
-                                                                        true,
-                                                                    barrierLabel:
-                                                                        "Dismiss",
-                                                                  ),
-                                                                  showSelectedItems:
-                                                                      true,
-                                                                  showSearchBox:
-                                                                      true),
-                                                          // mode: Mode.dialog,
-                                                          // showSelectedItems: true,
-                                                          items: (filter,
-                                                                  infiniteScrollProps) =>
-                                                              _category,
-                                                          decoratorProps:
-                                                              const DropDownDecoratorProps(
-                                                            decoration:
-                                                                InputDecoration(
-                                                              labelText:
-                                                                  "Service Type",
-                                                              hintText:
-                                                                  "Select an option",
-                                                            ),
-                                                          ),
-
-                                                          onSelected: (value) {
-                                                            setstate(() {
-                                                              // _company.clear();
-                                                              _selectedcategory =
-                                                                  value!;
-                                                              // getcomp();
-                                                            });
-                                                            if (value?.ddl12 ==
-                                                                "Paid Basis") {
-                                                              showResponsiveApiDialog(
-                                                                  context);
-                                                            }
-                                                          },
-                                                          selectedItem:
-                                                              _selectedcategory,
-                                                        )),
-                                                    if (_selectedcategory
-                                                            ?.ddl12 ==
-                                                        "Spare Part Required")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          readOnly: _resendotp,
-                                                          label: "Part Name",
-                                                          controller:
-                                                              _sparepartnamecontroller,
+                                                                  icon: const Icon(
+                                                                      Icons
+                                                                          .close)),
+                                                            )
+                                                          ],
                                                         ),
                                                       ),
-                                                    if (_selectedcategory
-                                                            ?.ddl12 ==
-                                                        "Spare Part Required")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          readOnly: _resendotp,
-                                                          label: "Part Cost",
-                                                          controller:
-                                                              _sparepartcostcontroller,
-                                                          keyboardtype:
-                                                              TextInputType
-                                                                  .number,
-                                                        ),
-                                                      ),
-                                                    if ((_selectedcategory
-                                                                ?.ddl12 ==
-                                                            "Paid Basis") |
-                                                        (_selectedcategory
-                                                                ?.ddl12 ==
-                                                            "Obligatory Service"))
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          readOnly: _resendotp,
-                                                          label:
-                                                              "Service Charge",
-                                                          controller:
-                                                              _servicechargecontroller,
-                                                          keyboardtype:
-                                                              TextInputType
-                                                                  .number,
-                                                          onChanged: (value) {
-                                                            _charge1 =
-                                                                double.tryParse(
-                                                                        value) ??
-                                                                    0.0;
-                                                            // _calculateGstAmount();
-                                                          },
-                                                        ),
-                                                      ),
-                                                    if (_selectedcategory
-                                                            ?.ddl12 ==
-                                                        "Paid Basis")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          readOnly: _resendotp,
-                                                          label: "Spare Charge",
-                                                          controller:
-                                                              _sparechargecontroller,
-                                                          keyboardtype:
-                                                              TextInputType
-                                                                  .number,
-                                                          onChanged: (value) {
-                                                            _charge2 =
-                                                                double.tryParse(
-                                                                        value) ??
-                                                                    0.0;
-                                                            // _calculateGstAmount();
-                                                          },
-                                                        ),
-                                                      ),
-                                                    if (_selectedcategory
-                                                            ?.ddl12 ==
-                                                        "Paid Basis")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          readOnly: _resendotp,
-                                                          label: "Other Charge",
-                                                          controller:
-                                                              _otherchargecontroller,
-                                                          keyboardtype:
-                                                              TextInputType
-                                                                  .number,
-                                                          onChanged: (value) {
-                                                            _charge3 =
-                                                                double.tryParse(
-                                                                        value) ??
-                                                                    0.0;
-                                                            // _calculateGstAmount();
-                                                          },
-                                                        ),
-                                                      ),
-                                                    // gst %
-                                                    if ((_selectedcategory
-                                                                ?.ddl12 ==
-                                                            "Paid Basis") |
-                                                        (_selectedcategory
-                                                                ?.ddl12 ==
-                                                            "Obligatory Service"))
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: FutureBuilder<
-                                                                List<String>>(
-                                                            future: getgst(),
-                                                            builder: ((context,
-                                                                snapshot) {
-                                                              if (snapshot
-                                                                      .hasData &&
-                                                                  snapshot.data !=
-                                                                      null) {
-                                                                return DropdownSearch<
-                                                                    String>(
-                                                                  enabled:
-                                                                      !_resendotp,
-                                                                  popupProps: const PopupProps
-                                                                      .dialog(
-                                                                      dialogProps: DialogProps(
-                                                                          barrierDismissible:
-                                                                              true,
-                                                                          barrierLabel:
-                                                                              "Dismiss"),
-                                                                      showSelectedItems:
-                                                                          true,
-                                                                      showSearchBox:
-                                                                          true),
-                                                                  // mode: Mode.dialog,
-                                                                  // showSelectedItems: true,
-                                                                  items: (filter,
-                                                                          infiniteScrollProps) =>
-                                                                      snapshot
-                                                                          .data!,
-                                                                  decoratorProps:
-                                                                      const DropDownDecoratorProps(
-                                                                    decoration:
-                                                                        InputDecoration(
-                                                                      labelText:
-                                                                          "GST %",
-                                                                      hintText:
-                                                                          "Select a GST %",
-                                                                    ),
-                                                                  ),
-                                                                  autoValidateMode:
-                                                                      AutovalidateMode
-                                                                          .onUserInteraction,
-                                                                  validator:
-                                                                      (value) {
-                                                                    if (value!
-                                                                        .isEmpty) {
-                                                                      return "Select a GST %";
-                                                                    }
-                                                                    return null;
-                                                                  },
-                                                                  // dropdownSearchDecoration: const InputDecoration(
-                                                                  // labelText: "Menu mode",
-                                                                  // hintText: "country in menu mode",
-                                                                  // ),
-                                                                  // popupItemDisabled: isItemDisabled,
-                                                                  onSelected:
-                                                                      (value) {
-                                                                    setstate(
-                                                                        () {
-                                                                      _selectedgst =
-                                                                          value!;
-                                                                    });
-                                                                    _gstPercent =
-                                                                        double.tryParse(value!) ??
-                                                                            18.0;
-                                                                    _calculateGstAmount();
-                                                                  },
-                                                                  selectedItem:
-                                                                      _selectedgst,
-                                                                  // showSearchBox: true,
-                                                                  // searchFieldProps: TextFieldProps(
-                                                                  //   cursorColor: Colors.blue,
-                                                                  // ),
-                                                                );
-                                                              } else {
-                                                                return const Center(
-                                                                    child:
-                                                                        CircularProgressIndicator());
-                                                              }
-                                                            })),
-                                                      ),
-                                                    if ((_selectedcategory
-                                                                ?.ddl12 ==
-                                                            "Paid Basis") |
-                                                        (_selectedcategory
-                                                                ?.ddl12 ==
-                                                            "Obligatory Service"))
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          readOnly: true,
-                                                          label: "GST Amount",
-                                                          controller:
-                                                              _gstamountcontroller,
-                                                          keyboardtype:
-                                                              TextInputType
-                                                                  .number,
-                                                        ),
-                                                      ),
-                                                    if (_selectedcategory
-                                                            ?.ddl12 ==
-                                                        "Free Service as per Installation Agreement")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          label:
-                                                              "Installation Date",
-                                                          controller:
-                                                              _installdatecontroller,
-                                                          readOnly: true,
-                                                          // onTap: _resendotp
-                                                          //     ? null
-                                                          //     : () async {
-                                                          //         DateTime? picked = await showDatePicker(
-                                                          //             context:
-                                                          //                 context,
-                                                          //             initialDate:
-                                                          //                 DateTime
-                                                          //                     .now(),
-                                                          //             firstDate:
-                                                          //                 DateTime(
-                                                          //                     1900),
-                                                          //             lastDate:
-                                                          //                 DateTime(
-                                                          //                     2100));
-                                                          //         if (picked !=
-                                                          //             null) {
-                                                          //           setstate(
-                                                          //               () {
-                                                          //             _installdatecontroller.text = picked
-                                                          //                 .toString()
-                                                          //                 .split(
-                                                          //                     " ")[0];
-                                                          //           });
-                                                          //         }
-                                                          //         // setstate(() {
-                                                          //         //   _dobdate = picked;
-                                                          //         // });
-                                                          //       },
-                                                        ),
-                                                      ),
-                                                    if (_selectedcategory
-                                                            ?.ddl12 ==
-                                                        "Under AMC")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          label: "AMC Date",
-                                                          controller:
-                                                              _amcdatecontroller,
-                                                          readOnly: true,
-                                                          // onTap: _resendotp
-                                                          //     ? null
-                                                          //     : () async {
-                                                          //         DateTime? picked = await showDatePicker(
-                                                          //             context:
-                                                          //                 context,
-                                                          //             initialDate:
-                                                          //                 DateTime
-                                                          //                     .now(),
-                                                          //             firstDate:
-                                                          //                 DateTime(
-                                                          //                     1900),
-                                                          //             lastDate:
-                                                          //                 DateTime(
-                                                          //                     2100));
-                                                          //         if (picked !=
-                                                          //             null) {
-                                                          //           setstate(
-                                                          //               () {
-                                                          //             _amcdatecontroller.text = picked
-                                                          //                 .toString()
-                                                          //                 .split(
-                                                          //                     " ")[0];
-                                                          //           });
-                                                          //         }
-                                                          //       },
-                                                        ),
-                                                      ),
-                                                    if (_selectedstatus ==
-                                                        "Installation Completed")
                                                       Padding(
                                                           padding:
                                                               const EdgeInsets
@@ -2215,7 +1412,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                           child: FutureBuilder<
                                                                   List<String>>(
                                                               future:
-                                                                  getnames(),
+                                                                  _leadtypes,
                                                               builder: (context,
                                                                   snapshot) {
                                                                 if (snapshot
@@ -2248,9 +1445,9 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                       decoration:
                                                                           InputDecoration(
                                                                         labelText:
-                                                                            "Installation by Our",
+                                                                            "Lead Type",
                                                                         hintText:
-                                                                            "Select a Name",
+                                                                            "Select a Lead Type",
                                                                       ),
                                                                     ),
 
@@ -2258,12 +1455,37 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                         (value) {
                                                                       setstate(
                                                                           () {
-                                                                        _selectedinsbyour =
+                                                                        _selectedleadtype =
                                                                             value;
+                                                                        _selectedcomplainproduct =
+                                                                            null;
+                                                                        _selectedfollowupproduct =
+                                                                            [];
+                                                                        filterproducts = products
+                                                                            .where((item) =>
+                                                                                item.leadtype.contains(value!))
+                                                                            .toList();
                                                                       });
+                                                                      if (value ==
+                                                                          "SERVICE") {
+                                                                        // Navigator.of(
+                                                                        //         context)
+                                                                        //     .pop();
+                                                                        Navigator.push(
+                                                                            context,
+                                                                            MaterialPageRoute(
+                                                                                builder: (context) => Servicecheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
+                                                                            (val) {
+                                                                          Navigator.pop(
+                                                                              context);
+                                                                          Navigator.pop(
+                                                                              context);
+                                                                          // assigndata();
+                                                                        });
+                                                                      }
                                                                     },
                                                                     selectedItem:
-                                                                        _selectedinsbyour,
+                                                                        _selectedleadtype,
                                                                   );
                                                                 } else {
                                                                   return const Center(
@@ -2271,20 +1493,270 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                           CircularProgressIndicator());
                                                                 }
                                                               })),
-                                                    if (_selectedstatus ==
-                                                            "Installation Completed" &&
-                                                        _selectedcategory
-                                                                ?.ddl12 !=
-                                                            "Installation Created by Mistake")
-                                                      for (var product
-                                                          in _selectedfollowupproduct)
+                                                      if (_selectedleadtype ==
+                                                          "COMPLAIN") ...[
+                                                        // SINGLE SELECTION BLOCK
                                                         Padding(
                                                           padding:
                                                               const EdgeInsets
                                                                   .all(5.0),
                                                           child: DropdownSearch<
-                                                                  String>(
-                                                              popupProps: const PopupProps
+                                                              Product>(
+                                                            compareFn: (Product
+                                                                    item1,
+                                                                Product item2) {
+                                                              return item1
+                                                                      .leadid ==
+                                                                  item2.leadid;
+                                                            },
+                                                            itemAsString:
+                                                                (Product item) {
+                                                              return item
+                                                                  .product;
+                                                            },
+                                                            popupProps:
+                                                                const PopupProps
+                                                                    .dialog(
+                                                              dialogProps:
+                                                                  DialogProps(
+                                                                barrierDismissible:
+                                                                    true,
+                                                                barrierLabel:
+                                                                    "Dismiss",
+                                                              ),
+                                                              showSearchBox:
+                                                                  true,
+                                                            ),
+                                                            items: (filter,
+                                                                    infiniteScrollProps) =>
+                                                                filterproducts,
+                                                            decoratorProps:
+                                                                const DropDownDecoratorProps(
+                                                              decoration:
+                                                                  InputDecoration(
+                                                                labelText:
+                                                                    "Follow-up For Product",
+                                                                hintText:
+                                                                    "Select a Product",
+                                                              ),
+                                                            ),
+                                                            onSelected: (Product?
+                                                                value) async {
+                                                              setstate(() {
+                                                                _selectedcomplainproduct =
+                                                                    value;
+                                                                // Wrap in a list if _selectedfollowupproduct expects a List<Product>
+                                                                _selectedfollowupproduct =
+                                                                    value !=
+                                                                            null
+                                                                        ? [
+                                                                            value
+                                                                          ]
+                                                                        : [];
+                                                              });
+
+                                                              await fetchcheckoutdetail(
+                                                                  _selectedfollowupproduct,
+                                                                  setstate);
+                                                            },
+                                                            selectedItem:
+                                                                _selectedcomplainproduct,
+                                                          ),
+                                                        ),
+                                                      ] else ...[
+                                                        // MULTI SELECTION BLOCK
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: DropdownSearch<
+                                                              Product>.multiSelection(
+                                                            compareFn: (Product
+                                                                    item1,
+                                                                Product item2) {
+                                                              return item1
+                                                                      .leadid ==
+                                                                  item2.leadid;
+                                                            },
+                                                            itemAsString:
+                                                                (Product item) {
+                                                              return item
+                                                                  .product;
+                                                            },
+                                                            popupProps:
+                                                                const MultiSelectionPopupProps
+                                                                    .dialog(
+                                                              dialogProps:
+                                                                  DialogProps(
+                                                                barrierDismissible:
+                                                                    true,
+                                                                barrierLabel:
+                                                                    "Dismiss",
+                                                              ),
+                                                              showSearchBox:
+                                                                  true,
+                                                            ),
+                                                            items: (filter,
+                                                                    infiniteScrollProps) =>
+                                                                filterproducts,
+                                                            decoratorProps:
+                                                                const DropDownDecoratorProps(
+                                                              decoration:
+                                                                  InputDecoration(
+                                                                labelText:
+                                                                    "Follow-up For Product",
+                                                                hintText:
+                                                                    "Select Products",
+                                                              ),
+                                                            ),
+                                                            onSelected: (List<
+                                                                    Product>
+                                                                value) async {
+                                                              setstate(() {
+                                                                _selectedfollowupproduct =
+                                                                    value;
+                                                              });
+
+                                                              await fetchcheckoutdetail(
+                                                                  _selectedfollowupproduct,
+                                                                  setstate);
+                                                            },
+                                                            selectedItems:
+                                                                _selectedfollowupproduct,
+                                                          ),
+                                                        ),
+                                                      ],
+
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: DropdownSearch<
+                                                                String>(
+                                                            enabled:
+                                                                !_resendotp,
+                                                            popupProps: const PopupProps
+                                                                .dialog(
+                                                                dialogProps:
+                                                                    DialogProps(
+                                                                  barrierDismissible:
+                                                                      true,
+                                                                  barrierLabel:
+                                                                      "Dismiss",
+                                                                ),
+                                                                showSelectedItems:
+                                                                    true,
+                                                                showSearchBox:
+                                                                    false),
+                                                            // mode: Mode.dialog,
+                                                            // showSelectedItems: true,
+                                                            items: (filter,
+                                                                    infiniteScrollProps) =>
+                                                                _selectedleadtype ==
+                                                                        "INSTALLATION"
+                                                                    ? [
+                                                                        "Installation Completed",
+                                                                        "Job Not Completed"
+                                                                      ]
+                                                                    : [
+                                                                        "Job Completed ",
+                                                                        "Job Not Completed"
+                                                                      ],
+                                                            decoratorProps:
+                                                                const DropDownDecoratorProps(
+                                                              decoration:
+                                                                  InputDecoration(
+                                                                labelText:
+                                                                    "Lead Status",
+                                                                hintText:
+                                                                    "Select status",
+                                                              ),
+                                                            ),
+                                                            onSelected:
+                                                                (value) {
+                                                              setstate(() {
+                                                                _category
+                                                                    .clear();
+                                                                _selectedstatus =
+                                                                    value!;
+                                                                if (_selectedstatus ==
+                                                                    "Job Not Completed") {
+                                                                  _leadstat = 1;
+                                                                } else {
+                                                                  _leadstat = 2;
+                                                                }
+                                                                getcategory();
+                                                                if (_selectedleadtype !=
+                                                                    "INSTALLATION") {
+                                                                  getitemdetail();
+                                                                }
+                                                              });
+                                                            },
+                                                            selectedItem:
+                                                                _selectedstatus),
+                                                        // child: Row(
+                                                        //   mainAxisAlignment:
+                                                        //       MainAxisAlignment
+                                                        //           .spaceAround,
+                                                        //   crossAxisAlignment:
+                                                        //       CrossAxisAlignment.center,
+                                                        //   children: [
+                                                        //     Row(
+                                                        //       children: [
+                                                        //         Radio<int>(
+                                                        //             value: 1,
+                                                        //             groupValue: _leadstat,
+                                                        //             // selected: false,
+                                                        //             onChanged:
+                                                        //                 (int? value) {
+                                                        //               setstate(() {
+                                                        //                 _leadstat =
+                                                        //                     value!;
+                                                        //               });
+                                                        //             }),
+                                                        //         const SizedBox(
+                                                        //             width: 10.0),
+                                                        //         const Text("Open")
+                                                        //       ],
+                                                        //     ),
+                                                        //     Row(
+                                                        //       children: [
+                                                        //         Radio<int>(
+                                                        //             value: 2,
+                                                        //             groupValue: _leadstat,
+                                                        //             // selected: false,
+                                                        //             onChanged:
+                                                        //                 (int? value) {
+                                                        //               setstate(() {
+                                                        //                 _leadstat =
+                                                        //                     value!;
+                                                        //               });
+                                                        //             }),
+                                                        //         const SizedBox(
+                                                        //             width: 10.0),
+                                                        //         const Text("Close")
+                                                        //       ],
+                                                        //     )
+                                                        //   ],
+                                                        // ),
+                                                      ),
+                                                      if (_selectedleadtype ==
+                                                          "COMPLAIN")
+                                                        Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(5.0),
+                                                            child: DropdownSearch<
+                                                                AMCModel>.multiSelection(
+                                                              compareFn: (item1,
+                                                                      item2) =>
+                                                                  item1.code ==
+                                                                      item2
+                                                                          .code &&
+                                                                  item1.item ==
+                                                                      item2
+                                                                          .item,
+                                                              popupProps: const MultiSelectionPopupProps
                                                                   .dialog(
                                                                   dialogProps:
                                                                       DialogProps(
@@ -2293,668 +1765,1365 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                     barrierLabel:
                                                                         "Dismiss",
                                                                   ),
-                                                                  showSelectedItems:
-                                                                      true,
+                                                                  // showSelectedItems: true,
                                                                   showSearchBox:
-                                                                      false),
+                                                                      true),
                                                               // mode: Mode.dialog,
                                                               // showSelectedItems: true,
                                                               items: (filter,
                                                                       infiniteScrollProps) =>
-                                                                  const [
-                                                                    "6 Months",
-                                                                    "12 Months",
-                                                                    "24 Months",
-                                                                    "36 Months"
-                                                                  ],
+                                                                  _amcitemdetail,
+                                                              itemAsString:
+                                                                  (item) {
+                                                                return "${item.item} (${item.idatec})";
+                                                              },
                                                               decoratorProps:
-                                                                  DropDownDecoratorProps(
+                                                                  const DropDownDecoratorProps(
                                                                 decoration:
                                                                     InputDecoration(
                                                                   labelText:
-                                                                      "Waranty Period for ${product.product}",
+                                                                      "Item Detail",
                                                                   hintText:
-                                                                      "Select waranty period",
+                                                                      "Select Item",
                                                                 ),
                                                               ),
+
                                                               onSelected:
                                                                   (value) {
-                                                                product.wpm =
-                                                                    value;
+                                                                setstate(() {
+                                                                  _selectedamcitemdetail =
+                                                                      value;
+                                                                  // getbilldetail();
+                                                                });
+                                                                getcategory();
                                                               },
-                                                              selectedItem:
-                                                                  product.wpm),
-                                                        ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              5.0),
-                                                      child: InputField(
-                                                        readOnly: _resendotp,
-                                                        label: "Comments",
-                                                        controller:
-                                                            _commentcontroller,
-                                                        minlines: 1,
-                                                        maxlines: 10,
-                                                      ),
-                                                    ),
-                                                    if (_selectedstatus ==
-                                                        "Installation Completed")
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: InputField(
-                                                          label:
-                                                              "Site Represtative Name",
-                                                          controller:
-                                                              _instcontpnamecontroller,
-                                                        ),
-                                                      ),
+                                                              selectedItems:
+                                                                  _selectedamcitemdetail,
+                                                            )),
+                                                      if (_selectedstatus ==
+                                                              "Installation Completed" ||
+                                                          ((_selectedstatus ==
+                                                                  "Job Completed ") &&
+                                                              (_selectedleadtype ==
+                                                                  "SERVICE")))
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: FutureBuilder<
+                                                                  List<
+                                                                      InvItem>>(
+                                                              future: getinstitems(
+                                                                  widget
+                                                                      .currentlead!
+                                                                      .pjc,
+                                                                  _selectedfollowupproduct
+                                                                      .map((e) => e
+                                                                          .product)
+                                                                      .toList(),
+                                                                  _selectedleadtype!),
+                                                              builder: (context,
+                                                                  snapshot) {
+                                                                if (snapshot
+                                                                    .hasData) {
+                                                                  return DropdownSearch<
+                                                                      InvItem>.multiSelection(
+                                                                    // enabled: !_resendotp,
+                                                                    popupProps: const MultiSelectionPopupProps
+                                                                        .dialog(
+                                                                        dialogProps:
+                                                                            DialogProps(
+                                                                          barrierDismissible:
+                                                                              true,
+                                                                          barrierLabel:
+                                                                              "Dismiss",
+                                                                        ),
+                                                                        showSelectedItems:
+                                                                            true,
+                                                                        showSearchBox:
+                                                                            true),
+                                                                    // mode: Mode.dialog,
+                                                                    // showSelectedItems: true,
+                                                                    items: (filter,
+                                                                            infiniteScrollProps) =>
+                                                                        snapshot
+                                                                            .data!,
+                                                                    itemAsString:
+                                                                        (item) =>
+                                                                            item.name,
+                                                                    compareFn: (item1,
+                                                                            item2) =>
+                                                                        item1
+                                                                            .id ==
+                                                                        item2
+                                                                            .id,
+                                                                    decoratorProps:
+                                                                        const DropDownDecoratorProps(
+                                                                      decoration:
+                                                                          InputDecoration(
+                                                                        labelText:
+                                                                            "Select Products",
+                                                                        hintText:
+                                                                            "Select a Product",
+                                                                      ),
+                                                                    ),
 
-                                                    if (_leadstat == 1)
-                                                      Column(
-                                                        children: [
+                                                                    onSelected:
+                                                                        (value) {
+                                                                      setstate(
+                                                                          () {
+                                                                        _selectedinstallationitems =
+                                                                            value;
+                                                                      });
+                                                                      if (_selectedleadtype ==
+                                                                          "INSTALLATION") {
+                                                                        getcategory();
+                                                                      }
+                                                                    },
+                                                                    selectedItems:
+                                                                        _selectedinstallationitems,
+                                                                  );
+                                                                } else {
+                                                                  // print(snapshot.error);
+                                                                  return const Center(
+                                                                      child:
+                                                                          CircularProgressIndicator());
+                                                                }
+                                                              }),
+                                                        ),
+                                                      // if ((_selectedstatus ==
+                                                      //     "Job Completed "))
+                                                      Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: DropdownSearch<
+                                                              LeadCategory>(
+                                                            itemAsString:
+                                                                (item) {
+                                                              return item.ddl12;
+                                                            },
+                                                            compareFn:
+                                                                (item1, item2) {
+                                                              return item1
+                                                                      .ddl12 ==
+                                                                  item2.ddl12;
+                                                            },
+                                                            enabled:
+                                                                !_resendotp,
+                                                            popupProps: PopupProps
+                                                                .dialog(
+                                                                    disabledItemFn:
+                                                                        (item) {
+                                                                      return !item
+                                                                          .enabled;
+                                                                    },
+                                                                    itemBuilder: (context,
+                                                                            item,
+                                                                            isDisabled,
+                                                                            isSelected) =>
+                                                                        ListTile(
+                                                                          enabled:
+                                                                              item.enabled,
+                                                                          title:
+                                                                              Text(item.ddl12),
+                                                                          trailing: item.extrainfo != null
+                                                                              ? Text(item.extrainfo!)
+                                                                              : null,
+                                                                        ),
+                                                                    dialogProps:
+                                                                        const DialogProps(
+                                                                      barrierDismissible:
+                                                                          true,
+                                                                      barrierLabel:
+                                                                          "Dismiss",
+                                                                    ),
+                                                                    showSelectedItems:
+                                                                        true,
+                                                                    showSearchBox:
+                                                                        true),
+                                                            // mode: Mode.dialog,
+                                                            // showSelectedItems: true,
+                                                            items: (filter,
+                                                                    infiniteScrollProps) =>
+                                                                _category,
+                                                            decoratorProps:
+                                                                const DropDownDecoratorProps(
+                                                              decoration:
+                                                                  InputDecoration(
+                                                                labelText:
+                                                                    "Service Type",
+                                                                hintText:
+                                                                    "Select an option",
+                                                              ),
+                                                            ),
+
+                                                            onSelected:
+                                                                (value) {
+                                                              setstate(() {
+                                                                // _company.clear();
+                                                                _selectedcategory =
+                                                                    value!;
+                                                                // getcomp();
+                                                              });
+                                                              if (value
+                                                                      ?.ddl12 ==
+                                                                  "Paid Basis") {
+                                                                showResponsiveApiDialog(
+                                                                    context);
+                                                              }
+                                                            },
+                                                            selectedItem:
+                                                                _selectedcategory,
+                                                          )),
+                                                      if (_selectedcategory
+                                                              ?.ddl12 ==
+                                                          "Spare Part Required")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            readOnly:
+                                                                _resendotp,
+                                                            label: "Part Name",
+                                                            controller:
+                                                                _sparepartnamecontroller,
+                                                          ),
+                                                        ),
+                                                      if (_selectedcategory
+                                                              ?.ddl12 ==
+                                                          "Spare Part Required")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            readOnly:
+                                                                _resendotp,
+                                                            label: "Part Cost",
+                                                            controller:
+                                                                _sparepartcostcontroller,
+                                                            keyboardtype:
+                                                                TextInputType
+                                                                    .number,
+                                                          ),
+                                                        ),
+                                                      if ((_selectedcategory
+                                                                  ?.ddl12 ==
+                                                              "Paid Basis") |
+                                                          (_selectedcategory
+                                                                  ?.ddl12 ==
+                                                              "Obligatory Service"))
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            readOnly:
+                                                                _resendotp,
+                                                            label:
+                                                                "Service Charge",
+                                                            controller:
+                                                                _servicechargecontroller,
+                                                            keyboardtype:
+                                                                TextInputType
+                                                                    .number,
+                                                            onChanged: (value) {
+                                                              _charge1 = double
+                                                                      .tryParse(
+                                                                          value) ??
+                                                                  0.0;
+                                                              // _calculateGstAmount();
+                                                            },
+                                                          ),
+                                                        ),
+                                                      if (_selectedcategory
+                                                              ?.ddl12 ==
+                                                          "Paid Basis")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            readOnly:
+                                                                _resendotp,
+                                                            label:
+                                                                "Spare Charge",
+                                                            controller:
+                                                                _sparechargecontroller,
+                                                            keyboardtype:
+                                                                TextInputType
+                                                                    .number,
+                                                            onChanged: (value) {
+                                                              _charge2 = double
+                                                                      .tryParse(
+                                                                          value) ??
+                                                                  0.0;
+                                                              // _calculateGstAmount();
+                                                            },
+                                                          ),
+                                                        ),
+                                                      if (_selectedcategory
+                                                              ?.ddl12 ==
+                                                          "Paid Basis")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            readOnly:
+                                                                _resendotp,
+                                                            label:
+                                                                "Other Charge",
+                                                            controller:
+                                                                _otherchargecontroller,
+                                                            keyboardtype:
+                                                                TextInputType
+                                                                    .number,
+                                                            onChanged: (value) {
+                                                              _charge3 = double
+                                                                      .tryParse(
+                                                                          value) ??
+                                                                  0.0;
+                                                              // _calculateGstAmount();
+                                                            },
+                                                          ),
+                                                        ),
+                                                      // gst %
+                                                      if ((_selectedcategory
+                                                                  ?.ddl12 ==
+                                                              "Paid Basis") |
+                                                          (_selectedcategory
+                                                                  ?.ddl12 ==
+                                                              "Obligatory Service"))
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: FutureBuilder<
+                                                                  List<String>>(
+                                                              future: getgst(),
+                                                              builder: ((context,
+                                                                  snapshot) {
+                                                                if (snapshot
+                                                                        .hasData &&
+                                                                    snapshot.data !=
+                                                                        null) {
+                                                                  return DropdownSearch<
+                                                                      String>(
+                                                                    enabled:
+                                                                        !_resendotp,
+                                                                    popupProps: const PopupProps
+                                                                        .dialog(
+                                                                        dialogProps: DialogProps(
+                                                                            barrierDismissible:
+                                                                                true,
+                                                                            barrierLabel:
+                                                                                "Dismiss"),
+                                                                        showSelectedItems:
+                                                                            true,
+                                                                        showSearchBox:
+                                                                            true),
+                                                                    // mode: Mode.dialog,
+                                                                    // showSelectedItems: true,
+                                                                    items: (filter,
+                                                                            infiniteScrollProps) =>
+                                                                        snapshot
+                                                                            .data!,
+                                                                    decoratorProps:
+                                                                        const DropDownDecoratorProps(
+                                                                      decoration:
+                                                                          InputDecoration(
+                                                                        labelText:
+                                                                            "GST %",
+                                                                        hintText:
+                                                                            "Select a GST %",
+                                                                      ),
+                                                                    ),
+                                                                    autoValidateMode:
+                                                                        AutovalidateMode
+                                                                            .onUserInteraction,
+                                                                    validator:
+                                                                        (value) {
+                                                                      if (value!
+                                                                          .isEmpty) {
+                                                                        return "Select a GST %";
+                                                                      }
+                                                                      return null;
+                                                                    },
+                                                                    // dropdownSearchDecoration: const InputDecoration(
+                                                                    // labelText: "Menu mode",
+                                                                    // hintText: "country in menu mode",
+                                                                    // ),
+                                                                    // popupItemDisabled: isItemDisabled,
+                                                                    onSelected:
+                                                                        (value) {
+                                                                      setstate(
+                                                                          () {
+                                                                        _selectedgst =
+                                                                            value!;
+                                                                      });
+                                                                      _gstPercent =
+                                                                          double.tryParse(value!) ??
+                                                                              18.0;
+                                                                      _calculateGstAmount();
+                                                                    },
+                                                                    selectedItem:
+                                                                        _selectedgst,
+                                                                    // showSearchBox: true,
+                                                                    // searchFieldProps: TextFieldProps(
+                                                                    //   cursorColor: Colors.blue,
+                                                                    // ),
+                                                                  );
+                                                                } else {
+                                                                  return const Center(
+                                                                      child:
+                                                                          CircularProgressIndicator());
+                                                                }
+                                                              })),
+                                                        ),
+                                                      if ((_selectedcategory
+                                                                  ?.ddl12 ==
+                                                              "Paid Basis") |
+                                                          (_selectedcategory
+                                                                  ?.ddl12 ==
+                                                              "Obligatory Service"))
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            readOnly: true,
+                                                            label: "GST Amount",
+                                                            controller:
+                                                                _gstamountcontroller,
+                                                            keyboardtype:
+                                                                TextInputType
+                                                                    .number,
+                                                          ),
+                                                        ),
+                                                      if (_selectedcategory
+                                                              ?.ddl12 ==
+                                                          "Free Service as per Installation Agreement")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            label:
+                                                                "Installation Date",
+                                                            controller:
+                                                                _installdatecontroller,
+                                                            readOnly: true,
+                                                            // onTap: _resendotp
+                                                            //     ? null
+                                                            //     : () async {
+                                                            //         DateTime? picked = await showDatePicker(
+                                                            //             context:
+                                                            //                 context,
+                                                            //             initialDate:
+                                                            //                 DateTime
+                                                            //                     .now(),
+                                                            //             firstDate:
+                                                            //                 DateTime(
+                                                            //                     1900),
+                                                            //             lastDate:
+                                                            //                 DateTime(
+                                                            //                     2100));
+                                                            //         if (picked !=
+                                                            //             null) {
+                                                            //           setstate(
+                                                            //               () {
+                                                            //             _installdatecontroller.text = picked
+                                                            //                 .toString()
+                                                            //                 .split(
+                                                            //                     " ")[0];
+                                                            //           });
+                                                            //         }
+                                                            //         // setstate(() {
+                                                            //         //   _dobdate = picked;
+                                                            //         // });
+                                                            //       },
+                                                          ),
+                                                        ),
+                                                      if (_selectedcategory
+                                                              ?.ddl12 ==
+                                                          "Under AMC")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            label: "AMC Date",
+                                                            controller:
+                                                                _amcdatecontroller,
+                                                            readOnly: true,
+                                                            // onTap: _resendotp
+                                                            //     ? null
+                                                            //     : () async {
+                                                            //         DateTime? picked = await showDatePicker(
+                                                            //             context:
+                                                            //                 context,
+                                                            //             initialDate:
+                                                            //                 DateTime
+                                                            //                     .now(),
+                                                            //             firstDate:
+                                                            //                 DateTime(
+                                                            //                     1900),
+                                                            //             lastDate:
+                                                            //                 DateTime(
+                                                            //                     2100));
+                                                            //         if (picked !=
+                                                            //             null) {
+                                                            //           setstate(
+                                                            //               () {
+                                                            //             _amcdatecontroller.text = picked
+                                                            //                 .toString()
+                                                            //                 .split(
+                                                            //                     " ")[0];
+                                                            //           });
+                                                            //         }
+                                                            //       },
+                                                          ),
+                                                        ),
+                                                      if (_selectedstatus ==
+                                                          "Installation Completed")
+                                                        Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(5.0),
+                                                            child: FutureBuilder<
+                                                                    List<
+                                                                        String>>(
+                                                                future:
+                                                                    getnames(),
+                                                                builder: (context,
+                                                                    snapshot) {
+                                                                  if (snapshot
+                                                                          .hasData &&
+                                                                      snapshot.data !=
+                                                                          null) {
+                                                                    return DropdownSearch<
+                                                                        String>(
+                                                                      popupProps: const PopupProps
+                                                                          .dialog(
+                                                                          dialogProps:
+                                                                              DialogProps(
+                                                                            barrierDismissible:
+                                                                                true,
+                                                                            barrierLabel:
+                                                                                "Dismiss",
+                                                                          ),
+                                                                          showSelectedItems:
+                                                                              true,
+                                                                          showSearchBox:
+                                                                              true),
+                                                                      // mode: Mode.dialog,
+                                                                      // showSelectedItems: true,
+                                                                      items: (filter,
+                                                                              infiniteScrollProps) =>
+                                                                          snapshot
+                                                                              .data!,
+                                                                      decoratorProps:
+                                                                          const DropDownDecoratorProps(
+                                                                        decoration:
+                                                                            InputDecoration(
+                                                                          labelText:
+                                                                              "Installation by Our",
+                                                                          hintText:
+                                                                              "Select a Name",
+                                                                        ),
+                                                                      ),
+
+                                                                      onSelected:
+                                                                          (value) {
+                                                                        setstate(
+                                                                            () {
+                                                                          _selectedinsbyour =
+                                                                              value;
+                                                                        });
+                                                                      },
+                                                                      selectedItem:
+                                                                          _selectedinsbyour,
+                                                                    );
+                                                                  } else {
+                                                                    return const Center(
+                                                                        child:
+                                                                            CircularProgressIndicator());
+                                                                  }
+                                                                })),
+                                                      if (_selectedstatus ==
+                                                              "Installation Completed" &&
+                                                          _selectedcategory
+                                                                  ?.ddl12 !=
+                                                              "Installation Created by Mistake")
+                                                        for (var product
+                                                            in _selectedfollowupproduct)
                                                           Padding(
                                                             padding:
                                                                 const EdgeInsets
                                                                     .all(5.0),
-                                                            child: InputField(
-                                                              label:
-                                                                  "Next Follow Up Date",
-                                                              controller:
-                                                                  _nextfudatecontroller,
-                                                              readOnly: true,
-                                                              onTap: () async {
-                                                                DateTime? meet =
-                                                                    await showOmniDateTimePicker(
-                                                                        context:
-                                                                            context,
-                                                                        minutesInterval:
-                                                                            15);
-                                                                if (meet !=
-                                                                    null) {
-                                                                  _nextfudatecontroller
-                                                                      .text = DateFormat(
-                                                                          "dd/MM/yyyy")
-                                                                      .add_jm()
-                                                                      .format(
-                                                                          meet);
-                                                                }
-                                                              },
-                                                            ),
+                                                            child: DropdownSearch<
+                                                                    String>(
+                                                                popupProps: const PopupProps
+                                                                    .dialog(
+                                                                    dialogProps:
+                                                                        DialogProps(
+                                                                      barrierDismissible:
+                                                                          true,
+                                                                      barrierLabel:
+                                                                          "Dismiss",
+                                                                    ),
+                                                                    showSelectedItems:
+                                                                        true,
+                                                                    showSearchBox:
+                                                                        false),
+                                                                // mode: Mode.dialog,
+                                                                // showSelectedItems: true,
+                                                                items: (filter,
+                                                                        infiniteScrollProps) =>
+                                                                    const [
+                                                                      "6 Months",
+                                                                      "12 Months",
+                                                                      "24 Months",
+                                                                      "36 Months"
+                                                                    ],
+                                                                decoratorProps:
+                                                                    DropDownDecoratorProps(
+                                                                  decoration:
+                                                                      InputDecoration(
+                                                                    labelText:
+                                                                        "Waranty Period for ${product.product}",
+                                                                    hintText:
+                                                                        "Select waranty period",
+                                                                  ),
+                                                                ),
+                                                                onSelected:
+                                                                    (value) {
+                                                                  product.wpm =
+                                                                      value;
+                                                                },
+                                                                selectedItem:
+                                                                    product
+                                                                        .wpm),
                                                           ),
-                                                          Padding(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(5.0),
-                                                              child: FutureBuilder<
-                                                                      List<
-                                                                          String>>(
-                                                                  future:
-                                                                      getnames(),
-                                                                  builder: (context,
-                                                                      snapshot) {
-                                                                    if (snapshot
-                                                                            .hasData &&
-                                                                        snapshot.data !=
-                                                                            null) {
-                                                                      return DropdownSearch<
-                                                                          String>(
-                                                                        popupProps: const PopupProps
-                                                                            .dialog(
-                                                                            dialogProps:
-                                                                                DialogProps(
-                                                                              barrierDismissible: true,
-                                                                              barrierLabel: "Dismiss",
-                                                                            ),
-                                                                            showSelectedItems:
-                                                                                true,
-                                                                            showSearchBox:
-                                                                                true),
-                                                                        // mode: Mode.dialog,
-                                                                        // showSelectedItems: true,
-                                                                        items: (filter,
-                                                                                infiniteScrollProps) =>
-                                                                            snapshot.data!,
-                                                                        decoratorProps:
-                                                                            const DropDownDecoratorProps(
-                                                                          decoration:
-                                                                              InputDecoration(
-                                                                            labelText:
-                                                                                "Next Follow-up By",
-                                                                            hintText:
-                                                                                "Select a Name",
-                                                                          ),
-                                                                        ),
-
-                                                                        onSelected:
-                                                                            (value) {
-                                                                          setstate(
-                                                                              () {
-                                                                            _selectedfollowupby =
-                                                                                value;
-                                                                          });
-                                                                        },
-                                                                        selectedItem:
-                                                                            _selectedfollowupby,
-                                                                      );
-                                                                    } else {
-                                                                      return const Center(
-                                                                          child:
-                                                                              CircularProgressIndicator());
-                                                                    }
-                                                                  })),
-                                                        ],
-                                                      ),
-
-                                                    if (_leadstat != 1)
                                                       Padding(
                                                         padding:
                                                             const EdgeInsets
                                                                 .all(5.0),
                                                         child: InputField(
-                                                            validator: (val) {
-                                                              if (val?.length !=
-                                                                  10) {
-                                                                return "Enter a valid 10-digit Whatsapp number";
-                                                              }
-                                                              return null;
-                                                            },
-                                                            label: _selectedstatus ==
-                                                                    "Installation Completed"
-                                                                ? "Site Representative Mobile Number"
-                                                                : "Mobile Number for OTP",
-                                                            controller:
-                                                                _mobforotpcontroller,
-                                                            keyboardtype:
-                                                                TextInputType
-                                                                    .phone,
-                                                            sufficon:
-                                                                IconButton(
-                                                                    onPressed:
-                                                                        () async {
-                                                                      Contact?
-                                                                          contact =
-                                                                          await _contactPicker
-                                                                              .selectPhoneNumber();
-                                                                      setstate(
-                                                                          () {
-                                                                        _selectedPhoneNumber =
-                                                                            contact?.selectedPhoneNumber;
-                                                                        if (_selectedPhoneNumber !=
-                                                                            null) {
-                                                                          var phno = _selectedPhoneNumber!.replaceAll(
-                                                                              " ",
-                                                                              "");
-                                                                          _mobforotpcontroller.text =
-                                                                              phno.substring(phno.length - 10);
-                                                                          _selectedPhoneNumber =
-                                                                              null;
-                                                                        }
-                                                                      });
-                                                                    },
-                                                                    icon: const Icon(
-                                                                        Icons
-                                                                            .contacts))),
+                                                          readOnly: _resendotp,
+                                                          label: "Comments",
+                                                          controller:
+                                                              _commentcontroller,
+                                                          minlines: 1,
+                                                          maxlines: 10,
+                                                        ),
                                                       ),
-                                                    if (_leadstat != 1)
-                                                      // image/vedio upload
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: Row(
+                                                      if (_selectedstatus ==
+                                                          "Installation Completed")
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                            label:
+                                                                "Site Represtative Name",
+                                                            controller:
+                                                                _instcontpnamecontroller,
+                                                          ),
+                                                        ),
+
+                                                      if (_leadstat == 1)
+                                                        Column(
                                                           children: [
-                                                            Text(
-                                                                "Upload Image/Video",
-                                                                style: TextStyle(
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        700])),
-                                                            const Spacer(),
-                                                            // camera iconbutton
-                                                            SpeedDial(
-                                                              icon: Icons
-                                                                  .camera_alt,
-                                                              activeIcon: Icons
-                                                                  .close_rounded,
-                                                              children: [
-                                                                SpeedDialChild(
-                                                                  child: const Icon(
-                                                                      Icons
-                                                                          .camera_alt),
-                                                                  label:
-                                                                      "Capture Image",
-                                                                  onTap:
-                                                                      () async {
-                                                                    final XFile?
-                                                                        image =
-                                                                        await _picker.pickImage(
-                                                                            source:
-                                                                                ImageSource.camera,
-                                                                            imageQuality: 75);
-                                                                    if (image !=
-                                                                        null) {
-                                                                      setstate(
-                                                                          () {
-                                                                        _selectedImage
-                                                                            .add(image.path);
-                                                                      });
-                                                                    }
-                                                                  },
-                                                                ),
-                                                                SpeedDialChild(
-                                                                  child: const Icon(
-                                                                      Icons
-                                                                          .videocam),
-                                                                  label:
-                                                                      "Capture Video",
-                                                                  onTap:
-                                                                      () async {
-                                                                    final XFile?
-                                                                        video =
-                                                                        await _picker.pickVideo(
-                                                                            source:
-                                                                                ImageSource.camera,
-                                                                            maxDuration: const Duration(seconds: 30));
-                                                                    if (video !=
-                                                                        null) {
-                                                                      final mediaInfo =
-                                                                          await VideoCompress
-                                                                              .compressVideo(
-                                                                        video
-                                                                            .path,
-                                                                        quality:
-                                                                            VideoQuality.MediumQuality,
-                                                                        includeAudio:
-                                                                            true,
-                                                                        deleteOrigin:
-                                                                            false, // Set to true to delete the original video after compression
-                                                                      );
-                                                                      setstate(
-                                                                          () {
-                                                                        _selectedImage.add(mediaInfo!
-                                                                            .file!
-                                                                            .path);
-                                                                      });
-                                                                    }
-                                                                  },
-                                                                ),
-                                                              ],
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(5.0),
+                                                              child: InputField(
+                                                                label:
+                                                                    "Next Follow Up Date",
+                                                                controller:
+                                                                    _nextfudatecontroller,
+                                                                readOnly: true,
+                                                                onTap:
+                                                                    () async {
+                                                                  DateTime?
+                                                                      meet =
+                                                                      await showOmniDateTimePicker(
+                                                                          context:
+                                                                              context,
+                                                                          minutesInterval:
+                                                                              15);
+                                                                  if (meet !=
+                                                                      null) {
+                                                                    _nextfudatecontroller
+                                                                        .text = DateFormat(
+                                                                            "dd/MM/yyyy")
+                                                                        .add_jm()
+                                                                        .format(
+                                                                            meet);
+                                                                  }
+                                                                },
+                                                              ),
                                                             ),
-                                                            IconButton(
-                                                              icon: const Icon(
-                                                                  Icons.photo),
-                                                              onPressed:
-                                                                  () async {
-                                                                final List<
-                                                                        XFile>
-                                                                    images =
-                                                                    await _picker.pickMultipleMedia(
-                                                                        imageQuality:
-                                                                            75);
-                                                                if (images
-                                                                    .isNotEmpty) {
-                                                                  for (var element
-                                                                      in images) {
-                                                                    if (element
-                                                                            .path
-                                                                            .endsWith(
-                                                                                '.mp4') ||
-                                                                        element
-                                                                            .path
-                                                                            .endsWith('.mov')) {
-                                                                      VideoCompress
-                                                                          .compressVideo(
-                                                                        element
-                                                                            .path,
-                                                                        quality:
-                                                                            VideoQuality.MediumQuality,
-                                                                        includeAudio:
-                                                                            true,
-                                                                        deleteOrigin:
-                                                                            false, // Set to true to delete the original video after compression
-                                                                      ).then(
-                                                                          (mediaInfo) {
+                                                            Padding(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        5.0),
+                                                                child: FutureBuilder<
+                                                                        List<
+                                                                            String>>(
+                                                                    future:
+                                                                        getnames(),
+                                                                    builder:
+                                                                        (context,
+                                                                            snapshot) {
+                                                                      if (snapshot
+                                                                              .hasData &&
+                                                                          snapshot.data !=
+                                                                              null) {
+                                                                        return DropdownSearch<
+                                                                            String>(
+                                                                          popupProps: const PopupProps
+                                                                              .dialog(
+                                                                              dialogProps: DialogProps(
+                                                                                barrierDismissible: true,
+                                                                                barrierLabel: "Dismiss",
+                                                                              ),
+                                                                              showSelectedItems: true,
+                                                                              showSearchBox: true),
+                                                                          // mode: Mode.dialog,
+                                                                          // showSelectedItems: true,
+                                                                          items: (filter, infiniteScrollProps) =>
+                                                                              snapshot.data!,
+                                                                          decoratorProps:
+                                                                              const DropDownDecoratorProps(
+                                                                            decoration:
+                                                                                InputDecoration(
+                                                                              labelText: "Next Follow-up By",
+                                                                              hintText: "Select a Name",
+                                                                            ),
+                                                                          ),
+
+                                                                          onSelected:
+                                                                              (value) {
+                                                                            setstate(() {
+                                                                              _selectedfollowupby = value;
+                                                                            });
+                                                                          },
+                                                                          selectedItem:
+                                                                              _selectedfollowupby,
+                                                                        );
+                                                                      } else {
+                                                                        return const Center(
+                                                                            child:
+                                                                                CircularProgressIndicator());
+                                                                      }
+                                                                    })),
+                                                          ],
+                                                        ),
+
+                                                      if (_leadstat != 1)
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: InputField(
+                                                              validator: (val) {
+                                                                if (val?.length !=
+                                                                    10) {
+                                                                  return "Enter a valid 10-digit Whatsapp number";
+                                                                }
+                                                                return null;
+                                                              },
+                                                              label: _selectedstatus ==
+                                                                      "Installation Completed"
+                                                                  ? "Site Representative Mobile Number"
+                                                                  : "Mobile Number for OTP",
+                                                              controller:
+                                                                  _mobforotpcontroller,
+                                                              keyboardtype:
+                                                                  TextInputType
+                                                                      .phone,
+                                                              sufficon:
+                                                                  IconButton(
+                                                                      onPressed:
+                                                                          () async {
+                                                                        Contact?
+                                                                            contact =
+                                                                            await _contactPicker.selectPhoneNumber();
+                                                                        setstate(
+                                                                            () {
+                                                                          _selectedPhoneNumber =
+                                                                              contact?.selectedPhoneNumber;
+                                                                          if (_selectedPhoneNumber !=
+                                                                              null) {
+                                                                            var phno =
+                                                                                _selectedPhoneNumber!.replaceAll(" ", "");
+                                                                            _mobforotpcontroller.text =
+                                                                                phno.substring(phno.length - 10);
+                                                                            _selectedPhoneNumber =
+                                                                                null;
+                                                                          }
+                                                                        });
+                                                                      },
+                                                                      icon: const Icon(
+                                                                          Icons
+                                                                              .contacts))),
+                                                        ),
+                                                      if (_leadstat != 1)
+                                                        // image/vedio upload
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: Row(
+                                                            children: [
+                                                              Text(
+                                                                  "Upload Image/Video",
+                                                                  style: TextStyle(
+                                                                      fontSize:
+                                                                          16,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w500,
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          700])),
+                                                              const Spacer(),
+                                                              // camera iconbutton
+                                                              SpeedDial(
+                                                                icon: Icons
+                                                                    .camera_alt,
+                                                                activeIcon: Icons
+                                                                    .close_rounded,
+                                                                children: [
+                                                                  SpeedDialChild(
+                                                                    child: const Icon(
+                                                                        Icons
+                                                                            .camera_alt),
+                                                                    label:
+                                                                        "Capture Image",
+                                                                    onTap:
+                                                                        () async {
+                                                                      final XFile?
+                                                                          image =
+                                                                          await _picker.pickImage(
+                                                                              source: ImageSource.camera,
+                                                                              imageQuality: 75);
+                                                                      if (image !=
+                                                                          null) {
+                                                                        setstate(
+                                                                            () {
+                                                                          _selectedImage
+                                                                              .add(image.path);
+                                                                        });
+                                                                      }
+                                                                    },
+                                                                  ),
+                                                                  SpeedDialChild(
+                                                                    child: const Icon(
+                                                                        Icons
+                                                                            .videocam),
+                                                                    label:
+                                                                        "Capture Video",
+                                                                    onTap:
+                                                                        () async {
+                                                                      final XFile?
+                                                                          video =
+                                                                          await _picker.pickVideo(
+                                                                              source: ImageSource.camera,
+                                                                              maxDuration: const Duration(seconds: 30));
+                                                                      if (video !=
+                                                                          null) {
+                                                                        final mediaInfo =
+                                                                            await VideoCompress.compressVideo(
+                                                                          video
+                                                                              .path,
+                                                                          quality:
+                                                                              VideoQuality.MediumQuality,
+                                                                          includeAudio:
+                                                                              true,
+                                                                          deleteOrigin:
+                                                                              false, // Set to true to delete the original video after compression
+                                                                        );
                                                                         setstate(
                                                                             () {
                                                                           _selectedImage.add(mediaInfo!
                                                                               .file!
                                                                               .path);
                                                                         });
-                                                                      });
-                                                                    } else {
-                                                                      setstate(
-                                                                          () {
-                                                                        _selectedImage
-                                                                            .add(element.path);
-                                                                      });
-                                                                    }
-                                                                  }
-                                                                }
-                                                              },
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    if (_leadstat != 1)
-                                                      // preview of selected files
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5.0),
-                                                        child: SizedBox(
-                                                          height: 90,
-                                                          child:
-                                                              ListView.builder(
-                                                            scrollDirection:
-                                                                Axis.horizontal,
-                                                            itemCount:
-                                                                _selectedImage
-                                                                    .length,
-                                                            itemBuilder:
-                                                                (context,
-                                                                    index) {
-                                                              final file =
-                                                                  _selectedImage[
-                                                                      index];
-                                                              final isVideo = file
-                                                                      .endsWith(
-                                                                          '.mp4') ||
-                                                                  file.endsWith(
-                                                                      '.mov'); // Quick extension check
-
-                                                              return Padding(
-                                                                padding: const EdgeInsets
-                                                                    .symmetric(
-                                                                    horizontal:
-                                                                        8.0),
-                                                                child: Stack(
-                                                                  alignment:
-                                                                      Alignment
-                                                                          .topRight,
-                                                                  children: [
-                                                                    // 1. The Media Container
-                                                                    ClipRRect(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              8.0),
-                                                                      child:
-                                                                          Container(
-                                                                        width:
-                                                                            80,
-                                                                        height:
-                                                                            80,
-                                                                        color: Colors
-                                                                            .grey[200],
-                                                                        child:
-                                                                            Stack(
-                                                                          fit: StackFit
-                                                                              .expand,
-                                                                          children: [
-                                                                            // Render based on file type
-                                                                            if (isVideo)
-                                                                              VideoPreviewWidget(file: File(file))
-                                                                            else
-                                                                              Image.file(
-                                                                                File(file),
-                                                                                fit: BoxFit.cover,
-                                                                              ),
-
-                                                                            // Overlay a play icon if it's a video so the user knows it's not a photo
-                                                                            // if (isVideo)
-                                                                            //   const Center(
-                                                                            //     child:
-                                                                            //         Icon(
-                                                                            //       Icons.play_circle_fill,
-                                                                            //       size: 30,
-                                                                            //       color: Colors.white70,
-                                                                            //     ),
-                                                                            //   ),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    ),
-
-                                                                    // 2. The Red Cross Button Overlaid on Top
-                                                                    Positioned(
-                                                                      top: 0,
-                                                                      right: 0,
-                                                                      child:
-                                                                          GestureDetector(
-                                                                        onTap:
-                                                                            () {
-                                                                          setstate(
-                                                                              () {
-                                                                            _selectedImage.removeAt(index);
-                                                                          });
-                                                                        },
-                                                                        child:
-                                                                            Container(
-                                                                          decoration:
-                                                                              const BoxDecoration(
-                                                                            color:
-                                                                                Colors.red,
-                                                                            shape:
-                                                                                BoxShape.circle,
-                                                                          ),
-                                                                          padding: const EdgeInsets
-                                                                              .all(
-                                                                              4.0),
-                                                                          child: const Icon(
-                                                                              Icons.close,
-                                                                              size: 14,
-                                                                              color: Colors.white),
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    if (_isLoading)
-                                                      Center(
-                                                          child: Column(
-                                                        children: [
-                                                          if (_leadstat != 1)
-                                                            Container(
-                                                              margin:
-                                                                  const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          24.0,
-                                                                      vertical:
-                                                                          16.0),
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(
-                                                                      20.0),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .white,
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            12),
-                                                                boxShadow: [
-                                                                  BoxShadow(
-                                                                    color: Colors
-                                                                        .black
-                                                                        .withValues(
-                                                                            alpha:
-                                                                                0.05),
-                                                                    blurRadius:
-                                                                        10,
-                                                                    offset:
-                                                                        const Offset(
-                                                                            0,
-                                                                            4),
+                                                                      }
+                                                                    },
                                                                   ),
                                                                 ],
                                                               ),
-                                                              child: Column(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min, // Wrap tightly around progress items
-                                                                children: [
-                                                                  Row(
+                                                              IconButton(
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .photo),
+                                                                onPressed:
+                                                                    () async {
+                                                                  final List<
+                                                                          XFile>
+                                                                      images =
+                                                                      await _picker.pickMultipleMedia(
+                                                                          imageQuality:
+                                                                              75);
+                                                                  if (images
+                                                                      .isNotEmpty) {
+                                                                    for (var element
+                                                                        in images) {
+                                                                      if (element.path.endsWith(
+                                                                              '.mp4') ||
+                                                                          element
+                                                                              .path
+                                                                              .endsWith('.mov')) {
+                                                                        VideoCompress
+                                                                            .compressVideo(
+                                                                          element
+                                                                              .path,
+                                                                          quality:
+                                                                              VideoQuality.MediumQuality,
+                                                                          includeAudio:
+                                                                              true,
+                                                                          deleteOrigin:
+                                                                              false, // Set to true to delete the original video after compression
+                                                                        ).then(
+                                                                            (mediaInfo) {
+                                                                          setstate(
+                                                                              () {
+                                                                            _selectedImage.add(mediaInfo!.file!.path);
+                                                                          });
+                                                                        });
+                                                                      } else {
+                                                                        setstate(
+                                                                            () {
+                                                                          _selectedImage
+                                                                              .add(element.path);
+                                                                        });
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                },
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      if (_leadstat != 1)
+                                                        // preview of selected files
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: SizedBox(
+                                                            height: 90,
+                                                            child: ListView
+                                                                .builder(
+                                                              scrollDirection:
+                                                                  Axis.horizontal,
+                                                              itemCount:
+                                                                  _selectedImage
+                                                                      .length,
+                                                              itemBuilder:
+                                                                  (context,
+                                                                      index) {
+                                                                final file =
+                                                                    _selectedImage[
+                                                                        index];
+                                                                final isVideo = file
+                                                                        .endsWith(
+                                                                            '.mp4') ||
+                                                                    file.endsWith(
+                                                                        '.mov'); // Quick extension check
+
+                                                                return Padding(
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          8.0),
+                                                                  child: Stack(
+                                                                    alignment:
+                                                                        Alignment
+                                                                            .topRight,
                                                                     children: [
-                                                                      const Icon(
-                                                                          Icons
-                                                                              .cloud_upload_outlined,
-                                                                          color:
-                                                                              Colors.brown),
-                                                                      const SizedBox(
-                                                                          width:
-                                                                              12),
-                                                                      Expanded(
+                                                                      // 1. The Media Container
+                                                                      ClipRRect(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(8.0),
                                                                         child:
-                                                                            Text(
-                                                                          _uploadProgress >= 1.0
-                                                                              ? "Processing on server..."
-                                                                              : "Uploading file data...",
+                                                                            Container(
+                                                                          width:
+                                                                              80,
+                                                                          height:
+                                                                              80,
+                                                                          color:
+                                                                              Colors.grey[200],
+                                                                          child:
+                                                                              Stack(
+                                                                            fit:
+                                                                                StackFit.expand,
+                                                                            children: [
+                                                                              // Render based on file type
+                                                                              if (isVideo)
+                                                                                VideoPreviewWidget(file: File(file))
+                                                                              else
+                                                                                Image.file(
+                                                                                  File(file),
+                                                                                  fit: BoxFit.cover,
+                                                                                ),
+
+                                                                              // Overlay a play icon if it's a video so the user knows it's not a photo
+                                                                              // if (isVideo)
+                                                                              //   const Center(
+                                                                              //     child:
+                                                                              //         Icon(
+                                                                              //       Icons.play_circle_fill,
+                                                                              //       size: 30,
+                                                                              //       color: Colors.white70,
+                                                                              //     ),
+                                                                              //   ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      ),
+
+                                                                      // 2. The Red Cross Button Overlaid on Top
+                                                                      Positioned(
+                                                                        top: 0,
+                                                                        right:
+                                                                            0,
+                                                                        child:
+                                                                            GestureDetector(
+                                                                          onTap:
+                                                                              () {
+                                                                            setstate(() {
+                                                                              _selectedImage.removeAt(index);
+                                                                            });
+                                                                          },
+                                                                          child:
+                                                                              Container(
+                                                                            decoration:
+                                                                                const BoxDecoration(
+                                                                              color: Colors.red,
+                                                                              shape: BoxShape.circle,
+                                                                            ),
+                                                                            padding:
+                                                                                const EdgeInsets.all(4.0),
+                                                                            child: const Icon(Icons.close,
+                                                                                size: 14,
+                                                                                color: Colors.white),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      if (_isLoading)
+                                                        Center(
+                                                            child: Column(
+                                                          children: [
+                                                            if (_leadstat != 1)
+                                                              Container(
+                                                                margin: const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        24.0,
+                                                                    vertical:
+                                                                        16.0),
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        20.0),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              12),
+                                                                  boxShadow: [
+                                                                    BoxShadow(
+                                                                      color: Colors
+                                                                          .black
+                                                                          .withValues(
+                                                                              alpha: 0.05),
+                                                                      blurRadius:
+                                                                          10,
+                                                                      offset:
+                                                                          const Offset(
+                                                                              0,
+                                                                              4),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                child: Column(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min, // Wrap tightly around progress items
+                                                                  children: [
+                                                                    Row(
+                                                                      children: [
+                                                                        const Icon(
+                                                                            Icons
+                                                                                .cloud_upload_outlined,
+                                                                            color:
+                                                                                Colors.brown),
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                12),
+                                                                        Expanded(
+                                                                          child:
+                                                                              Text(
+                                                                            _uploadProgress >= 1.0
+                                                                                ? "Processing on server..."
+                                                                                : "Uploading file data...",
+                                                                            style:
+                                                                                const TextStyle(
+                                                                              fontSize: 15,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: Colors.black87,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        // Shows raw text layout percentage (e.g., 45%)
+                                                                        Text(
+                                                                          "${(_uploadProgress * 100).toStringAsFixed(0)}%",
                                                                           style:
                                                                               const TextStyle(
                                                                             fontSize:
                                                                                 15,
                                                                             fontWeight:
-                                                                                FontWeight.w600,
+                                                                                FontWeight.bold,
                                                                             color:
-                                                                                Colors.black87,
+                                                                                Colors.brown,
                                                                           ),
                                                                         ),
-                                                                      ),
-                                                                      // Shows raw text layout percentage (e.g., 45%)
-                                                                      Text(
-                                                                        "${(_uploadProgress * 100).toStringAsFixed(0)}%",
-                                                                        style:
-                                                                            const TextStyle(
-                                                                          fontSize:
-                                                                              15,
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                          color:
-                                                                              Colors.brown,
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      height:
-                                                                          14),
-
-                                                                  // The actual linear bar displaying state data
-                                                                  ClipRRect(
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            4), // Rounds the edges of the bar
-                                                                    child:
-                                                                        LinearProgressIndicator(
-                                                                      value:
-                                                                          _uploadProgress,
-                                                                      color: Colors
-                                                                          .brown,
-                                                                      backgroundColor:
-                                                                          Colors
-                                                                              .transparent,
-                                                                      minHeight:
-                                                                          8, // Makes the bar visually easy to track
+                                                                      ],
                                                                     ),
-                                                                  ),
-                                                                ],
+                                                                    const SizedBox(
+                                                                        height:
+                                                                            14),
+
+                                                                    // The actual linear bar displaying state data
+                                                                    ClipRRect(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              4), // Rounds the edges of the bar
+                                                                      child:
+                                                                          LinearProgressIndicator(
+                                                                        value:
+                                                                            _uploadProgress,
+                                                                        color: Colors
+                                                                            .brown,
+                                                                        backgroundColor:
+                                                                            Colors.transparent,
+                                                                        minHeight:
+                                                                            8, // Makes the bar visually easy to track
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
                                                               ),
-                                                            ),
-                                                          const CircularProgressIndicator(
-                                                              color:
-                                                                  Colors.brown),
-                                                        ],
-                                                      )),
-                                                    Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceAround,
-                                                          children: [
-                                                            ElevatedButton(
-                                                              style: ElevatedButton.styleFrom(
-                                                                  backgroundColor:
-                                                                      const Color
-                                                                          .fromRGBO(
-                                                                          252,
-                                                                          101,
-                                                                          8,
-                                                                          1),
-                                                                  foregroundColor:
-                                                                      Colors
-                                                                          .white),
-                                                              onPressed:
-                                                                  _isLoading
-                                                                      ? null
-                                                                      : (() async {
-                                                                          if (_formkey
-                                                                              .currentState!
-                                                                              .validate()) {
-                                                                            FocusScope.of(context).unfocus();
+                                                            const CircularProgressIndicator(
+                                                                color: Colors
+                                                                    .brown),
+                                                          ],
+                                                        )),
+                                                      Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceAround,
+                                                            children: [
+                                                              ElevatedButton(
+                                                                style: ElevatedButton.styleFrom(
+                                                                    backgroundColor:
+                                                                        const Color
+                                                                            .fromRGBO(
+                                                                            252,
+                                                                            101,
+                                                                            8,
+                                                                            1),
+                                                                    foregroundColor:
+                                                                        Colors
+                                                                            .white),
+                                                                onPressed:
+                                                                    _isLoading
+                                                                        ? null
+                                                                        : (() async {
+                                                                            if (_formkey.currentState!.validate()) {
+                                                                              FocusScope.of(context).unfocus();
+                                                                              setstate(() {
+                                                                                _isLoading = true;
+                                                                              });
+                                                                              var respcode = await submitdata("true", _resendotp);
+                                                                              if (respcode == 200 || respcode == 201) {
+                                                                                setstate(() {
+                                                                                  if (_leadstat == 1) {
+                                                                                    _isLoading = false;
+                                                                                  }
+                                                                                  ischeckedin = false;
+                                                                                });
+                                                                                if (_leadstat != 1) {
+                                                                                  var jcc = await openDialog("Job Complete OTP", "Enter OTP");
+                                                                                  // setstate(
+                                                                                  //     () {
+
+                                                                                  //     });
+                                                                                  // List<String>
+                                                                                  //     leadids =
+                                                                                  //     [];
+                                                                                  // print("ino check: $ino");
+
+                                                                                  final resp = await http.post(Uri.parse('$baseuri/api/verify-jcc/'),
+                                                                                      body: jsonEncode({
+                                                                                        "JCC": jcc ?? "",
+                                                                                        "LEAD_ID": _selectedfollowupproduct.map((item) => item.leadid).toList(),
+                                                                                        "PJC": _pjc,
+                                                                                        "ino": ino
+                                                                                      }),
+                                                                                      headers: {
+                                                                                        "Content-Type": "application/json"
+                                                                                      });
+                                                                                  if (resp.statusCode == 200) {
+                                                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP Verified Successfully"), backgroundColor: Colors.green));
+                                                                                  } else {
+                                                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP couldnot be verified. Please try again."), backgroundColor: Colors.red));
+                                                                                  }
+                                                                                }
+
+                                                                                Navigator.of(context).pop("Data saved");
+
+                                                                                setstate(() {
+                                                                                  _isLoading = false;
+                                                                                });
+
+                                                                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved successfully"), backgroundColor: Colors.green[400]));
+                                                                                // if (kDebugMode) {
+                                                                                //   SendNotificationService.sendNotificationUsingApi(
+                                                                                //       token:
+                                                                                //           "test",
+                                                                                //       title: "Lead Follow UP",
+                                                                                //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
+                                                                                //       data: {
+                                                                                //         "screen":
+                                                                                //             "detail",
+                                                                                //         "pjc":
+                                                                                //             _pjc,
+                                                                                //         "pname":
+                                                                                //             _pname
+                                                                                //       });
+                                                                                // } else {
+                                                                                //   SendNotificationService.sendNotificationUsingApi(
+                                                                                //       token:
+                                                                                //           "all",
+                                                                                //       title: "Lead Follow UP",
+                                                                                //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
+                                                                                //       data: {
+                                                                                //         "screen":
+                                                                                //             "detail",
+                                                                                //         "pjc":
+                                                                                //             _pjc,
+                                                                                //         "pname":
+                                                                                //             _pname
+                                                                                //       });
+                                                                                // }
+                                                                              } else {
+                                                                                setstate(() {
+                                                                                  _isLoading = false;
+                                                                                  ischeckedin = false;
+                                                                                });
+                                                                                // Navigator.of(
+                                                                                //         context)
+                                                                                //     .pop(
+                                                                                //         "Data saved");
+                                                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Something went wrong. Please try again."), backgroundColor: Colors.red));
+                                                                              }
+                                                                            }
+                                                                          }),
+                                                                child: _selectedstatus ==
+                                                                        "Installation Completed"
+                                                                    ? const Text(
+                                                                        "Save and Send OTP")
+                                                                    : const Text(
+                                                                        "Save and Send"),
+                                                              ),
+                                                              // _selectedstatus ==
+                                                              //         "Installation Completed"
+                                                              //     ? ElevatedButton(
+                                                              //         style: ElevatedButton.styleFrom(
+                                                              //             backgroundColor: const Color
+                                                              //                 .fromRGBO(
+                                                              //                 252,
+                                                              //                 101,
+                                                              //                 8,
+                                                              //                 1),
+                                                              //             foregroundColor:
+                                                              //                 Colors
+                                                              //                     .white),
+                                                              //         onPressed:
+                                                              //             _isLoading
+                                                              //                 ? null
+                                                              //                 : (() async {
+                                                              //                     setstate(() {
+                                                              //                       _isLoading = true;
+                                                              //                     });
+                                                              //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
+                                                              //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
+                                                              //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
+                                                              //                       setstate(() {
+                                                              //                         _isLoading = false;
+                                                              //                         ischeckedin = false;
+                                                              //                       });
+                                                              //                       Navigator.of(context).pop("Data saved and Report Sent");
+                                                              //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
+                                                              //                     }
+                                                              //                   }),
+                                                              //         child:
+                                                              //             const Text(
+                                                              //           "Send Report",
+                                                              //         ))
+                                                              ElevatedButton(
+                                                                style: ElevatedButton.styleFrom(
+                                                                    backgroundColor:
+                                                                        const Color
+                                                                            .fromRGBO(
+                                                                            252,
+                                                                            101,
+                                                                            8,
+                                                                            1),
+                                                                    foregroundColor:
+                                                                        Colors
+                                                                            .white),
+                                                                onPressed:
+                                                                    _isLoading
+                                                                        ? null
+                                                                        : (() async {
                                                                             setstate(() {
                                                                               _isLoading = true;
                                                                             });
                                                                             var respcode =
-                                                                                await submitdata("true", _resendotp);
+                                                                                await submitdata("false", _resendotp);
                                                                             if (respcode == 200 ||
                                                                                 respcode == 201) {
                                                                               setstate(() {
-                                                                                if (_leadstat == 1) {
-                                                                                  _isLoading = false;
-                                                                                }
+                                                                                _isLoading = false;
                                                                                 ischeckedin = false;
                                                                               });
-                                                                              if (_leadstat != 1) {
-                                                                                var jcc = await openDialog("Job Complete OTP", "Enter OTP");
-                                                                                // setstate(
-                                                                                //     () {
-
-                                                                                //     });
-                                                                                // List<String>
-                                                                                //     leadids =
-                                                                                //     [];
-                                                                                // print("ino check: $ino");
-
-                                                                                final resp = await http.post(Uri.parse('$baseuri/api/verify-jcc/'),
-                                                                                    body: jsonEncode({
-                                                                                      "JCC": jcc ?? "",
-                                                                                      "LEAD_ID": _selectedfollowupproduct.map((item) => item.leadid).toList(),
-                                                                                      "PJC": _pjc,
-                                                                                      "ino": ino
-                                                                                    }),
-                                                                                    headers: {
-                                                                                      "Content-Type": "application/json"
-                                                                                    });
-                                                                                if (resp.statusCode == 200) {
-                                                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP Verified Successfully"), backgroundColor: Colors.green));
-                                                                                } else {
-                                                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP couldnot be verified. Please try again."), backgroundColor: Colors.red));
-                                                                                }
-                                                                              }
-
                                                                               Navigator.of(context).pop("Data saved");
-
-                                                                              setstate(() {
-                                                                                _isLoading = false;
-                                                                              });
-
                                                                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved successfully"), backgroundColor: Colors.green[400]));
                                                                               // if (kDebugMode) {
                                                                               //   SendNotificationService.sendNotificationUsingApi(
@@ -2988,7 +3157,6 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                             } else {
                                                                               setstate(() {
                                                                                 _isLoading = false;
-                                                                                ischeckedin = false;
                                                                               });
                                                                               // Navigator.of(
                                                                               //         context)
@@ -2996,145 +3164,27 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                               //         "Data saved");
                                                                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Something went wrong. Please try again."), backgroundColor: Colors.red));
                                                                             }
-                                                                          }
-                                                                        }),
-                                                              child: _selectedstatus ==
-                                                                      "Installation Completed"
-                                                                  ? const Text(
-                                                                      "Save and Send OTP")
-                                                                  : const Text(
-                                                                      "Save and Send"),
-                                                            ),
-                                                            // _selectedstatus ==
-                                                            //         "Installation Completed"
-                                                            //     ? ElevatedButton(
-                                                            //         style: ElevatedButton.styleFrom(
-                                                            //             backgroundColor: const Color
-                                                            //                 .fromRGBO(
-                                                            //                 252,
-                                                            //                 101,
-                                                            //                 8,
-                                                            //                 1),
-                                                            //             foregroundColor:
-                                                            //                 Colors
-                                                            //                     .white),
-                                                            //         onPressed:
-                                                            //             _isLoading
-                                                            //                 ? null
-                                                            //                 : (() async {
-                                                            //                     setstate(() {
-                                                            //                       _isLoading = true;
-                                                            //                     });
-                                                            //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
-                                                            //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
-                                                            //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
-                                                            //                       setstate(() {
-                                                            //                         _isLoading = false;
-                                                            //                         ischeckedin = false;
-                                                            //                       });
-                                                            //                       Navigator.of(context).pop("Data saved and Report Sent");
-                                                            //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
-                                                            //                     }
-                                                            //                   }),
-                                                            //         child:
-                                                            //             const Text(
-                                                            //           "Send Report",
-                                                            //         ))
-                                                            ElevatedButton(
-                                                              style: ElevatedButton.styleFrom(
-                                                                  backgroundColor:
-                                                                      const Color
-                                                                          .fromRGBO(
-                                                                          252,
-                                                                          101,
-                                                                          8,
-                                                                          1),
-                                                                  foregroundColor:
-                                                                      Colors
-                                                                          .white),
-                                                              onPressed:
-                                                                  _isLoading
-                                                                      ? null
-                                                                      : (() async {
-                                                                          setstate(
-                                                                              () {
-                                                                            _isLoading =
-                                                                                true;
-                                                                          });
-                                                                          var respcode = await submitdata(
-                                                                              "false",
-                                                                              _resendotp);
-                                                                          if (respcode == 200 ||
-                                                                              respcode == 201) {
-                                                                            setstate(() {
-                                                                              _isLoading = false;
-                                                                              ischeckedin = false;
-                                                                            });
-                                                                            Navigator.of(context).pop("Data saved");
-                                                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                                                                content: const Text("Data saved successfully"),
-                                                                                backgroundColor: Colors.green[400]));
-                                                                            // if (kDebugMode) {
-                                                                            //   SendNotificationService.sendNotificationUsingApi(
-                                                                            //       token:
-                                                                            //           "test",
-                                                                            //       title: "Lead Follow UP",
-                                                                            //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
-                                                                            //       data: {
-                                                                            //         "screen":
-                                                                            //             "detail",
-                                                                            //         "pjc":
-                                                                            //             _pjc,
-                                                                            //         "pname":
-                                                                            //             _pname
-                                                                            //       });
-                                                                            // } else {
-                                                                            //   SendNotificationService.sendNotificationUsingApi(
-                                                                            //       token:
-                                                                            //           "all",
-                                                                            //       title: "Lead Follow UP",
-                                                                            //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
-                                                                            //       data: {
-                                                                            //         "screen":
-                                                                            //             "detail",
-                                                                            //         "pjc":
-                                                                            //             _pjc,
-                                                                            //         "pname":
-                                                                            //             _pname
-                                                                            //       });
-                                                                            // }
-                                                                          } else {
-                                                                            setstate(() {
-                                                                              _isLoading = false;
-                                                                            });
-                                                                            // Navigator.of(
-                                                                            //         context)
-                                                                            //     .pop(
-                                                                            //         "Data saved");
-                                                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                                                                content: Text("Something went wrong. Please try again."),
-                                                                                backgroundColor: Colors.red));
-                                                                          }
-                                                                        }),
-                                                              child: const Text(
-                                                                  "Save Details"),
-                                                            ),
-                                                          ],
-                                                        ))
-                                                  ],
+                                                                          }),
+                                                                child: const Text(
+                                                                    "Save Details"),
+                                                              ),
+                                                            ],
+                                                          ))
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                            )),
-                                      ),
-                                    );
-                                  }),
-                                ),
-                              );
-                            });
-                        if (result != null) {
-                          // assigndata();
-                          Navigator.of(context).pop();
-                          // setState(() {});
+                                              )),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                );
+                              });
+                          if (result != null) {
+                            // assigndata();
+                            Navigator.of(context).pop();
+                            // setState(() {});
+                          }
                         }
                       }
                     : null,

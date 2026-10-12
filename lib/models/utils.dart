@@ -50,12 +50,14 @@ class Product {
   String product;
   String leadtype;
   String? wpm;
+  String? fsp;
 
   Product(
       {required this.leadid,
       required this.product,
       required this.leadtype,
-      this.wpm});
+      this.wpm,
+      this.fsp});
 
   @override
   String toString() {
@@ -219,20 +221,22 @@ class Invoice {
 class ItemDetail {
   final String name;
   final String quantity;
-  final String billdate;
+  final String? billdate;
+  String? code; // Optional field for code
 
   ItemDetail(
-      {required this.name, required this.quantity, required this.billdate});
+      {required this.name, required this.quantity, this.billdate, this.code});
 
   // Factory to create ItemDetail from the concatenated string "item name|||quantity"
   factory ItemDetail.fromConcatenatedString(String concatenatedString) {
     final parts = concatenatedString.split('|||');
     return ItemDetail(
       name: parts[0].trim(),
-      billdate: parts[2].trim(),
+      billdate: parts.length==4? parts[3].trim() : null,
       quantity: parts.length > 1
           ? parts[1].trim()
           : 'N/A', // Handle case where quantity might be missing
+      code: parts.length > 2 ? parts[2].trim() : null,
     );
   }
 }
@@ -240,6 +244,7 @@ class ItemDetail {
 class ProductAggregation {
   final String product;
   final String company;
+  String? mc;
   final List<ItemDetail> items; // <--- List of ItemDetail objects
 
   // ... (Constructor remains the same) ...
@@ -247,6 +252,7 @@ class ProductAggregation {
     required this.product,
     required this.company,
     required this.items,
+    this.mc,
   });
 
   factory ProductAggregation.fromJson(Map<String, dynamic> json) {
@@ -262,6 +268,7 @@ class ProductAggregation {
     return ProductAggregation(
       product: json['product'] as String,
       company: json['Company'] as String,
+      mc: json['MC'] as String?, // Optional field for mc
       items: itemsList,
     );
   }
@@ -401,3 +408,4 @@ class CompDelVno {
 
   CompDelVno({required this.vno, required this.amount, required this.date, required this.gstvno});
 }
+

@@ -168,11 +168,11 @@ class _PendingServiceState extends State<PendingService> {
       uniqueProducts.addAll(List<String>.from(lead.products));
       uniqueProjects.add(lead.custtype);
     }
-    if(mounted){
+    if (mounted) {
       setState(() {
-      filters["Product"] = uniqueProducts.toList();
-      filters["Project"] = uniqueProjects.toList();
-    });
+        filters["Product"] = uniqueProducts.toList();
+        filters["Project"] = uniqueProjects.toList();
+      });
     }
   }
 
@@ -284,7 +284,8 @@ class _PendingServiceState extends State<PendingService> {
                                 padding: const EdgeInsets.all(1.0),
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProducts,
-                                  items: (filter, infiniteScrollProps) => filters["Product"],
+                                  items: (filter, infiniteScrollProps) =>
+                                      filters["Product"],
                                   onSelected: (value) {
                                     setstate(() {
                                       filteredProducts = value;
@@ -292,11 +293,12 @@ class _PendingServiceState extends State<PendingService> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                        dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                          dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  decoratorProps:
-                                      const DropDownDecoratorProps(
+                                  decoratorProps: const DropDownDecoratorProps(
                                     decoration: InputDecoration(
                                       labelText: "Product Type",
                                       hintText: "Select Product Type",
@@ -316,7 +318,8 @@ class _PendingServiceState extends State<PendingService> {
                                 padding: const EdgeInsets.all(1.0),
                                 child: DropdownSearch<String>.multiSelection(
                                   selectedItems: filteredProjects,
-                                  items: (filter, infiniteScrollProps) => filters["Project"],
+                                  items: (filter, infiniteScrollProps) =>
+                                      filters["Project"],
                                   onSelected: (value) {
                                     setstate(() {
                                       filteredProjects = value;
@@ -324,11 +327,12 @@ class _PendingServiceState extends State<PendingService> {
                                   },
                                   popupProps:
                                       const MultiSelectionPopupProps.dialog(
-                                          dialogProps: DialogProps(barrierDismissible: true,barrierLabel: "Dismiss"),
+                                          dialogProps: DialogProps(
+                                              barrierDismissible: true,
+                                              barrierLabel: "Dismiss"),
                                           showSelectedItems: true,
                                           showSearchBox: true),
-                                  decoratorProps:
-                                      const DropDownDecoratorProps(
+                                  decoratorProps: const DropDownDecoratorProps(
                                     decoration: InputDecoration(
                                       labelText: "Project",
                                       hintText: "Select Project",
@@ -358,7 +362,7 @@ class _PendingServiceState extends State<PendingService> {
                                         endInitialDate: filterdate?.end,
                                         type: OmniDateTimePickerType.date,
                                         isForceEndDateAfterStartDate: true);
-                                    
+
                                     setstate(() {
                                       _dobcontroller.text = dr == null
                                           ? ""
@@ -503,18 +507,15 @@ class _PendingServiceState extends State<PendingService> {
                                     var ut = sharedpref.getString('UT');
                                     if (ut == "ADMIN" ||
                                         ut!.toLowerCase() == "employee") {
-                                      // widget.assignlead!(
-                                      //   true,
-                                      //   {
-                                      //     "pjc": _foundleads[index].pjc,
-                                      //     "pname": _foundleads[index].pname,
-                                      //     "custtype":
-                                      //         _foundleads[index].custtype,
-                                      //     "product":
-                                      //         _foundleads[index].products
-                                      //   }
-                                      //   // leadinfo: leads[index].toJson()
-                                      //   );
+                                      widget.assignlead!(true, {
+                                        "pjc": _foundleads[index].pjc,
+                                        "pname": _foundleads[index].pname,
+                                        "custtype": _foundleads[index].custtype,
+                                        "product": _foundleads[index].products,
+                                        "leadtype": "SERVICE"
+                                      }
+                                          // leadinfo: leads[index].toJson()
+                                          );
                                     }
                                   },
                                 ));

@@ -403,10 +403,12 @@ class _PendingPickupState extends State<PendingPickup> {
       }
     } on SocketException catch (_) {
       connectivityProvider.setConnected(false);
-      setState(() {
+      if(mounted){
+        setState(() {
         _isLoadingMore = false;
         _isDataLoaded = true;
       });
+      }
     } on http.ClientException catch (_) {
       connectivityProvider.setConnected(false);
       setState(() {

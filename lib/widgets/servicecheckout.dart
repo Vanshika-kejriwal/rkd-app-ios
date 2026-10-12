@@ -72,6 +72,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   final String _pname = '';
   String _checkoutloca = '';
   bool _isLoading = false;
+  bool _showquestions = true;
   // bool _isAdmin = false;
   bool _resendotp = false;
   bool _dataupload = false;
@@ -115,8 +116,12 @@ class _ServicecheckoutState extends State<Servicecheckout> {
       final body = json.decode(response.body);
       ss(() {
         _selectedstatus = body["STATUS"];
-        _selectedcategory?.ddl12 = body["CATEGORY"];
-        _selectedcategory?.enabled = true;
+        _selectedcategory = LeadCategory(
+            ddl12: body["CATEGORY"],
+            enabled: true,
+           );
+        // _selectedcategory?.ddl12 = body["CATEGORY"];
+        // _selectedcategory?.enabled = true;
         _commentcontroller.text = body["COMMENTS"];
         // _selectedfollowupby = body["NEXT_FUBY"];
         // _nextfudatecontroller.text = body["NEXT_FUDATE"];
@@ -1025,10 +1030,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   }
                                 }),
                           ),
-                        if ((_selectedstatus == "Job Completed "))
-                          _buildConditionalFields(),
-                        // if ((_selectedstatus == "Job Completed "))
-                        Padding(
+                          Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<LeadCategory>(
                               compareFn: ((item1, item2) {
@@ -1071,13 +1073,25 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   // _company.clear();
                                   _selectedcategory = value!;
                                   // getcomp();
+                                  if (value.ddl12 ==
+                                      "Lead Created by Mistake") {
+                                    _showquestions = false;
+                                  }else{
+                                    _showquestions =  true;
+                                  }
                                 });
+
                                 if (value?.ddl12 == "Paid Basis") {
                                   showResponsiveApiDialog(context);
                                 }
                               },
                               selectedItem: _selectedcategory,
                             )),
+                        if ((_selectedstatus == "Job Completed ") &&
+                            (_showquestions))
+                          _buildConditionalFields(),
+                        // if ((_selectedstatus == "Job Completed "))
+                        
                         if (_selectedcategory?.ddl12 == "Spare Part Required")
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1289,7 +1303,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                           ),
                         ),
 
-                        if (_leadstat != 1)
+                        if ((_leadstat != 1) && (_showquestions))
                           // image/vedio upload
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1381,7 +1395,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                               ],
                             ),
                           ),
-                        if (_leadstat != 1)
+                        if ((_leadstat != 1) && (_showquestions))
                           // preview of selected files
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1555,7 +1569,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                                 _isLoading = true;
                                               });
                                               var respcode = await submitdata(
-                                                  "true", _resendotp);
+                                                  _showquestions?"true":"false", _resendotp);
                                               if (respcode == 200 ||
                                                   respcode == 201) {
                                                 setState(() {
@@ -1650,7 +1664,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   //         ))
                                 ],
                               )),
-                        if (_leadstat != 1)
+                        if ((_leadstat != 1) && (_showquestions))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
@@ -1725,7 +1739,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                             ],
                           ),
 
-                        if (_leadstat != 1)
+                        if ((_leadstat != 1) && (_showquestions))
                           Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: InputField(
@@ -1756,7 +1770,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                     },
                                     icon: const Icon(Icons.contacts))),
                           ),
-                        if ((_selectedstatus == "Job Completed "))
+                        if ((_selectedstatus == "Job Completed ") && (_showquestions))
                           TextButton(
                               onPressed: () {
                                 if (!_questionsanswered) {
@@ -1779,10 +1793,11 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                             ),
                           ),
 
-                        if (_isLoading)
+                        if (_isLoading) 
                           const Center(
                               child: CircularProgressIndicator(
                                   color: Colors.brown)),
+                        if(_showquestions)
                         Padding(
                             padding: const EdgeInsets.all(5),
                             child: Row(
