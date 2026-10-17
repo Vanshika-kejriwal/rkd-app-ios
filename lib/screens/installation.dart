@@ -1,5 +1,6 @@
 import "package:business_app/screens/all_leads.dart";
 import "package:business_app/services/notification_service.dart";
+import "package:business_app/widgets/AddExternalIns.dart";
 import "package:business_app/widgets/InstAssign.dart";
 import "package:business_app/widgets/background.dart";
 import "package:business_app/widgets/completed_ins.dart" hide Icon;
@@ -91,11 +92,14 @@ class _InstallationState extends State<Installation> {
           icon: Icon(Icons.assignment), label: "Pending"),
       const NavigationDestination(
           icon: Icon(Icons.done_all), label: "Completed"),
+      const NavigationDestination(
+          icon: Icon(Icons.add), label: "New Installation"),
     ];
 
     final List<Widget> pageList = [
       PendingIns(assignlead: (assign, info) => _handleNav(assign, info)),
       CompletedIns(assignlead: (assign, info) => _handleNav(assign, info)),
+      AddExternalIns()
     ];
 
     // Add the Admin specific items only if condition is met

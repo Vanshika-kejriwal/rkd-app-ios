@@ -1,6 +1,5 @@
 import "dart:convert";
 import "package:business_app/models/utils.dart";
-import "package:business_app/screens/lead_gen.dart";
 import "package:business_app/screens/project_registration.dart";
 import "package:business_app/services/notification_service.dart";
 // import "package:business_app/services/send_notification_service.dart";
