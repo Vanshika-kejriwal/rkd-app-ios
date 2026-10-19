@@ -353,8 +353,10 @@ class _LeadDetailState extends State<LeadDetail> {
   }
 
   Future<List<Product>> getproducts() async {
-    final Map<String, dynamic> query = {'PJC': _pjc, 
-     if(widget.type != null) 'type': widget.type};
+    final Map<String, dynamic> query = {
+      'PJC': _pjc,
+      if (widget.type != null) 'type': widget.type
+    };
     final response =
         await http.post(Uri.parse('$baseuri/api/leadproducts/'), body: query);
     final body = json.decode(response.body);
@@ -386,9 +388,9 @@ class _LeadDetailState extends State<LeadDetail> {
         // _selectedcategory?.ddl12 = body["CATEGORY"];
         // _selectedcategory?.enabled = true;
         _selectedcategory = LeadCategory(
-            ddl12: body["CATEGORY"],
-            enabled: true,
-           );
+          ddl12: body["CATEGORY"],
+          enabled: true,
+        );
         _commentcontroller.text = body["COMMENTS"];
         _selectedinsbyour = body["IBYOUR"];
         // _selectedfollowupby = body["NEXT_FUBY"];
@@ -560,10 +562,10 @@ class _LeadDetailState extends State<LeadDetail> {
     try {
       var sharedpref = await SharedPreferences.getInstance();
       var ut = sharedpref.getString('UT');
-      final response = await http
-          .get(Uri.parse('$baseuri/api/messagelist/$pjc/').replace(queryParameters: {
-            if((widget.type) != null) "type": widget.type
-          }));
+      final response = await http.get(
+          Uri.parse('$baseuri/api/messagelist/$pjc/').replace(queryParameters: {
+        if ((widget.type) != null) "type": widget.type
+      }));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = json.decode(response.body);
@@ -1314,11 +1316,12 @@ class _LeadDetailState extends State<LeadDetail> {
                             // Navigator.pop(context);
                             // assigndata();
                           });
-                        } else if (widget.type == "INSTALLATION") {
+                        } else if ((widget.type == "INSTALLATION") ||
+                            (_selectedleadtype == "INSTALLATION")) {
                           // Handle installation type
                           filterproducts = products
-                              .where(
-                                  (item) => item.leadtype.contains("INSTALLATION"))
+                              .where((item) =>
+                                  item.leadtype.contains("INSTALLATION"))
                               .toList();
                           Navigator.push(
                               context,
@@ -1475,6 +1478,23 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                             context,
                                                                             MaterialPageRoute(
                                                                                 builder: (context) => Servicecheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
+                                                                            (val) {
+                                                                          Navigator.pop(
+                                                                              context);
+                                                                          Navigator.pop(
+                                                                              context);
+                                                                          // assigndata();
+                                                                        });
+                                                                      }
+                                                                      if (value ==
+                                                                          "INSTALLATION") {
+                                                                        // Navigator.of(
+                                                                        //         context)
+                                                                        //     .pop();
+                                                                        Navigator.push(
+                                                                            context,
+                                                                            MaterialPageRoute(
+                                                                                builder: (context) => Installationcheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
                                                                             (val) {
                                                                           Navigator.pop(
                                                                               context);

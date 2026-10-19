@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_select_items/flutter_multi_select_items.dart';
 import 'package:http/http.dart' as http;
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
@@ -33,11 +34,99 @@ class _PendingPickupState extends State<PendingPickup> {
   bool _selectAll = false;
   final MultiSelectController<Invoice> _controller =
       MultiSelectController<Invoice>();
-
+  final Set<Invoice> _selectedInvoices = {};
   // Pagination variables
   int _currentPage = 1;
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
+  late final PagingController<int, Invoice> _pagingController =
+      PagingController<int, Invoice>(
+    getNextPageKey: (state) {
+      if (state.pages == null || state.pages!.isEmpty) {
+        return 1;
+      }
+
+      if (state.lastPageIsEmpty) {
+        return null;
+      }
+
+      return (state.keys?.last ?? 0) + 1;
+    },
+    fetchPage: (pageKey) {
+      // print('🔥 FETCH PAGE CALLED WITH KEY = $pageKey');
+      return _fetchDrfPage(pageKey);
+    },
+  );
+
+  Future<List<Invoice>> _fetchDrfPage(int pageKey) async {
+    // print('🚨 _fetchDrfPage ENTERED: pageKey=$pageKey');
+    http.Response response;
+
+    final connectivityProvider =
+        Provider.of<NetworkProvider>(context, listen: false);
+    try {
+      response = await http.get(
+        Uri.parse('$baseuri/api/pendingpickup/?page=${pageKey.toString()}'),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        List fetchedData = body is List ? body : (body['results'] ?? []);
+        List<Invoice> newInvoices = fetchedData.map((lead) {
+          // print(lead['AMOUNT']);
+          // print(" time ${lead['TIME']}");
+          return Invoice(
+            ac: lead['AC'],
+            gstvno: lead['GSTVNO'],
+            date: lead['DATE'],
+            amount: lead['AMOUNT'],
+            tt: lead['TT'],
+            name: lead['NAME'],
+            time: lead['TIME'],
+          );
+        }).toList();
+        // Return the parsed list directly
+        // print(results);
+        // print('PAGE $pageKey RESULTS:');
+
+        // for (int i = 0; i < results.length; i++) {
+        //   print(
+        //     'PAGE $pageKey [$i] '
+        //     'AC=${results[i]['AC']} '
+        //     'NAME=${results[i]['Customer_Name']}',
+        //   );
+        // }
+        return newInvoices;
+      } else if (response.statusCode == 404) {
+        // DRF returns 404 when you hit the end.
+        // Return an empty list to signal that there are no more pages.
+        return [];
+      } else {
+        throw Exception('Server error code: ${response.statusCode}');
+      }
+    } on SocketException catch (_) {
+      connectivityProvider.setConnected(false);
+      return [];
+      // if(mounted){
+      //   setState(() {
+      //   _isLoadingMore = false;
+      //   _isDataLoaded = true;
+      // });
+      // }
+    } on http.ClientException catch (_) {
+      connectivityProvider.setConnected(false);
+      return [];
+      // setState(() {
+      //   _isLoadingMore = false;
+      //   _isDataLoaded = true;
+      // });
+    } catch (error) {
+      // Re-throw the error so the PagingController automatically catches it
+      // and shifts your UI into the error/retry state.
+      rethrow;
+    }
+  }
 
   @override
   void initState() {
@@ -254,8 +343,8 @@ class _PendingPickupState extends State<PendingPickup> {
       try {
         // Construct a single payload containing all selected old bills and the new bill details
         final Map<String, dynamic> batchPayload = {
-          'new_vno': _controller.getSelectedItems()[0].gstvno,
-          'new_date': _controller.getSelectedItems()[0].date,
+          'new_vno': _selectedInvoices.toList()[0].gstvno,
+          'new_date': _selectedInvoices.toList()[0].date,
           'old_bills': result
               .map((inv) => {
                     'old_vno': inv.gstvno,
@@ -351,7 +440,7 @@ class _PendingPickupState extends State<PendingPickup> {
         } else {
           List<Invoice> newInvoices = fetchedData.map((lead) {
             // print(lead['AMOUNT']);
-            print(" time ${lead['TIME']}");
+            // print(" time ${lead['TIME']}");
             return Invoice(
               ac: lead['AC'],
               gstvno: lead['GSTVNO'],
@@ -403,11 +492,11 @@ class _PendingPickupState extends State<PendingPickup> {
       }
     } on SocketException catch (_) {
       connectivityProvider.setConnected(false);
-      if(mounted){
+      if (mounted) {
         setState(() {
-        _isLoadingMore = false;
-        _isDataLoaded = true;
-      });
+          _isLoadingMore = false;
+          _isDataLoaded = true;
+        });
       }
     } on http.ClientException catch (_) {
       connectivityProvider.setConnected(false);
@@ -418,200 +507,172 @@ class _PendingPickupState extends State<PendingPickup> {
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
 
-    final isConnected = Provider.of<NetworkProvider>(context).isOnline;
+  //   final isConnected = Provider.of<NetworkProvider>(context).isOnline;
 
-    if (isConnected && !_isDataLoaded) {
-      _reloadTimer?.cancel();
-      _reloadTimer = Timer(const Duration(seconds: 2), () {
-        getleads(isRefresh: true);
-      });
-    }
+  //   if (isConnected && !_isDataLoaded) {
+  //     _reloadTimer?.cancel();
+  //     _reloadTimer = Timer(const Duration(seconds: 2), () {
+  //       // getleads(isRefresh: true);
+  //     });
+  //   }
 
-    if (!isConnected) {
-      _reloadTimer?.cancel();
-      setState(() {
-        _isDataLoaded = false;
-      });
-    }
-  }
+  //   if (!isConnected) {
+  //     _reloadTimer?.cancel();
+  //     setState(() {
+  //       _isDataLoaded = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
     return Background(
-      childs: !_isDataLoaded && leads.isEmpty
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : leads.isEmpty
-              ? const Center(
-                  child: Text("No Pending Pickups to Show"),
-                )
-              : Column(
+      childs: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: CheckboxListTile(
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: _selectAll,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        _selectedInvoices.addAll(_pagingController.items ?? []);
+                      } else {
+                        _selectedInvoices.clear();
+                      }
+                      _selectAll = value ?? false;
+                    });
+                  },
+                  title: const Text("Select All"),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                  onPressed: () {
+                    var selectedinv = _selectedInvoices;
+                    if (kDebugMode) {
+                      print("Selected Invoices: $selectedinv");
+                    }
+                    if (selectedinv.length > 1) {
+                      QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.error,
+                          title: "Cancel Pickup",
+                          text: "Please Select any one single bill to cancel");
+                    } else {
+                      showOldBillDialog(context);
+                    }
+                  },
+                  icon: const Icon(Icons.cancel_outlined),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: IconButton(
+                  onPressed: () {
+                    var selectedinv = _selectedInvoices.toList();
+                    if (kDebugMode) {
+                      print("Selected Invoices: $selectedinv");
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            PickupForm(selectedInvoices: selectedinv),
+                      ),
+                    ).then((value) {
+                      // Refresh the leads after returning from the PickupForm
+                      // getleads(isRefresh: true);
+                      _pagingController.refresh();
+                    });
+                  },
+                  icon: const Icon(Icons.local_shipping),
+                ),
+              )
+            ],
+          ),
+          Expanded(
+  child: PagingListener<int, Invoice>(
+    controller: _pagingController,
+    builder: (context, state, fetchNextPage) => PagedListView<int, Invoice>(
+      state: state,
+      fetchNextPage: fetchNextPage,
+      builderDelegate: PagedChildBuilderDelegate<Invoice>(
+        itemBuilder: (context, item, index) {
+          final bool isSelected = _selectedInvoices.contains(item);
+
+          return Card(
+            color: isSelected ? Colors.deepOrange.shade200 : Colors.grey.shade200,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(
+                color: isSelected ? Colors.deepOrange : Colors.grey,
+              ),
+            ),
+            child: CheckboxListTile(
+              controlAffinity: ListTileControlAffinity.leading,
+              value: isSelected,
+              activeColor: Colors.deepOrange,
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value == true) {
+                    _selectedInvoices.add(item);
+                  } else {
+                    _selectedInvoices.remove(item);
+                  }
+                });
+              },
+              title: Text(
+                "${item.name}",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: CheckboxListTile(
-                            controlAffinity: ListTileControlAffinity.leading,
-                            value: _selectAll,
-                            onChanged: (value) {
-                              setState(() {
-                                if (value == true) {
-                                  _controller.selectAll();
-                                } else {
-                                  _controller.deselectAll();
-                                }
-                                _selectAll = value ?? false;
-                              });
-                            },
-                            title: const Text("Select All"),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: IconButton(
-                            onPressed: () {
-                              var selectedinv = _controller.getSelectedItems();
-                              if (kDebugMode) {
-                                print("Selected Invoices: $selectedinv");
-                              }
-                              if (selectedinv.length > 1) {
-                                QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.error,
-                                    title: "Cancel Pickup",
-                                    text:
-                                        "Please Select any one single bill to cancel");
-                              } else {
-                                showOldBillDialog(context);
-                              }
-                            },
-                            icon: const Icon(Icons.cancel_outlined),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: IconButton(
-                            onPressed: () {
-                              var selectedinv = _controller.getSelectedItems();
-                              if (kDebugMode) {
-                                print("Selected Invoices: $selectedinv");
-                              }
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      PickupForm(selectedInvoices: selectedinv),
-                                ),
-                              ).then((value) {
-                                // Refresh the leads after returning from the PickupForm
-                                getleads(isRefresh: true);
-                              });
-                            },
-                            icon: const Icon(Icons.local_shipping),
-                          ),
-                        )
-                      ],
+                    Text(
+                      "${item.gstvno.length > 4 ? item.gstvno.substring(item.gstvno.length - 4) : item.gstvno}, ${DateFormat("dd/MM/yyyy").format(DateFormat("yyyy-MM-dd").parse(item.date))} ${DateFormat("hh:mm:ss a").format(DateFormat("HH:mm:ss").parse(item.time!))}",
+                      style: const TextStyle(fontSize: 14),
                     ),
-                    Expanded(
-                      child: NotificationListener<ScrollNotification>(
-                        onNotification: (scrollInfo) {
-                          // Trigger pagination fetch when scrolled within 200 pixels of the bottom
-                          if (scrollInfo.metrics.pixels >=
-                              scrollInfo.metrics.maxScrollExtent - 100) {
-                            if (!_isLoadingMore && _hasMoreData) {
-                              getleads();
-                            }
-                          }
-                          return false;
-                        },
-                        child: MultiSelectCheckList<Invoice>(
-                          key: ValueKey(_foundleads.length),
-                          itemsDecoration: MultiSelectDecorations(
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.grey,
-                                width: 1,
-                              ),
-                            ),
-                            selectedDecoration: BoxDecoration(
-                              color: Colors.deepOrange.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.deepOrange,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          items: _foundleads
-                              .map((e) => CheckListCard<Invoice>(
-                                    selectedColor: Colors.deepOrange[400],
-                                    value: e,
-                                    title: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            "${e.name}",
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
-                                            softWrap: true,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    subtitle: Row(
-                                      children: [
-                                        Text(
-                                          "${e.gstvno.length > 4 ? e.gstvno.substring(e.gstvno.length - 4) : e.gstvno}, ${DateFormat("dd/MM/yyyy").format(DateFormat("yyyy-MM-dd").parse(e.date))} ${DateFormat("hh:mm:ss a").format(DateFormat("HH:mm:ss").parse(e.time!))}",
-                                          textAlign: TextAlign.left,
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                        const Spacer(),
-                                        // Text(
-                                        //   DateFormat("dd/MM/yyyy").format(
-                                        //       DateFormat("yyyy-MM-dd")
-                                        //           .parse(e.date)),
-                                        //   style: const TextStyle(
-                                        //       fontSize: 14,
-                                        //       fontWeight: FontWeight.bold),
-                                        // ),
-                                        // const Spacer(),
-                                        Text(
-                                          e.amount,
-                                          textAlign: TextAlign.right,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ],
-                                    ),
-                                  ))
-                              .toList(),
-                          onChange: (allSelectedItems, selectedItem) {
-                            if (kDebugMode) {
-                              print(
-                                  'Selected items: ${allSelectedItems.length}');
-                              print(selectedItem.gstvno);
-                            }
-                          },
-                          controller: _controller,
-                        ),
-                      ),
+                    const Spacer(),
+                    Text(
+                      item.amount,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    if (_isLoadingMore)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12.0),
-                        child: CircularProgressIndicator(),
-                      ),
                   ],
                 ),
+              ),
+            ),
+          );
+        },
+        noItemsFoundIndicatorBuilder: (context) => const Center(
+          child: Text('No Pending Pickups to show.'),
+        ),
+        firstPageErrorIndicatorBuilder: (context) => Center(
+          child: ElevatedButton(
+            onPressed: () => _pagingController.refresh(),
+            child: const Text('Failed to load. Retry?'),
+          ),
+        ),
+      ),
+    ),
+  ),
+)
+          // if (_isLoadingMore)
+          //   const Padding(
+          //     padding: EdgeInsets.symmetric(vertical: 12.0),
+          //     child: CircularProgressIndicator(),
+          //   ),
+        ],
+      ),
       appbartitle: const Text("Pending Pickup"),
       appbaractions: const [],
       appbar: true,
