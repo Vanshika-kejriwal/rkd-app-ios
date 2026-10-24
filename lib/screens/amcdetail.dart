@@ -5,6 +5,8 @@ import 'package:business_app/screens/pdfview.dart';
 import 'package:business_app/widgets/amc_booking.dart';
 import 'package:business_app/widgets/input_field.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:flutter_native_contact_picker/model/contact.dart';
 import 'package:intl/intl.dart';
 import 'package:business_app/constants.dart';
 import 'package:business_app/models/leads.dart';
@@ -43,6 +45,10 @@ class _AMCDetailState extends State<AMCDetail> {
   final TextEditingController _documentNumberController =
       TextEditingController();
   final TextEditingController _bankNameController = TextEditingController();
+  late List<TextEditingController> _controllers;
+  final FlutterNativeContactPicker _contactPicker =
+      FlutterNativeContactPicker();
+  String? _selectedPhoneNumber;
 
   Widget _buildDataColumn(String label, String value) {
     return Expanded(
@@ -72,6 +78,87 @@ class _AMCDetailState extends State<AMCDetail> {
     );
   }
 
+  Future<String?> openRemMsgDialog() => showDialog(
+        // barrierDismissible: false,
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Send AMC Payment request"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Use List.generate to create widgets for ALL controllers
+              ...List.generate(
+                _controllers.length,
+                (index) {
+                  final controller = _controllers[index];
+
+                  String label = "Mobile #${index + 1}";
+
+                  // Optionally, label the last field differently
+                  if (index == _controllers.length - 1) {
+                    label = "Add New Mobile";
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: InputField(
+                      label: "Mobile Number",
+                      controller: controller,
+                      sufficon: index == _controllers.length - 1
+                          ? IconButton(
+                              onPressed: () async {
+                                Contact? contact =
+                                    await _contactPicker.selectPhoneNumber();
+                                setState(() {
+                                  _selectedPhoneNumber =
+                                      contact?.selectedPhoneNumber;
+                                  if (_selectedPhoneNumber != null) {
+                                    var phno = _selectedPhoneNumber!
+                                        .replaceAll(" ", "");
+                                    controller.text =
+                                        phno.substring(phno.length - 10);
+                                    _selectedPhoneNumber = null;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.contacts))
+                          : IconButton(
+                              onPressed: () {
+                                // setState(() {
+                                controller.clear();
+                                // });
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  final List<String> nonEmptyMobiles = _controllers
+                      .map((controller) => controller.text
+                          .trim()) // Get text and remove whitespace
+                      .where(
+                          (text) => text.isNotEmpty) // Filter out empty strings
+                      .toList();
+
+                  // Join the list into a single comma-separated string to return
+                  final String resultString = nonEmptyMobiles.join(',');
+
+                  // Return the joined string
+                  // Use resultString if non_empty_mobiles is not empty, otherwise null
+                  Navigator.of(context)
+                      .pop(resultString.isNotEmpty ? resultString : null);
+                },
+                child: const Text("SUBMIT"))
+          ],
+        ),
+      );
+
   // Combines two data columns into a cleanly separated row
   Widget _buildInfoRow(
       String label1, String value1, String label2, String value2) {
@@ -99,17 +186,34 @@ class _AMCDetailState extends State<AMCDetail> {
           headers: {"Content-Type": "application/json"});
 
       if (response.statusCode == 200) {
-        final List<dynamic> body = json.decode(response.body);
+        final Map<String, dynamic> body = json.decode(response.body);
 
         if (kDebugMode) {
           print(body);
         }
+        final List<dynamic> rawPhoneNumbers = body['phone_numbers'] ?? [];
+        final List<String> mobileNumbers =
+            rawPhoneNumbers.map((e) => e.toString()).toList();
 
+        // 🎯 CRITICAL CHANGE: Calculate total fields as length + 1
+        final int numberOfFields = mobileNumbers.length + 1;
+
+        // 1. Initialize controllers list with the new count
+        _controllers = List.generate(
+          numberOfFields,
+          (index) => TextEditingController(),
+        );
+
+        // 2. Pre-populate existing mobile numbers (only up to the original list length)
+        for (int i = 0; i < mobileNumbers.length; i++) {
+          _controllers[i].text = mobileNumbers[i];
+        }
+        final List<dynamic> results = body['results'] ?? [];
         // 1. Create a local temporary list to hold our mapped data safely
         List<AMCDetailModel> parsedMeetings = [];
 
         if (body.isNotEmpty) {
-          for (var meet in body) {
+          for (var meet in results) {
             // if (meet['CHECKIN'] != null) {
             //   visitdate = DateFormat('dd/MM/yyyy h:mm a')
             //       .format(DateTime.parse(meet['CHECKIN']));
@@ -226,7 +330,56 @@ class _AMCDetailState extends State<AMCDetail> {
     return Background(
       appbar: true,
       appbartitle: Text(widget.currentlead?.pname ?? 'AMC Details'),
-      appbaractions: const [],
+      appbaractions: [
+        if (widget.pending == true)
+          IconButton(
+              onPressed: () async {
+                var mob = await openRemMsgDialog();
+                if (mob != null &&
+                      mob.isNotEmpty){
+                        QuickAlert.show(
+                      context: context,
+                      type: QuickAlertType.loading,
+                      title: 'Please wait',
+                      text: 'Sending Message...',
+                      barrierDismissible: false,
+                    );
+                    var resp = await http.get(
+          Uri.parse(
+              '$baseuri/api/amcpaymentrequestmsg/?mob=$mob&amcno=${filtermeeting.map((e)=>e.amcno).toList().join(",")}'),
+          headers: {"Content-Type": "application/json"});
+          if (resp.statusCode == 200) {
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.success,
+                          title: 'Success',
+                          text: 'Message Sent Successfully',
+                        );
+                      }
+                    } else {
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.error,
+                          title: 'Error',
+                          text: 'Failed to send Messege please try again.',
+                        );
+                      }
+                    }
+                      }else{
+                         QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.error,
+                          title: 'No Mobile numbers ',
+                          text: 'Please enter at least one phone number to send message',
+                        );
+                      }
+              },
+              icon: Icon(Icons.notifications_outlined))
+      ],
       childs: !_isdataLoaded
           ? const Center(child: CircularProgressIndicator())
           : filtermeeting.isEmpty
@@ -297,26 +450,25 @@ class _AMCDetailState extends State<AMCDetail> {
                                   // 1. Share Link Button
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      icon: const Icon(Icons.share, size: 16),
-                                      label: const Text(
-                                        "Share Link",
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 10),
-                                        side: BorderSide(
-                                            color:
-                                                Theme.of(context).primaryColor),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                        icon: const Icon(Icons.share, size: 16),
+                                        label: const Text(
+                                          "Share Link",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
                                         ),
-                                      ),
-                                      onPressed:null
-                                    ),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          side: BorderSide(
+                                              color: Theme.of(context)
+                                                  .primaryColor),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        onPressed: null),
                                   ),
                                   const SizedBox(width: 8),
 
@@ -565,7 +717,7 @@ class _AMCDetailState extends State<AMCDetail> {
                                                   title: "AMC Payment",
                                                   text:
                                                       "OTP Verified successfully and payment details added");
-                                            }else{
+                                            } else {
                                               QuickAlert.show(
                                                   context: context,
                                                   type: QuickAlertType.error,
@@ -603,15 +755,17 @@ class _AMCDetailState extends State<AMCDetail> {
                                       ),
                                       onPressed: () {
                                         Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => AMC(edit: true, amcno:filtermeeting[index]
-                                                          .amcno),
-                                      ),
-                                    ).then((_) {
-                                      // Refresh the leads list when returning
-                                      getmeetingdetail();
-                                    });
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => AMC(
+                                                edit: true,
+                                                amcno:
+                                                    filtermeeting[index].amcno),
+                                          ),
+                                        ).then((_) {
+                                          // Refresh the leads list when returning
+                                          getmeetingdetail();
+                                        });
                                       },
                                     ),
                                   ),

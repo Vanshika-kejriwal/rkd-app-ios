@@ -71,10 +71,10 @@ class _AMCState extends State<AMC> {
     if (ut!.toLowerCase() == "consumer" ||
         ut.toLowerCase() == "contractor" ||
         ut.toLowerCase() == "supplier") {
-      response =
-          await http.get(Uri.parse('$baseuri/api/custprojlist/?mob=$mob'));
+      response = await http
+          .get(Uri.parse('$baseuri/api/custprojlist/?mob=$mob&type=amc'));
     } else {
-      response = await http.get(Uri.parse('$baseuri/api/pnamelist/'));
+      response = await http.get(Uri.parse('$baseuri/api/pnamelist/?type=amc'));
     }
 
     final body = json.decode(response.body);
@@ -175,18 +175,21 @@ class _AMCState extends State<AMC> {
       // "CUSTTYPE": _selectedproject!.custtype,
       'PJC': _selectedproject!.pjc,
       // 'PNAME': _selectedproject!.pname,
+      'itemdetail': _selectedamcitemdetail
+          .map((e) => {'item': e.item, 'qty': e.qty})
+          .toList(),
       'Product_Type': _selectedproduct,
       'Company': _selectedcomp!.company,
       // 'LEAD_DATE': DateTime.now().toString().split(" ")[0],
-      'Model': _selectedamcitemdetail.isNotEmpty
-          ? _selectedamcitemdetail.first.item
-          : _selectedmodel,
+      // 'Model': _selectedamcitemdetail.isNotEmpty
+      //     ? _selectedamcitemdetail.first.item
+      //     : _selectedmodel,
       "List_Model": _selectedmodel,
       'AMC_Type': _selectedamctype,
       'AMC_Period': _selectedduration,
       'Bill_date': _billDateController.text,
       'Bill_Number': _billNumberController.text,
-      'Qty': _billQuantityController.text,
+      // 'Qty': _billQuantityController.text,
       'AMC_Date': DateTime.now().toString().split(" ")[0],
       'AMC_Start_Date': _amcstartDateController.text,
       'Rate': _rateController.text,
@@ -340,8 +343,11 @@ class _AMCState extends State<AMC> {
     List<AMCModel> comp = [];
     if (response.statusCode == 200) {
       for (var c in body) {
-        comp.add(
-            AMCModel(code: c['CODE'], item: c['ITEM'], idatec: c['IDATEC']));
+        comp.add(AMCModel(
+            code: c['CODE'],
+            item: c['ITEM'],
+            idatec: c['IDATEC'],
+            qty: c['QTY'].toString()));
       }
     }
     setState(() {
@@ -452,11 +458,25 @@ class _AMCState extends State<AMC> {
 
             await getitemdetail();
             // Pre-select items if item codes are returned from response
-            if (data['item_codes'] != null) {
-              List<dynamic> itemCodes = data['item_codes'];
-              _selectedamcitemdetail = _amcitemdetail
-                  .where((item) => itemCodes.contains(item.code))
-                  .toList();
+            if (data['itemdetail'] != null) {
+              List<dynamic> itemDetailList = data['itemdetail'];
+
+              _selectedamcitemdetail = [];
+              var qty = 0;
+              for (var detail in itemDetailList) {
+                String itemName = detail['item'];
+               var itemQty = int.tryParse(detail['qty'].toString());
+                qty += itemQty!;
+                // Match both name and quantity
+                var matchedItem = _amcitemdetail
+                    .where((item) => item.item == itemName)
+                    .firstOrNull;
+
+                if (matchedItem != null) {
+                  _selectedamcitemdetail.add(matchedItem);
+                }
+              }
+               _billQuantityController.text = qty.toString();
             }
             await getamctype();
             _selectedamctype = data['AMC_Type'];
@@ -511,9 +531,11 @@ class _AMCState extends State<AMC> {
                             child: FutureBuilder<List<Project>>(
                                 future: _projects,
                                 builder: (context, snapshot) {
-                                  if (snapshot.hasData && snapshot.data != null) {
+                                  if (snapshot.hasData &&
+                                      snapshot.data != null) {
                                     return DropdownSearch<Project>(
-                                      enabled: widget.edit==true? false:true,
+                                      enabled:
+                                          widget.edit == true ? false : true,
                                       compareFn: (item1, item2) =>
                                           item1.pjc == item2.pjc,
                                       popupProps: const PopupProps.dialog(
@@ -525,9 +547,8 @@ class _AMCState extends State<AMC> {
                                           showSearchBox: true),
                                       filterFn: (item, filter) {
                                         return item.pname == "Add New" ||
-                                            item.pname
-                                                .toLowerCase()
-                                                .contains(filter.toLowerCase()) ||
+                                            item.pname.toLowerCase().contains(
+                                                filter.toLowerCase()) ||
                                             item.custtype
                                                 .toLowerCase()
                                                 .contains(filter.toLowerCase());
@@ -662,7 +683,7 @@ class _AMCState extends State<AMC> {
                         Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<String>(
-                              enabled: widget.edit==true? false:true,
+                              enabled: widget.edit == true ? false : true,
                               popupProps: const PopupProps.dialog(
                                   dialogProps: DialogProps(
                                     barrierDismissible: true,
@@ -679,7 +700,7 @@ class _AMCState extends State<AMC> {
                                   hintText: "Select a Product",
                                 ),
                               ),
-        
+
                               onSelected: (value) {
                                 setState(() {
                                   _company.clear();
@@ -718,7 +739,7 @@ class _AMCState extends State<AMC> {
                                   hintText: "Select a Company",
                                 ),
                               ),
-        
+
                               onSelected: (value) {
                                 setState(() {
                                   _selectedcomp = value;
@@ -731,7 +752,7 @@ class _AMCState extends State<AMC> {
                               },
                               selectedItem: _selectedcomp,
                             )),
-        
+
                         // if (_allowAssign)
                         Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -796,7 +817,7 @@ class _AMCState extends State<AMC> {
                                   hintText: "Select Item",
                                 ),
                               ),
-        
+
                               onSelected: (value) {
                                 setState(() {
                                   _selectedamcitemdetail = value;
@@ -925,7 +946,7 @@ class _AMCState extends State<AMC> {
                                   hintText: "Select AMC Duration",
                                 ),
                               ),
-        
+
                               onSelected: (value) {
                                 setState(() {
                                   // _company.clear();
@@ -935,7 +956,7 @@ class _AMCState extends State<AMC> {
                               },
                               selectedItem: _selectedduration,
                             )),
-        
+
                         // Padding(
                         //   padding: const EdgeInsets.all(5.0),
                         //   child: InputField(
@@ -991,8 +1012,8 @@ class _AMCState extends State<AMC> {
                         ),
                         if (_isLoading)
                           const Center(
-                              child:
-                                  CircularProgressIndicator(color: Colors.brown)),
+                              child: CircularProgressIndicator(
+                                  color: Colors.brown)),
                         Padding(
                           padding: const EdgeInsets.all(5.0),
                           child: Row(

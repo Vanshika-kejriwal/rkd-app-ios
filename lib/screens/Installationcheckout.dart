@@ -1112,8 +1112,9 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                   Padding(
                                     padding: const EdgeInsets.all(5.0),
                                     child: DropdownSearch<String>(
-                                      popupProps: const PopupProps.dialog(
-                                        dialogProps: DialogProps(
+                                      popupProps: PopupProps.dialog(
+                                        title: Text("${product.product} Warranty"),
+                                        dialogProps: const DialogProps(
                                           barrierDismissible: true,
                                           barrierLabel: "Dismiss",
                                         ),
@@ -1122,6 +1123,7 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                       ),
                                       items: (filter, infiniteScrollProps) =>
                                           const [
+                                        "0 Months",
                                         "6 Months",
                                         "12 Months",
                                         "24 Months",
@@ -1130,7 +1132,7 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                       decoratorProps: DropDownDecoratorProps(
                                         decoration: InputDecoration(
                                           labelText:
-                                              "Warranty Period for ${product.product}",
+                                              "${product.product} Warranty",
                                           hintText: "Select warranty period",
                                         ),
                                       ),
@@ -1146,8 +1148,9 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                     padding: const EdgeInsets.all(5.0),
                                     child: DropdownSearch<String>(
                                       enabled: _ut!.toLowerCase() == "admin",
-                                      popupProps: const PopupProps.dialog(
-                                        dialogProps: DialogProps(
+                                      popupProps: PopupProps.dialog(
+                                        title: Text("${product.product} Free Service"),
+                                        dialogProps: const DialogProps(
                                           barrierDismissible: true,
                                           barrierLabel: "Dismiss",
                                         ),
@@ -1156,6 +1159,7 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                       ),
                                       items: (filter, infiniteScrollProps) =>
                                           const [
+                                        "0 Months",
                                         "12 Months",
                                         "24 Months",
                                         "36 Months"
@@ -1163,7 +1167,7 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                       decoratorProps: DropDownDecoratorProps(
                                         decoration: InputDecoration(
                                           labelText:
-                                              "Free Service Period for ${product.product}",
+                                              "${product.product} Free Service",
                                           hintText:
                                               "Select free service period",
                                         ),

@@ -18,8 +18,9 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 class PickupForm extends StatefulWidget {
-  final List<Invoice> selectedInvoices;
-  const PickupForm({super.key, required this.selectedInvoices});
+  final List<Invoice>? selectedInvoices;
+  final String? pickupno;
+  const PickupForm({super.key, this.selectedInvoices, this.pickupno});
 
   @override
   State<PickupForm> createState() => _PickupFormState();
@@ -115,7 +116,33 @@ class _PickupFormState extends State<PickupForm> {
     // _vhn = getvhno();
     _enames = getenames();
     _deltype = getdeltype();
+    if (widget.pickupno != null) {
+      prefillpickupdata(widget.pickupno);
+    }
     // _emobile = getemobile();
+  }
+
+  Future<void> prefillpickupdata(pickupno) async {
+    final response = await http
+        .get(Uri.parse('$baseuri/api/pickupdetails/?pickupno=$pickupno'));
+    final body = json.decode(response.body);
+    // List<String> comp = [];
+    if (response.statusCode == 200) {
+      print(body);
+      setState(() {
+        _selecteddeltype = body['Deliverytype'];
+        _selectedename = body['ENAME'];
+        _selectedemobile = body['EMOBILE'];
+        selectedvhn = body['VHN'];
+        _mobileController.text = body['EXTRA_MOB'];
+      });
+      getemobile(body[
+          'ENAME']); // Fetch employee mobile numbers when an employee name is selected
+      getvhno(body['ENAME']);
+      // for (var c in body) {
+      //   comp.add(c["ENAME"]);
+      // }
+    }
   }
 
   @override
@@ -128,7 +155,8 @@ class _PickupFormState extends State<PickupForm> {
                       child: Center(
                           child: SingleChildScrollView(
                               child: Column(children: [
-        if (widget.selectedInvoices.isNotEmpty)
+        if (widget.selectedInvoices != null &&
+            widget.selectedInvoices!.isNotEmpty)
           Container(
             // height: 400,
             margin: const EdgeInsets.all(8.0),
@@ -145,7 +173,7 @@ class _PickupFormState extends State<PickupForm> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Selected Invoices (${widget.selectedInvoices.length}):",
+                      "Selected Invoices (${widget.selectedInvoices!.length}):",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -160,7 +188,7 @@ class _PickupFormState extends State<PickupForm> {
                             title: 'Generating Invoice...',
                             barrierDismissible: false,
                           );
-                          var gstvno = widget.selectedInvoices
+                          var gstvno = widget.selectedInvoices!
                               .map(((e) => e.gstvno))
                               .toList()
                               .join(",");
@@ -208,8 +236,8 @@ class _PickupFormState extends State<PickupForm> {
                                   builder: (context) => Pdfview(
                                     mobileNumbers: mobileNumbers,
                                     file: file,
-                                    ac: widget.selectedInvoices[0].ac,
-                                    type: widget.selectedInvoices.length > 1
+                                    ac: widget.selectedInvoices![0].ac,
+                                    type: widget.selectedInvoices!.length > 1
                                         ? "All invoices"
                                         : "invoice",
                                     // ac: ac,
@@ -233,12 +261,12 @@ class _PickupFormState extends State<PickupForm> {
                   ),
                   child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: widget.selectedInvoices.length,
+                    itemCount: widget.selectedInvoices!.length,
                     itemBuilder: (context, index) {
-                      final inv = widget.selectedInvoices[index];
+                      final inv = widget.selectedInvoices?[index];
 
                       // Format date safely if available
-                      String formattedDate = inv.date;
+                      String formattedDate = inv!.date;
                       try {
                         formattedDate = DateFormat("dd/MM/yyyy").format(
                           DateFormat("yyyy-MM-dd").parse(inv.date),
@@ -664,20 +692,35 @@ class _PickupFormState extends State<PickupForm> {
                       setState(() {
                         _isloading = true;
                       });
-                      var resp = await http
-                          .post(Uri.parse('$baseuri/api/createpickup/'), body: {
-                        "vno": widget.selectedInvoices
-                            .map(
-                              (e) => e.gstvno,
-                            )
-                            .toList()
-                            .join(","),
-                        "deltype": _selecteddeltype,
-                        'vhn': selectedvhn,
-                        'ename': _selectedename,
-                        'emobile': _selectedemobile,
-                        'extra_contact': _mobileController.text
-                      });
+                      http.Response resp;
+                      if (widget.selectedInvoices != null) {
+                        resp = await http.post(
+                            Uri.parse('$baseuri/api/createpickup/'),
+                            body: {
+                              "vno": widget.selectedInvoices!
+                                  .map(
+                                    (e) => e.gstvno,
+                                  )
+                                  .toList()
+                                  .join(","),
+                              "deltype": _selecteddeltype,
+                              'vhn': selectedvhn,
+                              'ename': _selectedename,
+                              'emobile': _selectedemobile,
+                              'extra_contact': _mobileController.text
+                            });
+                      } else {
+                        resp = await http.post(
+                            Uri.parse('$baseuri/api/changedeltype/'),
+                            body: {
+                              'pickup_no': widget.pickupno,
+                              "deltype": _selecteddeltype,
+                              'vhn': selectedvhn,
+                              'ename': _selectedename,
+                              'emobile': _selectedemobile,
+                              'extra_contact': _mobileController.text
+                            });
+                      }
                       if (resp.statusCode == 200 || resp.statusCode == 201) {
                         if (mounted) {
                           setState(() {

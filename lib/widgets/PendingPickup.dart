@@ -600,72 +600,82 @@ class _PendingPickupState extends State<PendingPickup> {
             ],
           ),
           Expanded(
-  child: PagingListener<int, Invoice>(
-    controller: _pagingController,
-    builder: (context, state, fetchNextPage) => PagedListView<int, Invoice>(
-      state: state,
-      fetchNextPage: fetchNextPage,
-      builderDelegate: PagedChildBuilderDelegate<Invoice>(
-        itemBuilder: (context, item, index) {
-          final bool isSelected = _selectedInvoices.contains(item);
+            child: PagingListener<int, Invoice>(
+              controller: _pagingController,
+              builder: (context, state, fetchNextPage) =>
+                  PagedListView<int, Invoice>(
+                state: state,
+                fetchNextPage: fetchNextPage,
+                builderDelegate: PagedChildBuilderDelegate<Invoice>(
+                  itemBuilder: (context, item, index) {
+                    final bool isSelected = _selectedInvoices.contains(item);
 
-          return Card(
-            color: isSelected ? Colors.deepOrange.shade200 : Colors.grey.shade200,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(
-                color: isSelected ? Colors.deepOrange : Colors.grey,
-              ),
-            ),
-            child: CheckboxListTile(
-              controlAffinity: ListTileControlAffinity.leading,
-              value: isSelected,
-              activeColor: Colors.deepOrange,
-              onChanged: (bool? value) {
-                setState(() {
-                  if (value == true) {
-                    _selectedInvoices.add(item);
-                  } else {
-                    _selectedInvoices.remove(item);
-                  }
-                });
-              },
-              title: Text(
-                "${item.name}",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Row(
-                  children: [
-                    Text(
-                      "${item.gstvno.length > 4 ? item.gstvno.substring(item.gstvno.length - 4) : item.gstvno}, ${DateFormat("dd/MM/yyyy").format(DateFormat("yyyy-MM-dd").parse(item.date))} ${DateFormat("hh:mm:ss a").format(DateFormat("HH:mm:ss").parse(item.time!))}",
-                      style: const TextStyle(fontSize: 14),
+                    return Card(
+                      color: isSelected
+                          ? Colors.deepOrange.shade200
+                          : Colors.grey.shade200,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: isSelected ? Colors.deepOrange : Colors.grey,
+                        ),
+                      ),
+                      child: CheckboxListTile(
+                        controlAffinity: ListTileControlAffinity.leading,
+                        value: isSelected,
+                        activeColor: Colors.deepOrange,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedInvoices.add(item);
+                            } else {
+                              _selectedInvoices.remove(item);
+                            }
+                          });
+                        },
+                        title: Text(
+                          "${item.name}",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  "${item.gstvno.length > 4 ? item.gstvno.substring(item.gstvno.length - 4) : item.gstvno}, "
+                                  "${DateFormat("dd/MM/yyyy").format(DateFormat("yyyy-MM-dd").parse(item.date))} "
+                                  "${DateFormat("hh:mm:ss a").format(DateFormat("HH:mm:ss").parse(item.time!))}",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              const SizedBox(
+                                  width:
+                                      8), // Adds a clean gap before the amount
+                              Text(
+                                item.amount,
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  noItemsFoundIndicatorBuilder: (context) => const Center(
+                    child: Text('No Pending Pickups to show.'),
+                  ),
+                  firstPageErrorIndicatorBuilder: (context) => Center(
+                    child: ElevatedButton(
+                      onPressed: () => _pagingController.refresh(),
+                      child: const Text('Failed to load. Retry?'),
                     ),
-                    const Spacer(),
-                    Text(
-                      item.amount,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          );
-        },
-        noItemsFoundIndicatorBuilder: (context) => const Center(
-          child: Text('No Pending Pickups to show.'),
-        ),
-        firstPageErrorIndicatorBuilder: (context) => Center(
-          child: ElevatedButton(
-            onPressed: () => _pagingController.refresh(),
-            child: const Text('Failed to load. Retry?'),
-          ),
-        ),
-      ),
-    ),
-  ),
-)
+          )
           // if (_isLoadingMore)
           //   const Padding(
           //     padding: EdgeInsets.symmetric(vertical: 12.0),

@@ -232,7 +232,7 @@ class ItemDetail {
     final parts = concatenatedString.split('|||');
     return ItemDetail(
       name: parts[0].trim(),
-      billdate: parts.length==4? parts[3].trim() : null,
+      billdate: parts.length == 4 ? parts[3].trim() : null,
       quantity: parts.length > 1
           ? parts[1].trim()
           : 'N/A', // Handle case where quantity might be missing
@@ -304,8 +304,9 @@ class AMCModel {
   String item;
   String code;
   String idatec;
+  String? qty;
 
-  AMCModel({required this.item, required this.code, required this.idatec});
+  AMCModel({required this.item, required this.code, required this.idatec, this.qty});
 }
 
 class AMCDetailModel {
@@ -406,6 +407,9 @@ class CompDelVno {
   String amount;
   String gstvno;
 
-  CompDelVno({required this.vno, required this.amount, required this.date, required this.gstvno});
+  CompDelVno(
+      {required this.vno,
+      required this.amount,
+      required this.date,
+      required this.gstvno});
 }
-

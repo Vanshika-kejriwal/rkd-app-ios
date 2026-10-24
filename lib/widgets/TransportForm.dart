@@ -6,6 +6,7 @@ import 'package:business_app/models/utils.dart';
 import 'package:business_app/screens/pdfview.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
+import 'package:business_app/widgets/pickup.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -526,8 +527,23 @@ class _TransportFormState extends State<TransportForm> {
                                     // const SizedBox(width: 4),
                                     IconButton(
                                         onPressed: (() =>
-                                            _showEditDeliveryTypeBottomSheet(
-                                                context)),
+                                            // _showEditDeliveryTypeBottomSheet(
+                                            //     context)
+                                                Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PickupForm(
+                                                        pickupno: widget
+                                                            .selectedInvoices[0]
+                                                            .pickupno),
+                                              ),
+                                            ).then((value) {
+                                              // Refresh the leads after returning from the PickupForm
+                                              // getleads(isRefresh: true);
+                                              // _pagingController.refresh();
+                                              Navigator.of(context).pop();
+                                            })),
                                         icon: Icon(Icons.edit))
                                   ],
                                 ),

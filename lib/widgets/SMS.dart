@@ -249,6 +249,120 @@ class _SmsState extends State<Sms> {
     }
   }
 
+   Future<void> showFestivalWishDialog() async {
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(builder: (context, setstate) {
+        // Future<void> pickImage() async {
+        //   final picker = ImagePicker();
+        //   final pickedFile = await picker.pickImage(
+        //       source: ImageSource.camera,
+        //       imageQuality: 5); // Or ImageSource.camera
+
+        //   if (pickedFile != null) {
+        //     setstate(() {
+        //       _selectedImage = File(pickedFile.path);
+        //     });
+        //   }
+        // }
+
+        return AlertDialog(
+          title: Text("Festival Wish Message"),
+
+          // content: InputField(label: lablel, controller: _emailotpcontroller),
+          content: SingleChildScrollView(
+            // Use SingleChildScrollView for scrollability if content gets long
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Make column wrap its content
+              children: [
+                
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: InputField(
+                      label: "Message", controller: _reasonController),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: InputField(
+                      label: "Festival",
+                      controller: _increasepController),
+                ),
+                
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: InputField(
+                      label: "No. of Days of Billing",
+                      keyboardtype: TextInputType.number,
+                      controller: _billdaysController),
+                ),
+                const SizedBox(height: 20),
+                // ElevatedButton.icon(
+                //   onPressed: pickImage,
+                //   icon: const Icon(Icons.image),
+                //   label: const Text('Pick Image'),
+                // ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // setstate(() {
+                //   _selectedImage = null;
+                //   _kmController.text = '';
+                // });
+                Navigator.of(context).pop(null); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // final String enteredText = _kmController.text;
+                // _selectedImage contains the File object
+
+                // Example of how to return data
+                Navigator.of(context).pop({
+                  
+                  'message': _reasonController.text,
+                  'festival':
+                      _increasepController.text, // Pass the File object
+                  
+                  "bill_days": _billdaysController.text
+                });
+              },
+              child: const Text('Send Message'),
+            ),
+          ],
+        );
+      }),
+    );
+    if (kDebugMode) {
+      print(result);
+    }
+    if (result != null) {
+      //call api to send the message
+      QuickAlert.show(
+          context: context,
+          type: QuickAlertType.loading,
+          title: "Festival Wish Message",
+          text: "Preparing Numbers to send message");
+      var response = await http.post(Uri.parse("$baseuri/api/festivalwishmsg/"),
+          body: result);
+      if (response.statusCode == 202) {
+        var body = json.decode(response.body);
+        Navigator.of(context).pop();
+        QuickAlert.show(
+            context: context,
+            type: QuickAlertType.success,
+            title: "Festival Wish Message",
+            text: "Strated sending ${body['no_of_messages']} Messages",
+            textColor: Colors.black87);
+            
+      }
+    }
+  }
+
   @override
   void initState() {
     getcomp();
@@ -267,7 +381,13 @@ class _SmsState extends State<Sms> {
                         backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
                         foregroundColor: Colors.white),
                     onPressed: showPriceHikeDialog,
-                    child: Text('Price Hike'))
+                    child: Text('Price Hike')),
+                    ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
+                        foregroundColor: Colors.white),
+                    onPressed: showFestivalWishDialog,
+                    child: Text('Festival Wish'))
               ],
             ),
           ),

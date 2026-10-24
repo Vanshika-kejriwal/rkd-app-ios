@@ -6,6 +6,7 @@ import 'package:business_app/models/utils.dart';
 import 'package:business_app/screens/pdfview.dart';
 import 'package:business_app/widgets/background.dart';
 import 'package:business_app/widgets/input_field.dart';
+import 'package:business_app/widgets/pickup.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -571,8 +572,23 @@ class _DeliveryFormState extends State<DeliveryForm> {
                                     // const SizedBox(width: 4),
                                     IconButton(
                                         onPressed: (() =>
-                                            _showEditDeliveryTypeBottomSheet(
-                                                context)),
+                                            // _showEditDeliveryTypeBottomSheet(
+                                            //     context)
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PickupForm(
+                                                        pickupno: widget
+                                                            .selectedInvoices[0]
+                                                            .pickupno),
+                                              ),
+                                            ).then((value) {
+                                              // Refresh the leads after returning from the PickupForm
+                                              // getleads(isRefresh: true);
+                                              // _pagingController.refresh();
+                                              Navigator.of(context).pop();
+                                            })),
                                         icon: Icon(Icons.edit))
                                   ],
                                 ),
@@ -709,44 +725,44 @@ class _DeliveryFormState extends State<DeliveryForm> {
           ),
         ),
         _delrecImages.isNotEmpty
-              ? Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: Wrap(
-                    spacing: 8.0,
-                    runSpacing: 8.0,
-                    children: _delrecImages.map((image) {
-                      return Stack(
-                        children: [
-                          Image.file(
-                            image,
-                            height: 100,
-                            width: 100,
-                            fit: BoxFit.cover,
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _delrecImages.remove(image);
-                                });
-                              },
-                              child: Container(
-                                color: Colors.black54,
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                ),
+            ? Padding(
+                padding: const EdgeInsets.all(5.0),
+                child: Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: _delrecImages.map((image) {
+                    return Stack(
+                      children: [
+                        Image.file(
+                          image,
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                        ),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _delrecImages.remove(image);
+                              });
+                            },
+                            child: Container(
+                              color: Colors.black54,
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                )
-              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              )
+            : const SizedBox.shrink(),
         Padding(
           padding: const EdgeInsets.all(5.0),
           child: FutureBuilder<List<String>>(

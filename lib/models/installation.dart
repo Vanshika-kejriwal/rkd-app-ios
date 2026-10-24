@@ -60,6 +60,7 @@ final Map<String, List<Map<String, dynamic>>> _productQuestions = {
     {"q": "Water Hardness - Input/Output", "type": "split", "labels": ["Input Hardness", "Output Hardness"]},
     {"q": " Water TDS - Input/Output", "type": "split", "labels": ["Input TDS", "Output TDS"]},
     {"q": "Initial Salt Quantity", "type": "text"},
+    {"q": "Flow Rate", "type": "text"},
   ],
   "rfid software": [
     {"q": "Software Installed?", "type": "dropdown"},
