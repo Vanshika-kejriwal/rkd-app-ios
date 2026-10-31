@@ -648,9 +648,11 @@ class _LeadDetailState extends State<LeadDetail> {
       // THIS WILL CATCH JSON MAPPING OR UNEXPECTED SERVER ERRORS
       debugPrint("Unexpected error in getmeetingdetail: $e");
       debugPrint("Stacktrace: $stackTrace");
-      setState(() {
+      if(mounted){
+        setState(() {
         _isdataLoaded = true;
       });
+      }
     }
   }
 

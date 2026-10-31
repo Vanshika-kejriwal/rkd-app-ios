@@ -429,6 +429,7 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
       "GST": double.tryParse(_gstamountcontroller.text)?.toStringAsFixed(2) ??
           "0.00",
       "SEND_MSG": sendmsg,
+      'LEAD_ID': _selectedfollowupproduct.map((e)=> e.leadid).toList().join(","),
       'IBYOUR': _selectedinsbyour ?? "",
       'waranty_period': _selectedfollowupproduct.isNotEmpty
           ? jsonEncode(_selectedfollowupproduct
@@ -496,7 +497,7 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
         // Optional: process 'ino' if returned by your Django view code
       }
 
-      sp.remove("checkindata_${widget.pjc}");
+      // sp.remove("checkindata_${widget.pjc}");
 
       setState(() {
         _isLoading = false;
@@ -2110,7 +2111,8 @@ class _InstallationcheckoutState extends State<Installationcheckout> {
                                                       _isLoading = false;
                                                       _dataupload = false;
                                                     });
-
+                                                    var sp = await SharedPreferences.getInstance();
+                                                    sp.remove("checkindata_${widget.pjc}");
                                                     ScaffoldMessenger
                                                             .of(context)
                                                         .showSnackBar(SnackBar(

@@ -60,7 +60,7 @@ class InputField extends StatelessWidget {
               borderSide: BorderSide(color: Colors.brown, width: 1.0),
             ),
             labelText: label,
-            labelStyle: const TextStyle(color: Colors.brown),
+            labelStyle: const TextStyle(color: Colors.brown, fontSize: 14),
             suffix: suff,
             suffixIcon: sufficon,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10)));

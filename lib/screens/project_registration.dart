@@ -1516,11 +1516,12 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                   ? null
                                   : (() async {
                                       if (_formkey.currentState!.validate()) {
-                                        var loca = await getLocation();
-                                        if (_existpjc != null) {
-                                          setState(() {
+                                         setState(() {
                                             _isLoading = true;
                                           });
+                                        var loca = await getLocation();
+                                        if (_existpjc != null) {
+                                         
                                           final Map<String, dynamic> data = {
                                             'PJC': _existpjc,
                                             'PNAME': _pnamecontroller.text,

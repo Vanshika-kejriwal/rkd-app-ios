@@ -84,7 +84,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   Product? _selectedfollowupproduct;
   int _leadstat = 1;
   bool _questionsanswered = false;
-
+  String? _monthlySaltConsumption;
   final ImagePicker _picker = ImagePicker();
   final List<String> _selectedImage = [];
 
@@ -117,9 +117,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
       ss(() {
         _selectedstatus = body["STATUS"];
         _selectedcategory = LeadCategory(
-            ddl12: body["CATEGORY"],
-            enabled: true,
-           );
+          ddl12: body["CATEGORY"],
+          enabled: true,
+        );
         // _selectedcategory?.ddl12 = body["CATEGORY"];
         // _selectedcategory?.enabled = true;
         _commentcontroller.text = body["COMMENTS"];
@@ -449,7 +449,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
         // Optional: process 'ino' if returned by your Django view code
       }
 
-      sp.remove("checkindata_${widget.pjc}");
+      // sp.remove("checkindata_${widget.pjc}");
 
       setState(() {
         _isLoading = false;
@@ -747,6 +747,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
 
                     // Combine them dynamically using '/'
                     _answers[item['q']] = "$val / $pt2";
+                    if (item['q'] == "Balance Salt Bag in Stock & Tank") {
+                      _checkAndTriggerSaltApi(val, pt2);
+                    }
                   },
                 )),
                 const SizedBox(width: 12),
@@ -761,6 +764,9 @@ class _ServicecheckoutState extends State<Servicecheckout> {
 
                     // Combine them dynamically using '/'
                     _answers[item['q']] = "$pt1 / $val";
+                    if (item['q'] == "Balance Salt Bag in Stock & Tank") {
+                      _checkAndTriggerSaltApi(pt1, val);
+                    }
                   },
                 )),
               ],
@@ -801,6 +807,38 @@ class _ServicecheckoutState extends State<Servicecheckout> {
         ],
       ),
     );
+  }
+
+  void _checkAndTriggerSaltApi(String pt1Str, String pt2Str) async {
+    // Ensure neither field is empty/blank
+    if (pt1Str.trim().isNotEmpty && pt2Str.trim().isNotEmpty) {
+      // Parse strings to numbers (supports both integers and decimals)
+      double? pt1 = double.tryParse(pt1Str);
+      double? pt2 = double.tryParse(pt2Str);
+
+      if (pt1 != null && pt2 != null) {
+        double total = pt1 + pt2;
+
+        // Optional: Convert to int if it's a whole number (e.g. 6.0 -> 6)
+        num finalValue = (total % 1 == 0) ? total.toInt() : total;
+
+        // e.g., myApiCall(finalValue);
+        var resp = await http.get(Uri.parse(
+            '$baseuri/api/getmonthlysalt/?currbal=$finalValue&pjc=${widget.pjc}&leadforp=${_selectedfollowupproduct!.product}'));
+        if (resp.statusCode == 200) {
+          var body = jsonDecode(resp.body);
+          setState(() {
+            _monthlySaltConsumption = body['monthly_consp'].toString();
+            if (body['monthly_consp'] != null) {
+              _answers["Salt Consumption (Monthly) kg"] = "${body['monthly_consp'].toString()} Kg";
+              _controllers["Salt Consumption (Monthly) kg"]?.text =
+              "${body['monthly_consp'].toString()} Kg";
+            }
+          });
+        }
+        print("Firing API with total salt value: $finalValue");
+      }
+    }
   }
 
   @override
@@ -917,7 +955,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   } else {
                                     _leadstat = 2;
                                     for (var item in _productQuestions[
-                                        _selectedfollowupproduct!.product
+                                        _selectedfollowupproduct?.product
                                             .toUpperCase()]!) {
                                       _answers[item['q']] =
                                           ""; // Initialize all Qs
@@ -1030,7 +1068,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   }
                                 }),
                           ),
-                          Padding(
+                        Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: DropdownSearch<LeadCategory>(
                               compareFn: ((item1, item2) {
@@ -1076,8 +1114,8 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                   if (value.ddl12 ==
                                       "Lead Created by Mistake") {
                                     _showquestions = false;
-                                  }else{
-                                    _showquestions =  true;
+                                  } else {
+                                    _showquestions = true;
                                   }
                                 });
 
@@ -1091,7 +1129,7 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                             (_showquestions))
                           _buildConditionalFields(),
                         // if ((_selectedstatus == "Job Completed "))
-                        
+
                         if (_selectedcategory?.ddl12 == "Spare Part Required")
                           Padding(
                             padding: const EdgeInsets.all(5.0),
@@ -1569,7 +1607,10 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                                 _isLoading = true;
                                               });
                                               var respcode = await submitdata(
-                                                  _showquestions?"true":"false", _resendotp);
+                                                  _showquestions
+                                                      ? "true"
+                                                      : "false",
+                                                  _resendotp);
                                               if (respcode == 200 ||
                                                   respcode == 201) {
                                                 setState(() {
@@ -1770,7 +1811,8 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                                     },
                                     icon: const Icon(Icons.contacts))),
                           ),
-                        if ((_selectedstatus == "Job Completed ") && (_showquestions))
+                        if ((_selectedstatus == "Job Completed ") &&
+                            (_showquestions))
                           TextButton(
                               onPressed: () {
                                 if (!_questionsanswered) {
@@ -1793,190 +1835,197 @@ class _ServicecheckoutState extends State<Servicecheckout> {
                             ),
                           ),
 
-                        if (_isLoading) 
+                        if (_isLoading)
                           const Center(
                               child: CircularProgressIndicator(
                                   color: Colors.brown)),
-                        if(_showquestions)
-                        Padding(
-                            padding: const EdgeInsets.all(5),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromRGBO(
-                                            252, 101, 8, 1),
-                                        foregroundColor: Colors.white),
-                                    onPressed: _isLoading
-                                        ? null
-                                        : (() async {
-                                            FocusScope.of(context).unfocus();
-                                            setState(() {
-                                              _isLoading = true;
-                                            });
-                                            if (_leadstat == 1) {
-                                              var respcode = await submitdata(
-                                                  "true", _resendotp);
-                                              if (respcode == 200 ||
-                                                  respcode == 201) {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                  _dataupload = true;
-                                                });
+                        if (_showquestions)
+                          Padding(
+                              padding: const EdgeInsets.all(5),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color.fromRGBO(
+                                              252, 101, 8, 1),
+                                          foregroundColor: Colors.white),
+                                      onPressed: _isLoading
+                                          ? null
+                                          : (() async {
+                                              FocusScope.of(context).unfocus();
+                                              setState(() {
+                                                _isLoading = true;
+                                              });
+                                              if (_leadstat == 1) {
+                                                var respcode = await submitdata(
+                                                    "true", _resendotp);
+                                                if (respcode == 200 ||
+                                                    respcode == 201) {
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                    _dataupload = true;
+                                                  });
 
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(SnackBar(
-                                                        content: const Text(
-                                                            "Data saved successfully"),
-                                                        backgroundColor:
-                                                            Colors.green[400]));
-                                                // if (kDebugMode) {
-                                                //   SendNotificationService
-                                                //       .sendNotificationUsingApi(
-                                                //           token: "test",
-                                                //           title: "Lead Follow UP",
-                                                //           body:
-                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                                //           data: {
-                                                //         "screen": "detail",
-                                                //         "pjc": widget.pjc,
-                                                //         "pname": widget.pname
-                                                //       });
-                                                // } else {
-                                                //   SendNotificationService
-                                                //       .sendNotificationUsingApi(
-                                                //           token: "all",
-                                                //           title: "Lead Follow UP",
-                                                //           body:
-                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                                //           data: {
-                                                //         "screen": "detail",
-                                                //         "pjc": widget.pjc,
-                                                //         "pname": widget.pname
-                                                //       });
-                                                // }
-                                                Navigator.of(context)
-                                                    .pop("Data saved");
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(SnackBar(
+                                                          content: const Text(
+                                                              "Data saved successfully"),
+                                                          backgroundColor:
+                                                              Colors
+                                                                  .green[400]));
+                                                  // if (kDebugMode) {
+                                                  //   SendNotificationService
+                                                  //       .sendNotificationUsingApi(
+                                                  //           token: "test",
+                                                  //           title: "Lead Follow UP",
+                                                  //           body:
+                                                  //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                  //           data: {
+                                                  //         "screen": "detail",
+                                                  //         "pjc": widget.pjc,
+                                                  //         "pname": widget.pname
+                                                  //       });
+                                                  // } else {
+                                                  //   SendNotificationService
+                                                  //       .sendNotificationUsingApi(
+                                                  //           token: "all",
+                                                  //           title: "Lead Follow UP",
+                                                  //           body:
+                                                  //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                  //           data: {
+                                                  //         "screen": "detail",
+                                                  //         "pjc": widget.pjc,
+                                                  //         "pname": widget.pname
+                                                  //       });
+                                                  // }
+                                                  Navigator.of(context)
+                                                      .pop("Data saved");
+                                                } else {
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                  });
+                                                  // Navigator.of(
+                                                  //         context)
+                                                  //     .pop(
+                                                  //         "Data saved");
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(const SnackBar(
+                                                          content: Text(
+                                                              "Something went wrong. Please try again."),
+                                                          backgroundColor:
+                                                              Colors.red));
+                                                }
                                               } else {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                });
-                                                // Navigator.of(
-                                                //         context)
-                                                //     .pop(
-                                                //         "Data saved");
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(const SnackBar(
-                                                        content: Text(
-                                                            "Something went wrong. Please try again."),
-                                                        backgroundColor:
-                                                            Colors.red));
+                                                var respcode = await submitotp(
+                                                    _jcccontroller.text);
+                                                // var respcode = await submitdata(
+                                                //   "true", _resendotp);
+                                                if (respcode == 200 ||
+                                                    respcode == 201) {
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                    _dataupload = false;
+                                                  });
+                                                  var sp =
+                                                      await SharedPreferences
+                                                          .getInstance();
+                                                  sp.remove(
+                                                      "checkindata_${widget.pjc}");
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(SnackBar(
+                                                          content: const Text(
+                                                              "OTP Verified Successfully"),
+                                                          backgroundColor:
+                                                              Colors
+                                                                  .green[400]));
+                                                  // Navigator.of(context)
+                                                  //     .pop("Data saved");
+                                                  // if (kDebugMode) {
+                                                  //   SendNotificationService
+                                                  //       .sendNotificationUsingApi(
+                                                  //           token: "test",
+                                                  //           title: "Lead Follow UP",
+                                                  //           body:
+                                                  //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                  //           data: {
+                                                  //         "screen": "detail",
+                                                  //         "pjc": widget.pjc,
+                                                  //         "pname": widget.pname
+                                                  //       });
+                                                  // } else {
+                                                  //   SendNotificationService
+                                                  //       .sendNotificationUsingApi(
+                                                  //           token: "all",
+                                                  //           title: "Lead Follow UP",
+                                                  //           body:
+                                                  //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
+                                                  //           data: {
+                                                  //         "screen": "detail",
+                                                  //         "pjc": widget.pjc,
+                                                  //         "pname": widget.pname
+                                                  //       });
+                                                  // }
+                                                  Navigator.of(context)
+                                                      .pop("Data saved");
+                                                } else {
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                  });
+                                                  // Navigator.of(
+                                                  //         context)
+                                                  //     .pop(
+                                                  //         "Data saved");
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(const SnackBar(
+                                                          content: Text(
+                                                              "Something went wrong. Please try again."),
+                                                          backgroundColor:
+                                                              Colors.red));
+                                                }
                                               }
-                                            } else {
-                                              var respcode = await submitotp(
-                                                  _jcccontroller.text);
-                                              // var respcode = await submitdata(
-                                              //   "true", _resendotp);
-                                              if (respcode == 200 ||
-                                                  respcode == 201) {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                  _dataupload = false;
-                                                });
-
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(SnackBar(
-                                                        content: const Text(
-                                                            "OTP Verified Successfully"),
-                                                        backgroundColor:
-                                                            Colors.green[400]));
-                                                // Navigator.of(context)
-                                                //     .pop("Data saved");
-                                                // if (kDebugMode) {
-                                                //   SendNotificationService
-                                                //       .sendNotificationUsingApi(
-                                                //           token: "test",
-                                                //           title: "Lead Follow UP",
-                                                //           body:
-                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                                //           data: {
-                                                //         "screen": "detail",
-                                                //         "pjc": widget.pjc,
-                                                //         "pname": widget.pname
-                                                //       });
-                                                // } else {
-                                                //   SendNotificationService
-                                                //       .sendNotificationUsingApi(
-                                                //           token: "all",
-                                                //           title: "Lead Follow UP",
-                                                //           body:
-                                                //               "Party: ${widget.pname}\nProduct: ${_selectedfollowupproduct!.product}",
-                                                //           data: {
-                                                //         "screen": "detail",
-                                                //         "pjc": widget.pjc,
-                                                //         "pname": widget.pname
-                                                //       });
-                                                // }
-                                                Navigator.of(context)
-                                                    .pop("Data saved");
-                                              } else {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                });
-                                                // Navigator.of(
-                                                //         context)
-                                                //     .pop(
-                                                //         "Data saved");
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(const SnackBar(
-                                                        content: Text(
-                                                            "Something went wrong. Please try again."),
-                                                        backgroundColor:
-                                                            Colors.red));
-                                              }
-                                            }
-                                          }),
-                                    child: _leadstat == 1
-                                        ? const Text('Save')
-                                        : const Text("Verify OTP")),
-                                // _selectedstatus ==
-                                //         "Installation Completed"
-                                //     ? ElevatedButton(
-                                //         style: ElevatedButton.styleFrom(
-                                //             backgroundColor: const Color
-                                //                 .fromRGBO(
-                                //                 252,
-                                //                 101,
-                                //                 8,
-                                //                 1),
-                                //             foregroundColor:
-                                //                 Colors
-                                //                     .white),
-                                //         onPressed:
-                                //             _isLoading
-                                //                 ? null
-                                //                 : (() async {
-                                //                     setState(() {
-                                //                       _isLoading = true;
-                                //                     });
-                                //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
-                                //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
-                                //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
-                                //                       setState(() {
-                                //                         _isLoading = false;
-                                //                         ischeckedin = false;
-                                //                       });
-                                //                       Navigator.of(context).pop("Data saved and Report Sent");
-                                //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
-                                //                     }
-                                //                   }),
-                                //         child:
-                                //             const Text(
-                                //           "Send Report",
-                                //         ))
-                              ],
-                            ))
+                                            }),
+                                      child: _leadstat == 1
+                                          ? const Text('Save')
+                                          : const Text("Verify OTP")),
+                                  // _selectedstatus ==
+                                  //         "Installation Completed"
+                                  //     ? ElevatedButton(
+                                  //         style: ElevatedButton.styleFrom(
+                                  //             backgroundColor: const Color
+                                  //                 .fromRGBO(
+                                  //                 252,
+                                  //                 101,
+                                  //                 8,
+                                  //                 1),
+                                  //             foregroundColor:
+                                  //                 Colors
+                                  //                     .white),
+                                  //         onPressed:
+                                  //             _isLoading
+                                  //                 ? null
+                                  //                 : (() async {
+                                  //                     setState(() {
+                                  //                       _isLoading = true;
+                                  //                     });
+                                  //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
+                                  //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
+                                  //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
+                                  //                       setState(() {
+                                  //                         _isLoading = false;
+                                  //                         ischeckedin = false;
+                                  //                       });
+                                  //                       Navigator.of(context).pop("Data saved and Report Sent");
+                                  //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
+                                  //                     }
+                                  //                   }),
+                                  //         child:
+                                  //             const Text(
+                                  //           "Send Report",
+                                  //         ))
+                                ],
+                              ))
                       ],
                     ),
                   ),

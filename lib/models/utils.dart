@@ -306,7 +306,8 @@ class AMCModel {
   String idatec;
   String? qty;
 
-  AMCModel({required this.item, required this.code, required this.idatec, this.qty});
+  AMCModel(
+      {required this.item, required this.code, required this.idatec, this.qty});
 }
 
 class AMCDetailModel {
@@ -412,4 +413,19 @@ class CompDelVno {
       required this.amount,
       required this.date,
       required this.gstvno});
+}
+
+class CommonWAMsg {
+  String name;
+  String? category;
+  bool? requiresheader;
+  String? headertype;
+  String endpointsuffix;
+
+  CommonWAMsg(
+      {required this.name,
+      this.category,
+      this.requiresheader,
+      this.headertype,
+      required this.endpointsuffix});
 }
