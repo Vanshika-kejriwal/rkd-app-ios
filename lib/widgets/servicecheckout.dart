@@ -812,9 +812,19 @@ class _ServicecheckoutState extends State<Servicecheckout> {
   void _checkAndTriggerSaltApi(String pt1Str, String pt2Str) async {
     // Ensure neither field is empty/blank
     if (pt1Str.trim().isNotEmpty && pt2Str.trim().isNotEmpty) {
-      // Parse strings to numbers (supports both integers and decimals)
-      double? pt1 = double.tryParse(pt1Str);
-      double? pt2 = double.tryParse(pt2Str);
+      double? extractNumber(String text) {
+        // Regex matches integers or decimals (e.g., "1", "3", "2.5")
+        final regex = RegExp(r'(\d+(\.\d+)?)');
+        final match = regex.firstMatch(text);
+        if (match != null) {
+          return double.tryParse(match.group(0)!);
+        }
+        return null;
+      }
+
+      // Extract numbers safely from both strings
+      double? pt1 = extractNumber(pt1Str);
+      double? pt2 = extractNumber(pt2Str);
 
       if (pt1 != null && pt2 != null) {
         double total = pt1 + pt2;
@@ -830,9 +840,10 @@ class _ServicecheckoutState extends State<Servicecheckout> {
           setState(() {
             _monthlySaltConsumption = body['monthly_consp'].toString();
             if (body['monthly_consp'] != null) {
-              _answers["Salt Consumption (Monthly) kg"] = "${body['monthly_consp'].toString()} Kg";
+              _answers["Salt Consumption (Monthly) kg"] =
+                  "${body['monthly_consp'].toString()} Kg";
               _controllers["Salt Consumption (Monthly) kg"]?.text =
-              "${body['monthly_consp'].toString()} Kg";
+                  "${body['monthly_consp'].toString()} Kg";
             }
           });
         }

@@ -1581,14 +1581,15 @@ class _ProjectRegistrationState extends State<ProjectRegistration> {
                                                         Colors.red));
                                           }
                                         } else {
+                                          
+                                          setState(() {
+                                            _isLoading = true;
+                                          });
                                           var sharedpref =
                                               await SharedPreferences
                                                   .getInstance();
                                           var loggedinmob =
                                               sharedpref.getString("Mobile");
-                                          setState(() {
-                                            _isLoading = true;
-                                          });
                                           final Map<String, dynamic> data = {
                                             'PNAME': _pnamecontroller.text,
                                             'CUSTTYPE': _selectedut,

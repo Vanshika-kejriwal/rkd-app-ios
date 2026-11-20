@@ -82,9 +82,9 @@ class _AllLeadsState extends State<AllLeads> with TickerProviderStateMixin {
       if (mounted) {
         setState(() {
           _empnames = names.toList();
-          _selectedItemsassignedto.add(usr);
+          _selectedItemsassignedto = [usr];
         });
-        fetchuser();
+        // fetchuser();
       }
       // _selectedItemsassignedto.add(usr);
     }

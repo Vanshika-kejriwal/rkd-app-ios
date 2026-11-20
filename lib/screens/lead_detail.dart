@@ -28,6 +28,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 // Removed go_router import
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'package:provider/provider.dart';
@@ -158,12 +159,15 @@ class _LeadDetailState extends State<LeadDetail> {
   int _leadstat = 1;
   int? ino;
   bool _isdataLoaded = false;
+  bool _hasInitialized = false;
   List<Meeting> meeting = [];
   List<Meeting> filtermeeting = [];
   List<String> _filteredProducts = [];
   List<String> _filteredLeadtypes = [];
   List<Product> products = [];
   List<Product> filterproducts = [];
+  final Set<String> _allAvailableProducts = {};
+  final Set<String> _allAvailableLeadtypes = {};
   List<InvItem> _selectedinstallationitems = [];
   List<AMCModel> _selectedamcitemdetail = [];
   List<AMCModel> _amcitemdetail = [];
@@ -196,6 +200,21 @@ class _LeadDetailState extends State<LeadDetail> {
   // Calculated field
   double _gstAmount = 0.0;
   final _formkey = GlobalKey<FormState>();
+
+  late final PagingController<int, Meeting> _pagingController =
+      PagingController<int, Meeting>(
+    getNextPageKey: (state) {
+      if (state.pages == null || state.pages!.isEmpty) {
+        return 1;
+      }
+      if (state.lastPageIsEmpty) {
+        return null;
+      }
+      return (state.keys?.last ?? 0) + 1;
+    },
+    fetchPage: (pageKey) => _fetchMeetingPage(pageKey),
+  );
+
   void _calculateGstAmount() {
     // 1. Calculate the total charge
     double totalCharge = _charge1 + _charge2 + _charge3;
@@ -648,10 +667,10 @@ class _LeadDetailState extends State<LeadDetail> {
       // THIS WILL CATCH JSON MAPPING OR UNEXPECTED SERVER ERRORS
       debugPrint("Unexpected error in getmeetingdetail: $e");
       debugPrint("Stacktrace: $stackTrace");
-      if(mounted){
+      if (mounted) {
         setState(() {
-        _isdataLoaded = true;
-      });
+          _isdataLoaded = true;
+        });
       }
     }
   }
@@ -812,7 +831,9 @@ class _LeadDetailState extends State<LeadDetail> {
     }
   }
 
-  assigndata() async {
+  Future<void> assigndata() async {
+    if (_hasInitialized) return;
+    _hasInitialized = true;
     var sp = await SharedPreferences.getInstance();
 
     setState(() {
@@ -830,15 +851,23 @@ class _LeadDetailState extends State<LeadDetail> {
         ischeckedin = true;
       }
     });
-    // sp.remove("checkindata_$_pjc");
-    var openproducts = await getproducts();
+
+    // Run independent initial data fetches concurrently
+    final results = await Future.wait([
+      getproducts(),
+      getprojdetail(widget.pjc ?? widget.currentlead!.pjc),
+      // getmeetingdetail(),
+    ]);
+
+    List<Product> openproducts = results[0] as List<Product>;
+
     if (kDebugMode) {
       print(openproducts);
       print(meeting.length);
     }
+
     if (openproducts.isEmpty) {
       setState(() {
-        // ischeckedin = true;
         _allProductsDone = true;
       });
     } else {
@@ -850,11 +879,8 @@ class _LeadDetailState extends State<LeadDetail> {
         });
       }
     }
-    await getprojdetail(widget.pjc ?? widget.currentlead!.pjc);
-    await getmeetingdetail();
-    if (kDebugMode) {
-      print(meeting);
-    }
+    _pagingController.refresh();
+    // Once meeting details are loaded via getmeetingdetail(), check right person
     _isRightPerson = await isRightPerson();
   }
 
@@ -897,30 +923,39 @@ class _LeadDetailState extends State<LeadDetail> {
     var sharedpref = await SharedPreferences.getInstance();
     var username = sharedpref.getString('NAME')!;
     var ut = sharedpref.getString("UT")!;
-    // print(ut);
-    var uniqueLeadIds = meeting.map((m) => m.leadid).toSet();
-    // print(uniqueLeadIds);
-    // 2. Iterate only over the unique leadid values
-    for (var id in uniqueLeadIds) {
-      // 3. Find the index of the last item matching this leadid
-      var lastidx = meeting.lastIndexWhere((m) => m.leadid == id);
 
-      // 4. Perform the logic check using correct logical operators (&& and ||)
-      if (lastidx != -1) {
-        // Safety check in case the uniqueLeadIds list somehow gets an ID not in meeting
-        var lastMeeting = meeting[lastidx];
+    // 1. ADMIN always has full access
+    if (ut == "ADMIN") {
+      return true;
+    }
 
-        // Check: (open == "Y" AND leadton == username) OR (ut == "ADMIN")
-        if (((lastMeeting.open == "Y") && (lastMeeting.leadton == username)) ||
-            ((lastMeeting.open == "Y") && (ut == "ADMIN"))) {
-          // Condition met for at least one leadid's final entry
-          return true;
+    try {
+      // 2. Make an HTTP request to your new Django endpoint
+      // Make sure `baseUrl` matches your project's API base URL configuration
+      final response = await http.get(
+        Uri.parse('$baseuri/api/leadspermission/$_pjc/'),
+        
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Check if there are open leads returned by the backend
+        List openLeads = data['open_leads'] ?? [];
+
+        // 3. Check if any of those open leads are assigned to the current user
+        for (var lead in openLeads) {
+          // print("Checking lead assignment: ${lead['assigned_to']} against $username");
+          if ((lead['assigned_to'] == username) && (ut.toLowerCase() == "employee")) {
+            return true; // The user is the right person for at least one active open lead
+          }
         }
       }
+    } catch (e) {
+      print("Error fetching lead status summary: $e");
     }
-    // if ((username == meeting.last.leadton) || (ut == "ADMIN")) {
-    //   return true;
-    // }
+
+    // 4. Return false if no matching open lead assignment is found
     return false;
   }
 
@@ -931,7 +966,7 @@ class _LeadDetailState extends State<LeadDetail> {
     super.initState();
     // notificationService.firebaseInit(context);
     // notificationService.setupInteractMessage(context);
-    // assigndata();
+    assigndata();
     // if (kDebugMode) {
     //   print(meeting);
     //   print(_allProductsDone);
@@ -942,27 +977,20 @@ class _LeadDetailState extends State<LeadDetail> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Get the current connectivity status using listen: true
-    // This tells Flutter to call didChangeDependencies when the provider changes
     final isConnected = Provider.of<NetworkProvider>(context).isOnline;
 
-    // Condition to restart API call:
-    // 1. Internet is currently connected
-    // 2. The previous state was NOT connected
-    // 3. We are not in the middle of a fetch
+    // 1. If connection is restored and we were previously offline/unloaded
     if (isConnected && !_isdataLoaded) {
       _reloadTimer?.cancel();
 
-      // Start a new timer to delay the API call
+      // Delay slightly to ensure a stable connection before firing
       _reloadTimer = Timer(const Duration(seconds: 2), () {
-        assigndata(); // Call _fetchData() after a 3-second delay
+        // _hasInitialized = false; // Reset to allow re-initialization
+        assigndata(); // Triggers a fresh page load when back online
       });
     }
 
-    // Update the previous state for the next check
-    // _lastConnectivityStatus = isConnected;
-
-    // If we lose connection, reset _dataLoaded so it will fetch again
+    // 2. If we lose connection
     if (!isConnected) {
       _reloadTimer?.cancel();
       setState(() {
@@ -997,6 +1025,105 @@ class _LeadDetailState extends State<LeadDetail> {
     });
   }
 
+  Future<List<Meeting>> _fetchMeetingPage(int pageKey) async {
+    try {
+      final sharedpref = await SharedPreferences.getInstance();
+      var ut = sharedpref.getString('UT');
+
+      final queryParams = {
+        'page': pageKey.toString(),
+        if (widget.type != null) "type": widget.type!,
+        if (_filteredProducts.isNotEmpty)
+          "products": _filteredProducts.join(","),
+        if (_filteredLeadtypes.isNotEmpty)
+          "leadtypes": _filteredLeadtypes.join(","),
+      };
+      print("Fetching page $pageKey with params: $queryParams");
+      final response = await http.get(
+        Uri.parse('$baseuri/api/messagelist/$_pjc/')
+            .replace(queryParameters: queryParams),
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic decoded = json.decode(response.body);
+
+        // Handle both paginated dictionaries (e.g., {'results': [...]}) or flat lists
+        List<dynamic> body = [];
+        if (decoded is Map<String, dynamic> && decoded.containsKey('results')) {
+          body = decoded['results'] ?? [];
+        } else if (decoded is List) {
+          body = decoded;
+        }
+
+        List<Meeting> parsedMeetings = [];
+        for (var meet in body) {
+          var visitdate = "";
+          var createddate = "";
+          var checkoutdate = "";
+
+          if (meet['CHECKIN'] != null) {
+            visitdate = DateFormat('dd/MM/yyyy h:mm a')
+                .format(DateTime.parse(meet['CHECKIN']));
+          }
+
+          if (meet['CHECKOUT'] != null &&
+              meet['CHECKOUT'].toString().isNotEmpty) {
+            String isoCheckout =
+                meet['CHECKOUT'].toString().replaceFirst(' ', 'T');
+            DateTime checkoutTime = DateTime.parse(isoCheckout);
+            checkoutdate = DateFormat('dd/MM/yyyy h:mm a').format(checkoutTime);
+          }
+
+          if (meet['LEAD_DATE'] != null) {
+            createddate = DateFormat("dd/MM/yyyy h:mm a")
+                .format(DateTime.parse(meet['LEAD_DATE']));
+          }
+          if (meet['LEADFORP'].isNotEmpty) {
+            _allAvailableProducts.add(meet['LEADFORP']);
+          }
+          if (meet['LEAD_TYPE'].isNotEmpty) {
+            _allAvailableLeadtypes.add(meet['LEAD_TYPE']);
+          }
+          parsedMeetings.add(Meeting(
+            leadid: meet["LEAD_ID"],
+            product: meet['LEADFORP'],
+            leadbyn: meet['LEADBYN'],
+            leadton: meet['LEADTON'] != "" ? meet['LEADTON'] : "Unassigned",
+            message: meet['MESSAGE'],
+            comments: meet['COMMENTS'],
+            checkinloca: meet['CHECKIN_LOCA'] ?? "",
+            checkoutloca: meet['CHECKOUT_LOCA'] ?? "",
+            scheduleMeeting: meet['MEETING_DATETIME'],
+            checkout: checkoutdate,
+            nextMeeting: meet['NEXT_FUDATETIME'],
+            visitdate: visitdate,
+            createddate: createddate,
+            leadtype: meet['LEAD_TYPE'],
+            open: meet['OPEN'],
+            reportlink: meet['report_link'],
+            imagelink: meet['image_link'],
+          ));
+        }
+
+        if (mounted) {
+          setState(() {
+            _isAdmin = ut == 'ADMIN';
+            _isdataLoaded = true;
+          });
+        }
+        return parsedMeetings;
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw Exception('Server error code: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint("Error fetching meeting page: $e");
+      debugPrint("Stacktrace: $stackTrace");
+      rethrow;
+    }
+  }
+
   @override
   void dispose() {
     // It's crucial to cancel the timer when the widget is disposed
@@ -1007,657 +1134,752 @@ class _LeadDetailState extends State<LeadDetail> {
   @override
   Widget build(BuildContext context) {
     return Background(
-        appbaractions: [
-          IconButton(
-              onPressed: () async {
-                // List<String> filteredProjects = _filteredProjects;
-                List<String> filteredProducts = _filteredProducts;
-                List<String> filteredLeadtypes = _filteredLeadtypes;
-                final result = await showModalBottomSheet(
-                  isScrollControlled: true,
-                  context: context,
-                  builder: (context) {
-                    return Scaffold(
-                      body: SafeArea(
-                        child: StatefulBuilder(builder: (context, setstate) {
-                          return Container(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(1.0),
-                                  child: DropdownSearch<String>.multiSelection(
-                                    selectedItems: filteredProducts,
-                                    items: (filter, infiniteScrollProps) =>
-                                        meeting
-                                            .map((e) => e.product)
-                                            .toSet()
-                                            .toList(),
-                                    onSelected: (value) {
-                                      setstate(() {
-                                        filteredProducts = value;
-                                      });
-                                    },
-                                    popupProps:
-                                        const MultiSelectionPopupProps.dialog(
-                                            dialogProps: DialogProps(
-                                              barrierDismissible: true,
-                                              barrierLabel: "Dismiss",
-                                            ),
-                                            showSelectedItems: true,
-                                            showSearchBox: true),
-                                    decoratorProps:
-                                        const DropDownDecoratorProps(
-                                      decoration: InputDecoration(
-                                        labelText: "Product Type",
-                                        hintText: "Select Product Type",
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null) {
-                                        return 'Please select an emplyee name';
-                                      }
-                                      return null;
-                                    },
-                                    autoValidateMode:
-                                        AutovalidateMode.onUserInteraction,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(1.0),
-                                  child: DropdownSearch<String>.multiSelection(
-                                    selectedItems: filteredLeadtypes,
-                                    items: (filter, infiniteScrollProps) =>
-                                        meeting
-                                            .map((e) => e.leadtype)
-                                            .toSet()
-                                            .toList(),
-                                    onSelected: (value) {
-                                      setstate(() {
-                                        filteredLeadtypes = value;
-                                      });
-                                    },
-                                    popupProps:
-                                        const MultiSelectionPopupProps.dialog(
-                                            dialogProps: DialogProps(
-                                              barrierDismissible: true,
-                                              barrierLabel: "Dismiss",
-                                            ),
-                                            showSelectedItems: true,
-                                            showSearchBox: true),
-                                    decoratorProps:
-                                        const DropDownDecoratorProps(
-                                      decoration: InputDecoration(
-                                        labelText: "Lead Type",
-                                        hintText: "Select Lead Type",
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null) {
-                                        return 'Please select an emplyee name';
-                                      }
-                                      return null;
-                                    },
-                                    autoValidateMode:
-                                        AutovalidateMode.onUserInteraction,
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Expanded(
-                                        child: ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: const Text("Cancel"))),
-                                    Expanded(
-                                        child: ElevatedButton(
-                                            onPressed: () {
-                                              Map<String, List<String>>
-                                                  filterval = {
-                                                "Product": filteredProducts,
-                                                // "Project": filteredProjects,
-                                                "Leadtype": filteredLeadtypes
-                                              };
-                                              // filterlist(filterval);
-                                              Navigator.of(context)
-                                                  .pop(filterval);
-                                            },
-                                            child: const Text("Apply"))),
-                                    Expanded(
-                                        child: ElevatedButton(
-                                            onPressed: () {
-                                              setstate(() {
-                                                filteredProducts = [];
-                                                _filteredProducts = [];
-                                                _filteredLeadtypes = [];
-                                                // filteredProjects = [];
-                                                filteredLeadtypes = [];
-                                              });
-                                            },
-                                            child: const Text("Clear All"))),
-                                  ],
-                                )
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
-                    );
-                  },
-                );
-                if (result != null && mounted) {
-                  setState(() {
-                    _filteredProducts = result["Product"]!;
-                    _filteredLeadtypes = result["Leadtype"]!;
-                    filtermeeting = meeting.where((meet) {
-                      bool productMatch = result["Product"]!.isEmpty ||
-                          result["Product"]!.contains(meet.product);
-                      bool leadtypeMatch = result["Leadtype"]!.isEmpty ||
-                          result["Leadtype"]!.contains(meet.leadtype);
-                      return productMatch && leadtypeMatch;
-                    }).toList();
-                  });
-                }
-              },
-              icon: const Icon(Icons.filter_list))
-        ],
-        appbar: true,
-        appbartitle: GestureDetector(
-          onTap: () {
-            showDialog(
+      appbaractions: [
+        IconButton(
+            onPressed: () async {
+              // List<String> filteredProjects = _filteredProjects;
+              List<String> filteredProducts = _filteredProducts;
+              List<String> filteredLeadtypes = _filteredLeadtypes;
+              final result = await showModalBottomSheet(
+                isScrollControlled: true,
                 context: context,
-                builder: (context) => AlertDialog(
-                      title: Text(_pname),
-                      content: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SelectableText(
-                            "PJC - $_pjc",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Owner Name - $_name",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Owner Mobile- $_ownermobile",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Manager Name - $_managername",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Manager Mobile- $_mobile1",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Staff Name - $_staffname",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Staff Mobile- $_mobile2",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Add1- $_add1",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "Add2- $_add2",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "City- $_city",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "District- $_district",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "State- $_state",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "PIN- $_pin",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText(
-                            "GST No- $_gstno",
-                            textAlign: TextAlign.start,
-                          ),
-                          SelectableText.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: "Location - ",
-                                  style: const TextStyle(
-                                    color: Colors
-                                        .black, // Match your default text color
-                                  ),
-                                ),
-                                if (_location.isNotEmpty)
-                                  TextSpan(
-                                    text: "View Location",
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.blue,
-                                      decoration: TextDecoration.underline,
+                builder: (context) {
+                  return Scaffold(
+                    body: SafeArea(
+                      child: StatefulBuilder(builder: (context, setstate) {
+                        return Container(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(1.0),
+                                child: DropdownSearch<String>.multiSelection(
+                                  selectedItems: filteredProducts,
+                                  items: (filter, infiniteScrollProps) =>
+                                      _allAvailableProducts.toList(),
+                                  onSelected: (value) {
+                                    setstate(() {
+                                      filteredProducts = value;
+                                    });
+                                  },
+                                  popupProps:
+                                      const MultiSelectionPopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss",
+                                          ),
+                                          showSelectedItems: true,
+                                          showSearchBox: true),
+                                  decoratorProps: const DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: "Product Type",
+                                      hintText: "Select Product Type",
                                     ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () async {
-                                        if (_location.isEmpty) return;
-
-                                        String urlString = _location.trim();
-                                        if (!urlString.startsWith('http://') &&
-                                            !urlString.startsWith('https://')) {
-                                          urlString = 'https://$urlString';
-                                        }
-
-                                        final Uri url = Uri.parse(urlString);
-                                        await launchUrl(
-                                          url,
-                                          mode: LaunchMode.externalApplication,
-                                        );
-                                      },
                                   ),
-                              ],
-                            ),
-                            textAlign: TextAlign.start,
-                          )
-                        ],
-                      ),
-                    ));
-          },
-          child: Text(_pname),
-        ),
-        floatbutton: true,
-        floatbtn: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
-                    foregroundColor: Colors.white),
-                onPressed: !_isRightPerson || ischeckedin || _allProductsDone
-                    ? null
-                    : () async {
-                        await checkin();
-                        // setState(() {
-                        //   ischeckedin = true;
-                        // });
-                      },
-                child: const Text("Check In")),
-            ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
-                    foregroundColor: Colors.white),
-                onPressed: ischeckedin && !_allProductsDone
-                    ? () async {
-                        if (widget.type == "SERVICE") {
-                          filterproducts = products
-                              .where(
-                                  (item) => item.leadtype.contains("SERVICE"))
-                              .toList();
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => Servicecheckout(
-                                      pname: _pname,
-                                      pjc:
-                                          widget.pjc ?? widget.currentlead!.pjc,
-                                      products: filterproducts))).then((val) {
-                            Navigator.pop(context);
-                            // Navigator.pop(context);
-                            // assigndata();
-                          });
-                        } else if ((widget.type == "INSTALLATION") ||
-                            (_selectedleadtype == "INSTALLATION")) {
-                          // Handle installation type
-                          filterproducts = products
-                              .where((item) =>
-                                  item.leadtype.contains("INSTALLATION"))
-                              .toList();
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => Installationcheckout(
-                                      pname: _pname,
-                                      pjc:
-                                          widget.pjc ?? widget.currentlead!.pjc,
-                                      products: filterproducts))).then((val) {
-                            Navigator.pop(context);
-                            // Navigator.pop(context);
-                            // assigndata();
-                          });
-                        } else {
-                          var result = await showModalBottomSheet(
-                              backgroundColor: const Color(0xffffe6bd),
-                              isScrollControlled: true,
-                              context: context,
-                              builder: (BuildContext context) {
-                                return SafeArea(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                        top: MediaQuery.of(context)
-                                            .viewInsets
-                                            .top,
-                                        bottom: MediaQuery.of(context)
-                                            .viewInsets
-                                            .bottom),
-                                    child: StatefulBuilder(
-                                        builder: (context, setstate) {
-                                      return Center(
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 40.0),
-                                          child: Form(
-                                              key: _formkey,
-                                              child: Center(
-                                                child: SingleChildScrollView(
-                                                  child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Padding(
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select an emplyee name';
+                                    }
+                                    return null;
+                                  },
+                                  autoValidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(1.0),
+                                child: DropdownSearch<String>.multiSelection(
+                                  selectedItems: filteredLeadtypes,
+                                  items: (filter, infiniteScrollProps) =>
+                                      _allAvailableLeadtypes.toList(),
+                                  onSelected: (value) {
+                                    setstate(() {
+                                      filteredLeadtypes = value;
+                                    });
+                                  },
+                                  popupProps:
+                                      const MultiSelectionPopupProps.dialog(
+                                          dialogProps: DialogProps(
+                                            barrierDismissible: true,
+                                            barrierLabel: "Dismiss",
+                                          ),
+                                          showSelectedItems: true,
+                                          showSearchBox: true),
+                                  decoratorProps: const DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: "Lead Type",
+                                      hintText: "Select Lead Type",
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select an emplyee name';
+                                    }
+                                    return null;
+                                  },
+                                  autoValidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Expanded(
+                                      child: ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text("Cancel"))),
+                                  Expanded(
+                                      child: ElevatedButton(
+                                          onPressed: () {
+                                            Map<String, List<String>>
+                                                filterval = {
+                                              "Product": filteredProducts,
+                                              // "Project": filteredProjects,
+                                              "Leadtype": filteredLeadtypes
+                                            };
+                                            // filterlist(filterval);
+                                            Navigator.of(context)
+                                                .pop(filterval);
+                                          },
+                                          child: const Text("Apply"))),
+                                  Expanded(
+                                      child: ElevatedButton(
+                                          onPressed: () {
+                                            setstate(() {
+                                              filteredProducts = [];
+                                              _filteredProducts = [];
+                                              _filteredLeadtypes = [];
+                                              // filteredProjects = [];
+                                              filteredLeadtypes = [];
+                                            });
+                                          },
+                                          child: const Text("Clear All"))),
+                                ],
+                              )
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  );
+                },
+              );
+              if (result != null && mounted) {
+                setState(() {
+                  _filteredProducts = result["Product"]!;
+                  _filteredLeadtypes = result["Leadtype"]!;
+                  // filtermeeting = meeting.where((meet) {
+                  //   bool productMatch = result["Product"]!.isEmpty ||
+                  //       result["Product"]!.contains(meet.product);
+                  //   bool leadtypeMatch = result["Leadtype"]!.isEmpty ||
+                  //       result["Leadtype"]!.contains(meet.leadtype);
+                  //   return productMatch && leadtypeMatch;
+                  // }).toList();
+                });
+                _pagingController.refresh();
+              }
+            },
+            icon: const Icon(Icons.filter_list))
+      ],
+      appbar: true,
+      appbartitle: GestureDetector(
+        onTap: () {
+          showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                    title: Text(_pname),
+                    content: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SelectableText(
+                          "PJC - $_pjc",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Owner Name - $_name",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Owner Mobile- $_ownermobile",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Manager Name - $_managername",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Manager Mobile- $_mobile1",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Staff Name - $_staffname",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Staff Mobile- $_mobile2",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Add1- $_add1",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "Add2- $_add2",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "City- $_city",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "District- $_district",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "State- $_state",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "PIN- $_pin",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText(
+                          "GST No- $_gstno",
+                          textAlign: TextAlign.start,
+                        ),
+                        SelectableText.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: "Location - ",
+                                style: const TextStyle(
+                                  color: Colors
+                                      .black, // Match your default text color
+                                ),
+                              ),
+                              if (_location.isNotEmpty)
+                                TextSpan(
+                                  text: "View Location",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.blue,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () async {
+                                      if (_location.isEmpty) return;
+
+                                      String urlString = _location.trim();
+                                      if (!urlString.startsWith('http://') &&
+                                          !urlString.startsWith('https://')) {
+                                        urlString = 'https://$urlString';
+                                      }
+
+                                      final Uri url = Uri.parse(urlString);
+                                      await launchUrl(
+                                        url,
+                                        mode: LaunchMode.externalApplication,
+                                      );
+                                    },
+                                ),
+                            ],
+                          ),
+                          textAlign: TextAlign.start,
+                        )
+                      ],
+                    ),
+                  ));
+        },
+        child: Text(_pname),
+      ),
+      floatbutton: true,
+      floatbtn: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
+                  foregroundColor: Colors.white),
+              onPressed: !_isRightPerson || ischeckedin || _allProductsDone
+                  ? null
+                  : () async {
+                      await checkin();
+                      // setState(() {
+                      //   ischeckedin = true;
+                      // });
+                    },
+              child: const Text("Check In")),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(252, 101, 8, 1),
+                  foregroundColor: Colors.white),
+              onPressed: ischeckedin && !_allProductsDone
+                  ? () async {
+                      if (widget.type == "SERVICE") {
+                        filterproducts = products
+                            .where((item) => item.leadtype.contains("SERVICE"))
+                            .toList();
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Servicecheckout(
+                                    pname: _pname,
+                                    pjc: widget.pjc ?? widget.currentlead!.pjc,
+                                    products: filterproducts))).then((val) {
+                          Navigator.pop(context);
+                          // Navigator.pop(context);
+                          // assigndata();
+                        });
+                      } else if ((widget.type == "INSTALLATION") ||
+                          (_selectedleadtype == "INSTALLATION")) {
+                        // Handle installation type
+                        filterproducts = products
+                            .where((item) =>
+                                item.leadtype.contains("INSTALLATION"))
+                            .toList();
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Installationcheckout(
+                                    pname: _pname,
+                                    pjc: widget.pjc ?? widget.currentlead!.pjc,
+                                    products: filterproducts))).then((val) {
+                          Navigator.pop(context);
+                          // Navigator.pop(context);
+                          // assigndata();
+                        });
+                      } else {
+                        var result = await showModalBottomSheet(
+                            backgroundColor: const Color(0xffffe6bd),
+                            isScrollControlled: true,
+                            context: context,
+                            builder: (BuildContext context) {
+                              return SafeArea(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                      top:
+                                          MediaQuery.of(context).viewInsets.top,
+                                      bottom: MediaQuery.of(context)
+                                          .viewInsets
+                                          .bottom),
+                                  child: StatefulBuilder(
+                                      builder: (context, setstate) {
+                                    return Center(
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 40.0),
+                                        child: Form(
+                                            key: _formkey,
+                                            child: Center(
+                                              child: SingleChildScrollView(
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
+                                                  children: [
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              5.0),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 4,
+                                                            child: Text(
+                                                              _pname,
+                                                              style: const TextStyle(
+                                                                  fontSize: 18,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                          ),
+                                                          const Spacer(),
+                                                          Expanded(
+                                                            flex: 1,
+                                                            child: IconButton(
+                                                                onPressed: () {
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop();
+                                                                },
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .close)),
+                                                          )
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Padding(
                                                         padding:
                                                             const EdgeInsets
                                                                 .all(5.0),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceBetween,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 4,
-                                                              child: Text(
-                                                                _pname,
-                                                                style: const TextStyle(
-                                                                    fontSize:
-                                                                        18,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold),
-                                                              ),
-                                                            ),
-                                                            const Spacer(),
-                                                            Expanded(
-                                                              flex: 1,
-                                                              child: IconButton(
-                                                                  onPressed:
-                                                                      () {
-                                                                    Navigator.of(
-                                                                            context)
-                                                                        .pop();
-                                                                  },
-                                                                  icon: const Icon(
-                                                                      Icons
-                                                                          .close)),
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: FutureBuilder<
-                                                                  List<String>>(
-                                                              future:
-                                                                  _leadtypes,
-                                                              builder: (context,
-                                                                  snapshot) {
-                                                                if (snapshot
-                                                                        .hasData &&
-                                                                    snapshot.data !=
-                                                                        null) {
-                                                                  return DropdownSearch<
-                                                                      String>(
-                                                                    popupProps: const PopupProps
-                                                                        .dialog(
-                                                                        dialogProps:
-                                                                            DialogProps(
-                                                                          barrierDismissible:
-                                                                              true,
-                                                                          barrierLabel:
-                                                                              "Dismiss",
-                                                                        ),
-                                                                        showSelectedItems:
+                                                        child: FutureBuilder<
+                                                                List<String>>(
+                                                            future: _leadtypes,
+                                                            builder: (context,
+                                                                snapshot) {
+                                                              if (snapshot
+                                                                      .hasData &&
+                                                                  snapshot.data !=
+                                                                      null) {
+                                                                return DropdownSearch<
+                                                                    String>(
+                                                                  popupProps: const PopupProps
+                                                                      .dialog(
+                                                                      dialogProps:
+                                                                          DialogProps(
+                                                                        barrierDismissible:
                                                                             true,
-                                                                        showSearchBox:
-                                                                            true),
-                                                                    // mode: Mode.dialog,
-                                                                    // showSelectedItems: true,
-                                                                    items: (filter,
-                                                                            infiniteScrollProps) =>
-                                                                        snapshot
-                                                                            .data!,
-                                                                    decoratorProps:
-                                                                        const DropDownDecoratorProps(
-                                                                      decoration:
-                                                                          InputDecoration(
-                                                                        labelText:
-                                                                            "Lead Type",
-                                                                        hintText:
-                                                                            "Select a Lead Type",
+                                                                        barrierLabel:
+                                                                            "Dismiss",
                                                                       ),
+                                                                      showSelectedItems:
+                                                                          true,
+                                                                      showSearchBox:
+                                                                          true),
+                                                                  // mode: Mode.dialog,
+                                                                  // showSelectedItems: true,
+                                                                  items: (filter,
+                                                                          infiniteScrollProps) =>
+                                                                      snapshot
+                                                                          .data!,
+                                                                  decoratorProps:
+                                                                      const DropDownDecoratorProps(
+                                                                    decoration:
+                                                                        InputDecoration(
+                                                                      labelText:
+                                                                          "Lead Type",
+                                                                      hintText:
+                                                                          "Select a Lead Type",
                                                                     ),
+                                                                  ),
 
-                                                                    onSelected:
-                                                                        (value) {
-                                                                      setstate(
-                                                                          () {
-                                                                        _selectedleadtype =
-                                                                            value;
-                                                                        _selectedcomplainproduct =
-                                                                            null;
-                                                                        _selectedfollowupproduct =
-                                                                            [];
-                                                                        filterproducts = products
-                                                                            .where((item) =>
-                                                                                item.leadtype.contains(value!))
-                                                                            .toList();
+                                                                  onSelected:
+                                                                      (value) {
+                                                                    setstate(
+                                                                        () {
+                                                                      _selectedleadtype =
+                                                                          value;
+                                                                      _selectedcomplainproduct =
+                                                                          null;
+                                                                      _selectedfollowupproduct =
+                                                                          [];
+                                                                      filterproducts = products
+                                                                          .where((item) => item
+                                                                              .leadtype
+                                                                              .contains(value!))
+                                                                          .toList();
+                                                                    });
+                                                                    if (value ==
+                                                                        "SERVICE") {
+                                                                      // Navigator.of(
+                                                                      //         context)
+                                                                      //     .pop();
+                                                                      Navigator.push(
+                                                                          context,
+                                                                          MaterialPageRoute(
+                                                                              builder: (context) => Servicecheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
+                                                                          (val) {
+                                                                        Navigator.pop(
+                                                                            context);
+                                                                        Navigator.pop(
+                                                                            context);
+                                                                        // assigndata();
                                                                       });
-                                                                      if (value ==
-                                                                          "SERVICE") {
-                                                                        // Navigator.of(
-                                                                        //         context)
-                                                                        //     .pop();
-                                                                        Navigator.push(
-                                                                            context,
-                                                                            MaterialPageRoute(
-                                                                                builder: (context) => Servicecheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
-                                                                            (val) {
-                                                                          Navigator.pop(
-                                                                              context);
-                                                                          Navigator.pop(
-                                                                              context);
-                                                                          // assigndata();
-                                                                        });
-                                                                      }
-                                                                      if (value ==
-                                                                          "INSTALLATION") {
-                                                                        // Navigator.of(
-                                                                        //         context)
-                                                                        //     .pop();
-                                                                        Navigator.push(
-                                                                            context,
-                                                                            MaterialPageRoute(
-                                                                                builder: (context) => Installationcheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
-                                                                            (val) {
-                                                                          Navigator.pop(
-                                                                              context);
-                                                                          Navigator.pop(
-                                                                              context);
-                                                                          // assigndata();
-                                                                        });
-                                                                      }
-                                                                    },
-                                                                    selectedItem:
-                                                                        _selectedleadtype,
-                                                                  );
-                                                                } else {
-                                                                  return const Center(
-                                                                      child:
-                                                                          CircularProgressIndicator());
-                                                                }
-                                                              })),
-                                                      if (_selectedleadtype ==
-                                                          "COMPLAIN") ...[
-                                                        // SINGLE SELECTION BLOCK
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: DropdownSearch<
-                                                              Product>(
-                                                            compareFn: (Product
-                                                                    item1,
-                                                                Product item2) {
-                                                              return item1
-                                                                      .leadid ==
-                                                                  item2.leadid;
-                                                            },
-                                                            itemAsString:
-                                                                (Product item) {
-                                                              return item
-                                                                  .product;
-                                                            },
-                                                            popupProps:
-                                                                const PopupProps
-                                                                    .dialog(
-                                                              dialogProps:
-                                                                  DialogProps(
-                                                                barrierDismissible:
-                                                                    true,
-                                                                barrierLabel:
-                                                                    "Dismiss",
-                                                              ),
-                                                              showSearchBox:
-                                                                  true,
-                                                            ),
-                                                            items: (filter,
-                                                                    infiniteScrollProps) =>
-                                                                filterproducts,
-                                                            decoratorProps:
-                                                                const DropDownDecoratorProps(
-                                                              decoration:
-                                                                  InputDecoration(
-                                                                labelText:
-                                                                    "Follow-up For Product",
-                                                                hintText:
-                                                                    "Select a Product",
-                                                              ),
-                                                            ),
-                                                            onSelected: (Product?
-                                                                value) async {
-                                                              setstate(() {
-                                                                _selectedcomplainproduct =
-                                                                    value;
-                                                                // Wrap in a list if _selectedfollowupproduct expects a List<Product>
-                                                                _selectedfollowupproduct =
-                                                                    value !=
-                                                                            null
-                                                                        ? [
-                                                                            value
-                                                                          ]
-                                                                        : [];
-                                                              });
-
-                                                              await fetchcheckoutdetail(
-                                                                  _selectedfollowupproduct,
-                                                                  setstate);
-                                                            },
-                                                            selectedItem:
-                                                                _selectedcomplainproduct,
-                                                          ),
-                                                        ),
-                                                      ] else ...[
-                                                        // MULTI SELECTION BLOCK
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: DropdownSearch<
-                                                              Product>.multiSelection(
-                                                            compareFn: (Product
-                                                                    item1,
-                                                                Product item2) {
-                                                              return item1
-                                                                      .leadid ==
-                                                                  item2.leadid;
-                                                            },
-                                                            itemAsString:
-                                                                (Product item) {
-                                                              return item
-                                                                  .product;
-                                                            },
-                                                            popupProps:
-                                                                const MultiSelectionPopupProps
-                                                                    .dialog(
-                                                              dialogProps:
-                                                                  DialogProps(
-                                                                barrierDismissible:
-                                                                    true,
-                                                                barrierLabel:
-                                                                    "Dismiss",
-                                                              ),
-                                                              showSearchBox:
-                                                                  true,
-                                                            ),
-                                                            items: (filter,
-                                                                    infiniteScrollProps) =>
-                                                                filterproducts,
-                                                            decoratorProps:
-                                                                const DropDownDecoratorProps(
-                                                              decoration:
-                                                                  InputDecoration(
-                                                                labelText:
-                                                                    "Follow-up For Product",
-                                                                hintText:
-                                                                    "Select Products",
-                                                              ),
-                                                            ),
-                                                            onSelected: (List<
-                                                                    Product>
-                                                                value) async {
-                                                              setstate(() {
-                                                                _selectedfollowupproduct =
-                                                                    value;
-                                                              });
-
-                                                              await fetchcheckoutdetail(
-                                                                  _selectedfollowupproduct,
-                                                                  setstate);
-                                                            },
-                                                            selectedItems:
-                                                                _selectedfollowupproduct,
-                                                          ),
-                                                        ),
-                                                      ],
-
+                                                                    }
+                                                                    if (value ==
+                                                                        "INSTALLATION") {
+                                                                      // Navigator.of(
+                                                                      //         context)
+                                                                      //     .pop();
+                                                                      Navigator.push(
+                                                                          context,
+                                                                          MaterialPageRoute(
+                                                                              builder: (context) => Installationcheckout(pname: _pname, pjc: widget.pjc ?? widget.currentlead!.pjc, products: filterproducts))).then(
+                                                                          (val) {
+                                                                        Navigator.pop(
+                                                                            context);
+                                                                        Navigator.pop(
+                                                                            context);
+                                                                        // assigndata();
+                                                                      });
+                                                                    }
+                                                                  },
+                                                                  selectedItem:
+                                                                      _selectedleadtype,
+                                                                );
+                                                              } else {
+                                                                return const Center(
+                                                                    child:
+                                                                        CircularProgressIndicator());
+                                                              }
+                                                            })),
+                                                    if (_selectedleadtype ==
+                                                        "COMPLAIN") ...[
+                                                      // SINGLE SELECTION BLOCK
                                                       Padding(
                                                         padding:
                                                             const EdgeInsets
                                                                 .all(5.0),
                                                         child: DropdownSearch<
-                                                                String>(
-                                                            enabled:
-                                                                !_resendotp,
-                                                            popupProps: const PopupProps
+                                                            Product>(
+                                                          compareFn: (Product
+                                                                  item1,
+                                                              Product item2) {
+                                                            return item1
+                                                                    .leadid ==
+                                                                item2.leadid;
+                                                          },
+                                                          itemAsString:
+                                                              (Product item) {
+                                                            return item.product;
+                                                          },
+                                                          popupProps:
+                                                              const PopupProps
+                                                                  .dialog(
+                                                            dialogProps:
+                                                                DialogProps(
+                                                              barrierDismissible:
+                                                                  true,
+                                                              barrierLabel:
+                                                                  "Dismiss",
+                                                            ),
+                                                            showSearchBox: true,
+                                                          ),
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              filterproducts,
+                                                          decoratorProps:
+                                                              const DropDownDecoratorProps(
+                                                            decoration:
+                                                                InputDecoration(
+                                                              labelText:
+                                                                  "Follow-up For Product",
+                                                              hintText:
+                                                                  "Select a Product",
+                                                            ),
+                                                          ),
+                                                          onSelected: (Product?
+                                                              value) async {
+                                                            setstate(() {
+                                                              _selectedcomplainproduct =
+                                                                  value;
+                                                              // Wrap in a list if _selectedfollowupproduct expects a List<Product>
+                                                              _selectedfollowupproduct =
+                                                                  value != null
+                                                                      ? [value]
+                                                                      : [];
+                                                            });
+
+                                                            await fetchcheckoutdetail(
+                                                                _selectedfollowupproduct,
+                                                                setstate);
+                                                          },
+                                                          selectedItem:
+                                                              _selectedcomplainproduct,
+                                                        ),
+                                                      ),
+                                                    ] else ...[
+                                                      // MULTI SELECTION BLOCK
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: DropdownSearch<
+                                                            Product>.multiSelection(
+                                                          compareFn: (Product
+                                                                  item1,
+                                                              Product item2) {
+                                                            return item1
+                                                                    .leadid ==
+                                                                item2.leadid;
+                                                          },
+                                                          itemAsString:
+                                                              (Product item) {
+                                                            return item.product;
+                                                          },
+                                                          popupProps:
+                                                              const MultiSelectionPopupProps
+                                                                  .dialog(
+                                                            dialogProps:
+                                                                DialogProps(
+                                                              barrierDismissible:
+                                                                  true,
+                                                              barrierLabel:
+                                                                  "Dismiss",
+                                                            ),
+                                                            showSearchBox: true,
+                                                          ),
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              filterproducts,
+                                                          decoratorProps:
+                                                              const DropDownDecoratorProps(
+                                                            decoration:
+                                                                InputDecoration(
+                                                              labelText:
+                                                                  "Follow-up For Product",
+                                                              hintText:
+                                                                  "Select Products",
+                                                            ),
+                                                          ),
+                                                          onSelected:
+                                                              (List<Product>
+                                                                  value) async {
+                                                            setstate(() {
+                                                              _selectedfollowupproduct =
+                                                                  value;
+                                                            });
+
+                                                            await fetchcheckoutdetail(
+                                                                _selectedfollowupproduct,
+                                                                setstate);
+                                                          },
+                                                          selectedItems:
+                                                              _selectedfollowupproduct,
+                                                        ),
+                                                      ),
+                                                    ],
+
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              5.0),
+                                                      child: DropdownSearch<
+                                                              String>(
+                                                          enabled: !_resendotp,
+                                                          popupProps: const PopupProps
+                                                              .dialog(
+                                                              dialogProps:
+                                                                  DialogProps(
+                                                                barrierDismissible:
+                                                                    true,
+                                                                barrierLabel:
+                                                                    "Dismiss",
+                                                              ),
+                                                              showSelectedItems:
+                                                                  true,
+                                                              showSearchBox:
+                                                                  false),
+                                                          // mode: Mode.dialog,
+                                                          // showSelectedItems: true,
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              _selectedleadtype ==
+                                                                      "INSTALLATION"
+                                                                  ? [
+                                                                      "Installation Completed",
+                                                                      "Job Not Completed"
+                                                                    ]
+                                                                  : [
+                                                                      "Job Completed ",
+                                                                      "Job Not Completed"
+                                                                    ],
+                                                          decoratorProps:
+                                                              const DropDownDecoratorProps(
+                                                            decoration:
+                                                                InputDecoration(
+                                                              labelText:
+                                                                  "Lead Status",
+                                                              hintText:
+                                                                  "Select status",
+                                                            ),
+                                                          ),
+                                                          onSelected: (value) {
+                                                            setstate(() {
+                                                              _category.clear();
+                                                              _selectedstatus =
+                                                                  value!;
+                                                              if (_selectedstatus ==
+                                                                  "Job Not Completed") {
+                                                                _leadstat = 1;
+                                                              } else {
+                                                                _leadstat = 2;
+                                                              }
+                                                              getcategory();
+                                                              if (_selectedleadtype !=
+                                                                  "INSTALLATION") {
+                                                                getitemdetail();
+                                                              }
+                                                            });
+                                                          },
+                                                          selectedItem:
+                                                              _selectedstatus),
+                                                      // child: Row(
+                                                      //   mainAxisAlignment:
+                                                      //       MainAxisAlignment
+                                                      //           .spaceAround,
+                                                      //   crossAxisAlignment:
+                                                      //       CrossAxisAlignment.center,
+                                                      //   children: [
+                                                      //     Row(
+                                                      //       children: [
+                                                      //         Radio<int>(
+                                                      //             value: 1,
+                                                      //             groupValue: _leadstat,
+                                                      //             // selected: false,
+                                                      //             onChanged:
+                                                      //                 (int? value) {
+                                                      //               setstate(() {
+                                                      //                 _leadstat =
+                                                      //                     value!;
+                                                      //               });
+                                                      //             }),
+                                                      //         const SizedBox(
+                                                      //             width: 10.0),
+                                                      //         const Text("Open")
+                                                      //       ],
+                                                      //     ),
+                                                      //     Row(
+                                                      //       children: [
+                                                      //         Radio<int>(
+                                                      //             value: 2,
+                                                      //             groupValue: _leadstat,
+                                                      //             // selected: false,
+                                                      //             onChanged:
+                                                      //                 (int? value) {
+                                                      //               setstate(() {
+                                                      //                 _leadstat =
+                                                      //                     value!;
+                                                      //               });
+                                                      //             }),
+                                                      //         const SizedBox(
+                                                      //             width: 10.0),
+                                                      //         const Text("Close")
+                                                      //       ],
+                                                      //     )
+                                                      //   ],
+                                                      // ),
+                                                    ),
+                                                    if (_selectedleadtype ==
+                                                        "COMPLAIN")
+                                                      Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5.0),
+                                                          child: DropdownSearch<
+                                                              AMCModel>.multiSelection(
+                                                            compareFn: (item1,
+                                                                    item2) =>
+                                                                item1.code ==
+                                                                    item2
+                                                                        .code &&
+                                                                item1.item ==
+                                                                    item2.item,
+                                                            popupProps: const MultiSelectionPopupProps
                                                                 .dialog(
                                                                 dialogProps:
                                                                     DialogProps(
@@ -1666,192 +1888,535 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                   barrierLabel:
                                                                       "Dismiss",
                                                                 ),
-                                                                showSelectedItems:
-                                                                    true,
+                                                                // showSelectedItems: true,
                                                                 showSearchBox:
-                                                                    false),
+                                                                    true),
                                                             // mode: Mode.dialog,
                                                             // showSelectedItems: true,
                                                             items: (filter,
                                                                     infiniteScrollProps) =>
-                                                                _selectedleadtype ==
-                                                                        "INSTALLATION"
-                                                                    ? [
-                                                                        "Installation Completed",
-                                                                        "Job Not Completed"
-                                                                      ]
-                                                                    : [
-                                                                        "Job Completed ",
-                                                                        "Job Not Completed"
-                                                                      ],
+                                                                _amcitemdetail,
+                                                            itemAsString:
+                                                                (item) {
+                                                              return "${item.item} (${item.idatec})";
+                                                            },
                                                             decoratorProps:
                                                                 const DropDownDecoratorProps(
                                                               decoration:
                                                                   InputDecoration(
                                                                 labelText:
-                                                                    "Lead Status",
+                                                                    "Item Detail",
                                                                 hintText:
-                                                                    "Select status",
+                                                                    "Select Item",
                                                               ),
                                                             ),
+
                                                             onSelected:
                                                                 (value) {
                                                               setstate(() {
-                                                                _category
-                                                                    .clear();
-                                                                _selectedstatus =
-                                                                    value!;
-                                                                if (_selectedstatus ==
-                                                                    "Job Not Completed") {
-                                                                  _leadstat = 1;
-                                                                } else {
-                                                                  _leadstat = 2;
-                                                                }
-                                                                getcategory();
-                                                                if (_selectedleadtype !=
-                                                                    "INSTALLATION") {
-                                                                  getitemdetail();
-                                                                }
+                                                                _selectedamcitemdetail =
+                                                                    value;
+                                                                // getbilldetail();
                                                               });
+                                                              getcategory();
                                                             },
-                                                            selectedItem:
-                                                                _selectedstatus),
-                                                        // child: Row(
-                                                        //   mainAxisAlignment:
-                                                        //       MainAxisAlignment
-                                                        //           .spaceAround,
-                                                        //   crossAxisAlignment:
-                                                        //       CrossAxisAlignment.center,
-                                                        //   children: [
-                                                        //     Row(
-                                                        //       children: [
-                                                        //         Radio<int>(
-                                                        //             value: 1,
-                                                        //             groupValue: _leadstat,
-                                                        //             // selected: false,
-                                                        //             onChanged:
-                                                        //                 (int? value) {
-                                                        //               setstate(() {
-                                                        //                 _leadstat =
-                                                        //                     value!;
-                                                        //               });
-                                                        //             }),
-                                                        //         const SizedBox(
-                                                        //             width: 10.0),
-                                                        //         const Text("Open")
-                                                        //       ],
-                                                        //     ),
-                                                        //     Row(
-                                                        //       children: [
-                                                        //         Radio<int>(
-                                                        //             value: 2,
-                                                        //             groupValue: _leadstat,
-                                                        //             // selected: false,
-                                                        //             onChanged:
-                                                        //                 (int? value) {
-                                                        //               setstate(() {
-                                                        //                 _leadstat =
-                                                        //                     value!;
-                                                        //               });
-                                                        //             }),
-                                                        //         const SizedBox(
-                                                        //             width: 10.0),
-                                                        //         const Text("Close")
-                                                        //       ],
-                                                        //     )
-                                                        //   ],
-                                                        // ),
+                                                            selectedItems:
+                                                                _selectedamcitemdetail,
+                                                          )),
+                                                    if (_selectedstatus ==
+                                                            "Installation Completed" ||
+                                                        ((_selectedstatus ==
+                                                                "Job Completed ") &&
+                                                            (_selectedleadtype ==
+                                                                "SERVICE")))
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: FutureBuilder<
+                                                                List<InvItem>>(
+                                                            future: getinstitems(
+                                                                widget
+                                                                    .currentlead!
+                                                                    .pjc,
+                                                                _selectedfollowupproduct
+                                                                    .map((e) => e
+                                                                        .product)
+                                                                    .toList(),
+                                                                _selectedleadtype!),
+                                                            builder: (context,
+                                                                snapshot) {
+                                                              if (snapshot
+                                                                  .hasData) {
+                                                                return DropdownSearch<
+                                                                    InvItem>.multiSelection(
+                                                                  // enabled: !_resendotp,
+                                                                  popupProps: const MultiSelectionPopupProps
+                                                                      .dialog(
+                                                                      dialogProps:
+                                                                          DialogProps(
+                                                                        barrierDismissible:
+                                                                            true,
+                                                                        barrierLabel:
+                                                                            "Dismiss",
+                                                                      ),
+                                                                      showSelectedItems:
+                                                                          true,
+                                                                      showSearchBox:
+                                                                          true),
+                                                                  // mode: Mode.dialog,
+                                                                  // showSelectedItems: true,
+                                                                  items: (filter,
+                                                                          infiniteScrollProps) =>
+                                                                      snapshot
+                                                                          .data!,
+                                                                  itemAsString:
+                                                                      (item) =>
+                                                                          item.name,
+                                                                  compareFn: (item1,
+                                                                          item2) =>
+                                                                      item1
+                                                                          .id ==
+                                                                      item2.id,
+                                                                  decoratorProps:
+                                                                      const DropDownDecoratorProps(
+                                                                    decoration:
+                                                                        InputDecoration(
+                                                                      labelText:
+                                                                          "Select Products",
+                                                                      hintText:
+                                                                          "Select a Product",
+                                                                    ),
+                                                                  ),
+
+                                                                  onSelected:
+                                                                      (value) {
+                                                                    setstate(
+                                                                        () {
+                                                                      _selectedinstallationitems =
+                                                                          value;
+                                                                    });
+                                                                    if (_selectedleadtype ==
+                                                                        "INSTALLATION") {
+                                                                      getcategory();
+                                                                    }
+                                                                  },
+                                                                  selectedItems:
+                                                                      _selectedinstallationitems,
+                                                                );
+                                                              } else {
+                                                                // print(snapshot.error);
+                                                                return const Center(
+                                                                    child:
+                                                                        CircularProgressIndicator());
+                                                              }
+                                                            }),
                                                       ),
-                                                      if (_selectedleadtype ==
-                                                          "COMPLAIN")
-                                                        Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(5.0),
-                                                            child: DropdownSearch<
-                                                                AMCModel>.multiSelection(
-                                                              compareFn: (item1,
-                                                                      item2) =>
-                                                                  item1.code ==
-                                                                      item2
-                                                                          .code &&
-                                                                  item1.item ==
-                                                                      item2
-                                                                          .item,
-                                                              popupProps: const MultiSelectionPopupProps
-                                                                  .dialog(
+                                                    // if ((_selectedstatus ==
+                                                    //     "Job Completed "))
+                                                    Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: DropdownSearch<
+                                                            LeadCategory>(
+                                                          itemAsString: (item) {
+                                                            return item.ddl12;
+                                                          },
+                                                          compareFn:
+                                                              (item1, item2) {
+                                                            return item1
+                                                                    .ddl12 ==
+                                                                item2.ddl12;
+                                                          },
+                                                          enabled: !_resendotp,
+                                                          popupProps:
+                                                              PopupProps.dialog(
+                                                                  disabledItemFn:
+                                                                      (item) {
+                                                                    return !item
+                                                                        .enabled;
+                                                                  },
+                                                                  itemBuilder: (context,
+                                                                          item,
+                                                                          isDisabled,
+                                                                          isSelected) =>
+                                                                      ListTile(
+                                                                        enabled:
+                                                                            item.enabled,
+                                                                        title: Text(
+                                                                            item.ddl12),
+                                                                        trailing: item.extrainfo !=
+                                                                                null
+                                                                            ? Text(item.extrainfo!)
+                                                                            : null,
+                                                                      ),
                                                                   dialogProps:
-                                                                      DialogProps(
+                                                                      const DialogProps(
                                                                     barrierDismissible:
                                                                         true,
                                                                     barrierLabel:
                                                                         "Dismiss",
                                                                   ),
-                                                                  // showSelectedItems: true,
+                                                                  showSelectedItems:
+                                                                      true,
                                                                   showSearchBox:
                                                                       true),
-                                                              // mode: Mode.dialog,
-                                                              // showSelectedItems: true,
-                                                              items: (filter,
-                                                                      infiniteScrollProps) =>
-                                                                  _amcitemdetail,
-                                                              itemAsString:
-                                                                  (item) {
-                                                                return "${item.item} (${item.idatec})";
-                                                              },
-                                                              decoratorProps:
-                                                                  const DropDownDecoratorProps(
-                                                                decoration:
-                                                                    InputDecoration(
-                                                                  labelText:
-                                                                      "Item Detail",
-                                                                  hintText:
-                                                                      "Select Item",
-                                                                ),
-                                                              ),
+                                                          // mode: Mode.dialog,
+                                                          // showSelectedItems: true,
+                                                          items: (filter,
+                                                                  infiniteScrollProps) =>
+                                                              _category,
+                                                          decoratorProps:
+                                                              const DropDownDecoratorProps(
+                                                            decoration:
+                                                                InputDecoration(
+                                                              labelText:
+                                                                  "Service Type",
+                                                              hintText:
+                                                                  "Select an option",
+                                                            ),
+                                                          ),
 
-                                                              onSelected:
-                                                                  (value) {
-                                                                setstate(() {
-                                                                  _selectedamcitemdetail =
-                                                                      value;
-                                                                  // getbilldetail();
-                                                                });
-                                                                getcategory();
-                                                              },
-                                                              selectedItems:
-                                                                  _selectedamcitemdetail,
-                                                            )),
-                                                      if (_selectedstatus ==
-                                                              "Installation Completed" ||
-                                                          ((_selectedstatus ==
-                                                                  "Job Completed ") &&
-                                                              (_selectedleadtype ==
-                                                                  "SERVICE")))
-                                                        Padding(
+                                                          onSelected: (value) {
+                                                            setstate(() {
+                                                              // _company.clear();
+                                                              _selectedcategory =
+                                                                  value!;
+                                                              // getcomp();
+                                                            });
+                                                            if (value?.ddl12 ==
+                                                                "Paid Basis") {
+                                                              showResponsiveApiDialog(
+                                                                  context);
+                                                            }
+                                                          },
+                                                          selectedItem:
+                                                              _selectedcategory,
+                                                        )),
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
+                                                        "Spare Part Required")
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          readOnly: _resendotp,
+                                                          label: "Part Name",
+                                                          controller:
+                                                              _sparepartnamecontroller,
+                                                        ),
+                                                      ),
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
+                                                        "Spare Part Required")
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          readOnly: _resendotp,
+                                                          label: "Part Cost",
+                                                          controller:
+                                                              _sparepartcostcontroller,
+                                                          keyboardtype:
+                                                              TextInputType
+                                                                  .number,
+                                                        ),
+                                                      ),
+                                                    if ((_selectedcategory
+                                                                ?.ddl12 ==
+                                                            "Paid Basis") |
+                                                        (_selectedcategory
+                                                                ?.ddl12 ==
+                                                            "Obligatory Service"))
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          readOnly: _resendotp,
+                                                          label:
+                                                              "Service Charge",
+                                                          controller:
+                                                              _servicechargecontroller,
+                                                          keyboardtype:
+                                                              TextInputType
+                                                                  .number,
+                                                          onChanged: (value) {
+                                                            _charge1 =
+                                                                double.tryParse(
+                                                                        value) ??
+                                                                    0.0;
+                                                            // _calculateGstAmount();
+                                                          },
+                                                        ),
+                                                      ),
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
+                                                        "Paid Basis")
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          readOnly: _resendotp,
+                                                          label: "Spare Charge",
+                                                          controller:
+                                                              _sparechargecontroller,
+                                                          keyboardtype:
+                                                              TextInputType
+                                                                  .number,
+                                                          onChanged: (value) {
+                                                            _charge2 =
+                                                                double.tryParse(
+                                                                        value) ??
+                                                                    0.0;
+                                                            // _calculateGstAmount();
+                                                          },
+                                                        ),
+                                                      ),
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
+                                                        "Paid Basis")
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          readOnly: _resendotp,
+                                                          label: "Other Charge",
+                                                          controller:
+                                                              _otherchargecontroller,
+                                                          keyboardtype:
+                                                              TextInputType
+                                                                  .number,
+                                                          onChanged: (value) {
+                                                            _charge3 =
+                                                                double.tryParse(
+                                                                        value) ??
+                                                                    0.0;
+                                                            // _calculateGstAmount();
+                                                          },
+                                                        ),
+                                                      ),
+                                                    // gst %
+                                                    if ((_selectedcategory
+                                                                ?.ddl12 ==
+                                                            "Paid Basis") |
+                                                        (_selectedcategory
+                                                                ?.ddl12 ==
+                                                            "Obligatory Service"))
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: FutureBuilder<
+                                                                List<String>>(
+                                                            future: getgst(),
+                                                            builder: ((context,
+                                                                snapshot) {
+                                                              if (snapshot
+                                                                      .hasData &&
+                                                                  snapshot.data !=
+                                                                      null) {
+                                                                return DropdownSearch<
+                                                                    String>(
+                                                                  enabled:
+                                                                      !_resendotp,
+                                                                  popupProps: const PopupProps
+                                                                      .dialog(
+                                                                      dialogProps: DialogProps(
+                                                                          barrierDismissible:
+                                                                              true,
+                                                                          barrierLabel:
+                                                                              "Dismiss"),
+                                                                      showSelectedItems:
+                                                                          true,
+                                                                      showSearchBox:
+                                                                          true),
+                                                                  // mode: Mode.dialog,
+                                                                  // showSelectedItems: true,
+                                                                  items: (filter,
+                                                                          infiniteScrollProps) =>
+                                                                      snapshot
+                                                                          .data!,
+                                                                  decoratorProps:
+                                                                      const DropDownDecoratorProps(
+                                                                    decoration:
+                                                                        InputDecoration(
+                                                                      labelText:
+                                                                          "GST %",
+                                                                      hintText:
+                                                                          "Select a GST %",
+                                                                    ),
+                                                                  ),
+                                                                  autoValidateMode:
+                                                                      AutovalidateMode
+                                                                          .onUserInteraction,
+                                                                  validator:
+                                                                      (value) {
+                                                                    if (value!
+                                                                        .isEmpty) {
+                                                                      return "Select a GST %";
+                                                                    }
+                                                                    return null;
+                                                                  },
+                                                                  // dropdownSearchDecoration: const InputDecoration(
+                                                                  // labelText: "Menu mode",
+                                                                  // hintText: "country in menu mode",
+                                                                  // ),
+                                                                  // popupItemDisabled: isItemDisabled,
+                                                                  onSelected:
+                                                                      (value) {
+                                                                    setstate(
+                                                                        () {
+                                                                      _selectedgst =
+                                                                          value!;
+                                                                    });
+                                                                    _gstPercent =
+                                                                        double.tryParse(value!) ??
+                                                                            18.0;
+                                                                    _calculateGstAmount();
+                                                                  },
+                                                                  selectedItem:
+                                                                      _selectedgst,
+                                                                  // showSearchBox: true,
+                                                                  // searchFieldProps: TextFieldProps(
+                                                                  //   cursorColor: Colors.blue,
+                                                                  // ),
+                                                                );
+                                                              } else {
+                                                                return const Center(
+                                                                    child:
+                                                                        CircularProgressIndicator());
+                                                              }
+                                                            })),
+                                                      ),
+                                                    if ((_selectedcategory
+                                                                ?.ddl12 ==
+                                                            "Paid Basis") |
+                                                        (_selectedcategory
+                                                                ?.ddl12 ==
+                                                            "Obligatory Service"))
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          readOnly: true,
+                                                          label: "GST Amount",
+                                                          controller:
+                                                              _gstamountcontroller,
+                                                          keyboardtype:
+                                                              TextInputType
+                                                                  .number,
+                                                        ),
+                                                      ),
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
+                                                        "Free Service as per Installation Agreement")
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          label:
+                                                              "Installation Date",
+                                                          controller:
+                                                              _installdatecontroller,
+                                                          readOnly: true,
+                                                          // onTap: _resendotp
+                                                          //     ? null
+                                                          //     : () async {
+                                                          //         DateTime? picked = await showDatePicker(
+                                                          //             context:
+                                                          //                 context,
+                                                          //             initialDate:
+                                                          //                 DateTime
+                                                          //                     .now(),
+                                                          //             firstDate:
+                                                          //                 DateTime(
+                                                          //                     1900),
+                                                          //             lastDate:
+                                                          //                 DateTime(
+                                                          //                     2100));
+                                                          //         if (picked !=
+                                                          //             null) {
+                                                          //           setstate(
+                                                          //               () {
+                                                          //             _installdatecontroller.text = picked
+                                                          //                 .toString()
+                                                          //                 .split(
+                                                          //                     " ")[0];
+                                                          //           });
+                                                          //         }
+                                                          //         // setstate(() {
+                                                          //         //   _dobdate = picked;
+                                                          //         // });
+                                                          //       },
+                                                        ),
+                                                      ),
+                                                    if (_selectedcategory
+                                                            ?.ddl12 ==
+                                                        "Under AMC")
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                          label: "AMC Date",
+                                                          controller:
+                                                              _amcdatecontroller,
+                                                          readOnly: true,
+                                                          // onTap: _resendotp
+                                                          //     ? null
+                                                          //     : () async {
+                                                          //         DateTime? picked = await showDatePicker(
+                                                          //             context:
+                                                          //                 context,
+                                                          //             initialDate:
+                                                          //                 DateTime
+                                                          //                     .now(),
+                                                          //             firstDate:
+                                                          //                 DateTime(
+                                                          //                     1900),
+                                                          //             lastDate:
+                                                          //                 DateTime(
+                                                          //                     2100));
+                                                          //         if (picked !=
+                                                          //             null) {
+                                                          //           setstate(
+                                                          //               () {
+                                                          //             _amcdatecontroller.text = picked
+                                                          //                 .toString()
+                                                          //                 .split(
+                                                          //                     " ")[0];
+                                                          //           });
+                                                          //         }
+                                                          //       },
+                                                        ),
+                                                      ),
+                                                    if (_selectedstatus ==
+                                                        "Installation Completed")
+                                                      Padding(
                                                           padding:
                                                               const EdgeInsets
                                                                   .all(5.0),
                                                           child: FutureBuilder<
-                                                                  List<
-                                                                      InvItem>>(
-                                                              future: getinstitems(
-                                                                  widget
-                                                                      .currentlead!
-                                                                      .pjc,
-                                                                  _selectedfollowupproduct
-                                                                      .map((e) => e
-                                                                          .product)
-                                                                      .toList(),
-                                                                  _selectedleadtype!),
+                                                                  List<String>>(
+                                                              future:
+                                                                  getnames(),
                                                               builder: (context,
                                                                   snapshot) {
                                                                 if (snapshot
-                                                                    .hasData) {
+                                                                        .hasData &&
+                                                                    snapshot.data !=
+                                                                        null) {
                                                                   return DropdownSearch<
-                                                                      InvItem>.multiSelection(
-                                                                    // enabled: !_resendotp,
-                                                                    popupProps: const MultiSelectionPopupProps
+                                                                      String>(
+                                                                    popupProps: const PopupProps
                                                                         .dialog(
                                                                         dialogProps:
                                                                             DialogProps(
@@ -1870,23 +2435,14 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                             infiniteScrollProps) =>
                                                                         snapshot
                                                                             .data!,
-                                                                    itemAsString:
-                                                                        (item) =>
-                                                                            item.name,
-                                                                    compareFn: (item1,
-                                                                            item2) =>
-                                                                        item1
-                                                                            .id ==
-                                                                        item2
-                                                                            .id,
                                                                     decoratorProps:
                                                                         const DropDownDecoratorProps(
                                                                       decoration:
                                                                           InputDecoration(
                                                                         labelText:
-                                                                            "Select Products",
+                                                                            "Installation by Our",
                                                                         hintText:
-                                                                            "Select a Product",
+                                                                            "Select a Name",
                                                                       ),
                                                                     ),
 
@@ -1894,309 +2450,12 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                         (value) {
                                                                       setstate(
                                                                           () {
-                                                                        _selectedinstallationitems =
+                                                                        _selectedinsbyour =
                                                                             value;
                                                                       });
-                                                                      if (_selectedleadtype ==
-                                                                          "INSTALLATION") {
-                                                                        getcategory();
-                                                                      }
-                                                                    },
-                                                                    selectedItems:
-                                                                        _selectedinstallationitems,
-                                                                  );
-                                                                } else {
-                                                                  // print(snapshot.error);
-                                                                  return const Center(
-                                                                      child:
-                                                                          CircularProgressIndicator());
-                                                                }
-                                                              }),
-                                                        ),
-                                                      // if ((_selectedstatus ==
-                                                      //     "Job Completed "))
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: DropdownSearch<
-                                                              LeadCategory>(
-                                                            itemAsString:
-                                                                (item) {
-                                                              return item.ddl12;
-                                                            },
-                                                            compareFn:
-                                                                (item1, item2) {
-                                                              return item1
-                                                                      .ddl12 ==
-                                                                  item2.ddl12;
-                                                            },
-                                                            enabled:
-                                                                !_resendotp,
-                                                            popupProps: PopupProps
-                                                                .dialog(
-                                                                    disabledItemFn:
-                                                                        (item) {
-                                                                      return !item
-                                                                          .enabled;
-                                                                    },
-                                                                    itemBuilder: (context,
-                                                                            item,
-                                                                            isDisabled,
-                                                                            isSelected) =>
-                                                                        ListTile(
-                                                                          enabled:
-                                                                              item.enabled,
-                                                                          title:
-                                                                              Text(item.ddl12),
-                                                                          trailing: item.extrainfo != null
-                                                                              ? Text(item.extrainfo!)
-                                                                              : null,
-                                                                        ),
-                                                                    dialogProps:
-                                                                        const DialogProps(
-                                                                      barrierDismissible:
-                                                                          true,
-                                                                      barrierLabel:
-                                                                          "Dismiss",
-                                                                    ),
-                                                                    showSelectedItems:
-                                                                        true,
-                                                                    showSearchBox:
-                                                                        true),
-                                                            // mode: Mode.dialog,
-                                                            // showSelectedItems: true,
-                                                            items: (filter,
-                                                                    infiniteScrollProps) =>
-                                                                _category,
-                                                            decoratorProps:
-                                                                const DropDownDecoratorProps(
-                                                              decoration:
-                                                                  InputDecoration(
-                                                                labelText:
-                                                                    "Service Type",
-                                                                hintText:
-                                                                    "Select an option",
-                                                              ),
-                                                            ),
-
-                                                            onSelected:
-                                                                (value) {
-                                                              setstate(() {
-                                                                // _company.clear();
-                                                                _selectedcategory =
-                                                                    value!;
-                                                                // getcomp();
-                                                              });
-                                                              if (value
-                                                                      ?.ddl12 ==
-                                                                  "Paid Basis") {
-                                                                showResponsiveApiDialog(
-                                                                    context);
-                                                              }
-                                                            },
-                                                            selectedItem:
-                                                                _selectedcategory,
-                                                          )),
-                                                      if (_selectedcategory
-                                                              ?.ddl12 ==
-                                                          "Spare Part Required")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            readOnly:
-                                                                _resendotp,
-                                                            label: "Part Name",
-                                                            controller:
-                                                                _sparepartnamecontroller,
-                                                          ),
-                                                        ),
-                                                      if (_selectedcategory
-                                                              ?.ddl12 ==
-                                                          "Spare Part Required")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            readOnly:
-                                                                _resendotp,
-                                                            label: "Part Cost",
-                                                            controller:
-                                                                _sparepartcostcontroller,
-                                                            keyboardtype:
-                                                                TextInputType
-                                                                    .number,
-                                                          ),
-                                                        ),
-                                                      if ((_selectedcategory
-                                                                  ?.ddl12 ==
-                                                              "Paid Basis") |
-                                                          (_selectedcategory
-                                                                  ?.ddl12 ==
-                                                              "Obligatory Service"))
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            readOnly:
-                                                                _resendotp,
-                                                            label:
-                                                                "Service Charge",
-                                                            controller:
-                                                                _servicechargecontroller,
-                                                            keyboardtype:
-                                                                TextInputType
-                                                                    .number,
-                                                            onChanged: (value) {
-                                                              _charge1 = double
-                                                                      .tryParse(
-                                                                          value) ??
-                                                                  0.0;
-                                                              // _calculateGstAmount();
-                                                            },
-                                                          ),
-                                                        ),
-                                                      if (_selectedcategory
-                                                              ?.ddl12 ==
-                                                          "Paid Basis")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            readOnly:
-                                                                _resendotp,
-                                                            label:
-                                                                "Spare Charge",
-                                                            controller:
-                                                                _sparechargecontroller,
-                                                            keyboardtype:
-                                                                TextInputType
-                                                                    .number,
-                                                            onChanged: (value) {
-                                                              _charge2 = double
-                                                                      .tryParse(
-                                                                          value) ??
-                                                                  0.0;
-                                                              // _calculateGstAmount();
-                                                            },
-                                                          ),
-                                                        ),
-                                                      if (_selectedcategory
-                                                              ?.ddl12 ==
-                                                          "Paid Basis")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            readOnly:
-                                                                _resendotp,
-                                                            label:
-                                                                "Other Charge",
-                                                            controller:
-                                                                _otherchargecontroller,
-                                                            keyboardtype:
-                                                                TextInputType
-                                                                    .number,
-                                                            onChanged: (value) {
-                                                              _charge3 = double
-                                                                      .tryParse(
-                                                                          value) ??
-                                                                  0.0;
-                                                              // _calculateGstAmount();
-                                                            },
-                                                          ),
-                                                        ),
-                                                      // gst %
-                                                      if ((_selectedcategory
-                                                                  ?.ddl12 ==
-                                                              "Paid Basis") |
-                                                          (_selectedcategory
-                                                                  ?.ddl12 ==
-                                                              "Obligatory Service"))
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: FutureBuilder<
-                                                                  List<String>>(
-                                                              future: getgst(),
-                                                              builder: ((context,
-                                                                  snapshot) {
-                                                                if (snapshot
-                                                                        .hasData &&
-                                                                    snapshot.data !=
-                                                                        null) {
-                                                                  return DropdownSearch<
-                                                                      String>(
-                                                                    enabled:
-                                                                        !_resendotp,
-                                                                    popupProps: const PopupProps
-                                                                        .dialog(
-                                                                        dialogProps: DialogProps(
-                                                                            barrierDismissible:
-                                                                                true,
-                                                                            barrierLabel:
-                                                                                "Dismiss"),
-                                                                        showSelectedItems:
-                                                                            true,
-                                                                        showSearchBox:
-                                                                            true),
-                                                                    // mode: Mode.dialog,
-                                                                    // showSelectedItems: true,
-                                                                    items: (filter,
-                                                                            infiniteScrollProps) =>
-                                                                        snapshot
-                                                                            .data!,
-                                                                    decoratorProps:
-                                                                        const DropDownDecoratorProps(
-                                                                      decoration:
-                                                                          InputDecoration(
-                                                                        labelText:
-                                                                            "GST %",
-                                                                        hintText:
-                                                                            "Select a GST %",
-                                                                      ),
-                                                                    ),
-                                                                    autoValidateMode:
-                                                                        AutovalidateMode
-                                                                            .onUserInteraction,
-                                                                    validator:
-                                                                        (value) {
-                                                                      if (value!
-                                                                          .isEmpty) {
-                                                                        return "Select a GST %";
-                                                                      }
-                                                                      return null;
-                                                                    },
-                                                                    // dropdownSearchDecoration: const InputDecoration(
-                                                                    // labelText: "Menu mode",
-                                                                    // hintText: "country in menu mode",
-                                                                    // ),
-                                                                    // popupItemDisabled: isItemDisabled,
-                                                                    onSelected:
-                                                                        (value) {
-                                                                      setstate(
-                                                                          () {
-                                                                        _selectedgst =
-                                                                            value!;
-                                                                      });
-                                                                      _gstPercent =
-                                                                          double.tryParse(value!) ??
-                                                                              18.0;
-                                                                      _calculateGstAmount();
                                                                     },
                                                                     selectedItem:
-                                                                        _selectedgst,
-                                                                    // showSearchBox: true,
-                                                                    // searchFieldProps: TextFieldProps(
-                                                                    //   cursorColor: Colors.blue,
-                                                                    // ),
+                                                                        _selectedinsbyour,
                                                                   );
                                                                 } else {
                                                                   return const Center(
@@ -2204,948 +2463,690 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                           CircularProgressIndicator());
                                                                 }
                                                               })),
-                                                        ),
-                                                      if ((_selectedcategory
-                                                                  ?.ddl12 ==
-                                                              "Paid Basis") |
-                                                          (_selectedcategory
-                                                                  ?.ddl12 ==
-                                                              "Obligatory Service"))
+                                                    if (_selectedstatus ==
+                                                            "Installation Completed" &&
+                                                        _selectedcategory
+                                                                ?.ddl12 !=
+                                                            "Installation Created by Mistake")
+                                                      for (var product
+                                                          in _selectedfollowupproduct)
                                                         Padding(
                                                           padding:
                                                               const EdgeInsets
                                                                   .all(5.0),
-                                                          child: InputField(
-                                                            readOnly: true,
-                                                            label: "GST Amount",
-                                                            controller:
-                                                                _gstamountcontroller,
-                                                            keyboardtype:
-                                                                TextInputType
-                                                                    .number,
-                                                          ),
-                                                        ),
-                                                      if (_selectedcategory
-                                                              ?.ddl12 ==
-                                                          "Free Service as per Installation Agreement")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            label:
-                                                                "Installation Date",
-                                                            controller:
-                                                                _installdatecontroller,
-                                                            readOnly: true,
-                                                            // onTap: _resendotp
-                                                            //     ? null
-                                                            //     : () async {
-                                                            //         DateTime? picked = await showDatePicker(
-                                                            //             context:
-                                                            //                 context,
-                                                            //             initialDate:
-                                                            //                 DateTime
-                                                            //                     .now(),
-                                                            //             firstDate:
-                                                            //                 DateTime(
-                                                            //                     1900),
-                                                            //             lastDate:
-                                                            //                 DateTime(
-                                                            //                     2100));
-                                                            //         if (picked !=
-                                                            //             null) {
-                                                            //           setstate(
-                                                            //               () {
-                                                            //             _installdatecontroller.text = picked
-                                                            //                 .toString()
-                                                            //                 .split(
-                                                            //                     " ")[0];
-                                                            //           });
-                                                            //         }
-                                                            //         // setstate(() {
-                                                            //         //   _dobdate = picked;
-                                                            //         // });
-                                                            //       },
-                                                          ),
-                                                        ),
-                                                      if (_selectedcategory
-                                                              ?.ddl12 ==
-                                                          "Under AMC")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            label: "AMC Date",
-                                                            controller:
-                                                                _amcdatecontroller,
-                                                            readOnly: true,
-                                                            // onTap: _resendotp
-                                                            //     ? null
-                                                            //     : () async {
-                                                            //         DateTime? picked = await showDatePicker(
-                                                            //             context:
-                                                            //                 context,
-                                                            //             initialDate:
-                                                            //                 DateTime
-                                                            //                     .now(),
-                                                            //             firstDate:
-                                                            //                 DateTime(
-                                                            //                     1900),
-                                                            //             lastDate:
-                                                            //                 DateTime(
-                                                            //                     2100));
-                                                            //         if (picked !=
-                                                            //             null) {
-                                                            //           setstate(
-                                                            //               () {
-                                                            //             _amcdatecontroller.text = picked
-                                                            //                 .toString()
-                                                            //                 .split(
-                                                            //                     " ")[0];
-                                                            //           });
-                                                            //         }
-                                                            //       },
-                                                          ),
-                                                        ),
-                                                      if (_selectedstatus ==
-                                                          "Installation Completed")
-                                                        Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(5.0),
-                                                            child: FutureBuilder<
-                                                                    List<
-                                                                        String>>(
-                                                                future:
-                                                                    getnames(),
-                                                                builder: (context,
-                                                                    snapshot) {
-                                                                  if (snapshot
-                                                                          .hasData &&
-                                                                      snapshot.data !=
-                                                                          null) {
-                                                                    return DropdownSearch<
-                                                                        String>(
-                                                                      popupProps: const PopupProps
-                                                                          .dialog(
-                                                                          dialogProps:
-                                                                              DialogProps(
-                                                                            barrierDismissible:
-                                                                                true,
-                                                                            barrierLabel:
-                                                                                "Dismiss",
-                                                                          ),
-                                                                          showSelectedItems:
-                                                                              true,
-                                                                          showSearchBox:
-                                                                              true),
-                                                                      // mode: Mode.dialog,
-                                                                      // showSelectedItems: true,
-                                                                      items: (filter,
-                                                                              infiniteScrollProps) =>
-                                                                          snapshot
-                                                                              .data!,
-                                                                      decoratorProps:
-                                                                          const DropDownDecoratorProps(
-                                                                        decoration:
-                                                                            InputDecoration(
-                                                                          labelText:
-                                                                              "Installation by Our",
-                                                                          hintText:
-                                                                              "Select a Name",
-                                                                        ),
-                                                                      ),
-
-                                                                      onSelected:
-                                                                          (value) {
-                                                                        setstate(
-                                                                            () {
-                                                                          _selectedinsbyour =
-                                                                              value;
-                                                                        });
-                                                                      },
-                                                                      selectedItem:
-                                                                          _selectedinsbyour,
-                                                                    );
-                                                                  } else {
-                                                                    return const Center(
-                                                                        child:
-                                                                            CircularProgressIndicator());
-                                                                  }
-                                                                })),
-                                                      if (_selectedstatus ==
-                                                              "Installation Completed" &&
-                                                          _selectedcategory
-                                                                  ?.ddl12 !=
-                                                              "Installation Created by Mistake")
-                                                        for (var product
-                                                            in _selectedfollowupproduct)
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(5.0),
-                                                            child: DropdownSearch<
-                                                                    String>(
-                                                                popupProps: const PopupProps
-                                                                    .dialog(
-                                                                    dialogProps:
-                                                                        DialogProps(
-                                                                      barrierDismissible:
-                                                                          true,
-                                                                      barrierLabel:
-                                                                          "Dismiss",
-                                                                    ),
-                                                                    showSelectedItems:
+                                                          child: DropdownSearch<
+                                                                  String>(
+                                                              popupProps: const PopupProps
+                                                                  .dialog(
+                                                                  dialogProps:
+                                                                      DialogProps(
+                                                                    barrierDismissible:
                                                                         true,
-                                                                    showSearchBox:
-                                                                        false),
-                                                                // mode: Mode.dialog,
-                                                                // showSelectedItems: true,
-                                                                items: (filter,
-                                                                        infiniteScrollProps) =>
-                                                                    const [
-                                                                      "6 Months",
-                                                                      "12 Months",
-                                                                      "24 Months",
-                                                                      "36 Months"
-                                                                    ],
-                                                                decoratorProps:
-                                                                    DropDownDecoratorProps(
-                                                                  decoration:
-                                                                      InputDecoration(
-                                                                    labelText:
-                                                                        "Waranty Period for ${product.product}",
-                                                                    hintText:
-                                                                        "Select waranty period",
+                                                                    barrierLabel:
+                                                                        "Dismiss",
                                                                   ),
+                                                                  showSelectedItems:
+                                                                      true,
+                                                                  showSearchBox:
+                                                                      false),
+                                                              // mode: Mode.dialog,
+                                                              // showSelectedItems: true,
+                                                              items: (filter,
+                                                                      infiniteScrollProps) =>
+                                                                  const [
+                                                                    "6 Months",
+                                                                    "12 Months",
+                                                                    "24 Months",
+                                                                    "36 Months"
+                                                                  ],
+                                                              decoratorProps:
+                                                                  DropDownDecoratorProps(
+                                                                decoration:
+                                                                    InputDecoration(
+                                                                  labelText:
+                                                                      "Waranty Period for ${product.product}",
+                                                                  hintText:
+                                                                      "Select waranty period",
                                                                 ),
-                                                                onSelected:
-                                                                    (value) {
-                                                                  product.wpm =
-                                                                      value;
-                                                                },
-                                                                selectedItem:
-                                                                    product
-                                                                        .wpm),
-                                                          ),
+                                                              ),
+                                                              onSelected:
+                                                                  (value) {
+                                                                product.wpm =
+                                                                    value;
+                                                              },
+                                                              selectedItem:
+                                                                  product.wpm),
+                                                        ),
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              5.0),
+                                                      child: InputField(
+                                                        readOnly: _resendotp,
+                                                        label: "Comments",
+                                                        controller:
+                                                            _commentcontroller,
+                                                        minlines: 1,
+                                                        maxlines: 10,
+                                                      ),
+                                                    ),
+                                                    if (_selectedstatus ==
+                                                        "Installation Completed")
                                                       Padding(
                                                         padding:
                                                             const EdgeInsets
                                                                 .all(5.0),
                                                         child: InputField(
-                                                          readOnly: _resendotp,
-                                                          label: "Comments",
+                                                          label:
+                                                              "Site Represtative Name",
                                                           controller:
-                                                              _commentcontroller,
-                                                          minlines: 1,
-                                                          maxlines: 10,
+                                                              _instcontpnamecontroller,
                                                         ),
                                                       ),
-                                                      if (_selectedstatus ==
-                                                          "Installation Completed")
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                            label:
-                                                                "Site Represtative Name",
-                                                            controller:
-                                                                _instcontpnamecontroller,
-                                                          ),
-                                                        ),
 
-                                                      if (_leadstat == 1)
-                                                        Column(
-                                                          children: [
-                                                            Padding(
+                                                    if (_leadstat == 1)
+                                                      Column(
+                                                        children: [
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(5.0),
+                                                            child: InputField(
+                                                              label:
+                                                                  "Next Follow Up Date",
+                                                              controller:
+                                                                  _nextfudatecontroller,
+                                                              readOnly: true,
+                                                              onTap: () async {
+                                                                DateTime? meet =
+                                                                    await showOmniDateTimePicker(
+                                                                        context:
+                                                                            context,
+                                                                        minutesInterval:
+                                                                            15);
+                                                                if (meet !=
+                                                                    null) {
+                                                                  _nextfudatecontroller
+                                                                      .text = DateFormat(
+                                                                          "dd/MM/yyyy")
+                                                                      .add_jm()
+                                                                      .format(
+                                                                          meet);
+                                                                }
+                                                              },
+                                                            ),
+                                                          ),
+                                                          Padding(
                                                               padding:
                                                                   const EdgeInsets
                                                                       .all(5.0),
-                                                              child: InputField(
-                                                                label:
-                                                                    "Next Follow Up Date",
-                                                                controller:
-                                                                    _nextfudatecontroller,
-                                                                readOnly: true,
-                                                                onTap:
-                                                                    () async {
-                                                                  DateTime?
-                                                                      meet =
-                                                                      await showOmniDateTimePicker(
-                                                                          context:
-                                                                              context,
-                                                                          minutesInterval:
-                                                                              15);
-                                                                  if (meet !=
-                                                                      null) {
-                                                                    _nextfudatecontroller
-                                                                        .text = DateFormat(
-                                                                            "dd/MM/yyyy")
-                                                                        .add_jm()
-                                                                        .format(
-                                                                            meet);
-                                                                  }
-                                                                },
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                                padding:
-                                                                    const EdgeInsets
-                                                                        .all(
-                                                                        5.0),
-                                                                child: FutureBuilder<
-                                                                        List<
-                                                                            String>>(
-                                                                    future:
-                                                                        getnames(),
-                                                                    builder:
-                                                                        (context,
-                                                                            snapshot) {
-                                                                      if (snapshot
-                                                                              .hasData &&
-                                                                          snapshot.data !=
-                                                                              null) {
-                                                                        return DropdownSearch<
-                                                                            String>(
-                                                                          popupProps: const PopupProps
-                                                                              .dialog(
-                                                                              dialogProps: DialogProps(
-                                                                                barrierDismissible: true,
-                                                                                barrierLabel: "Dismiss",
-                                                                              ),
-                                                                              showSelectedItems: true,
-                                                                              showSearchBox: true),
-                                                                          // mode: Mode.dialog,
-                                                                          // showSelectedItems: true,
-                                                                          items: (filter, infiniteScrollProps) =>
-                                                                              snapshot.data!,
-                                                                          decoratorProps:
-                                                                              const DropDownDecoratorProps(
-                                                                            decoration:
-                                                                                InputDecoration(
-                                                                              labelText: "Next Follow-up By",
-                                                                              hintText: "Select a Name",
+                                                              child: FutureBuilder<
+                                                                      List<
+                                                                          String>>(
+                                                                  future:
+                                                                      getnames(),
+                                                                  builder: (context,
+                                                                      snapshot) {
+                                                                    if (snapshot
+                                                                            .hasData &&
+                                                                        snapshot.data !=
+                                                                            null) {
+                                                                      return DropdownSearch<
+                                                                          String>(
+                                                                        popupProps: const PopupProps
+                                                                            .dialog(
+                                                                            dialogProps:
+                                                                                DialogProps(
+                                                                              barrierDismissible: true,
+                                                                              barrierLabel: "Dismiss",
                                                                             ),
+                                                                            showSelectedItems:
+                                                                                true,
+                                                                            showSearchBox:
+                                                                                true),
+                                                                        // mode: Mode.dialog,
+                                                                        // showSelectedItems: true,
+                                                                        items: (filter,
+                                                                                infiniteScrollProps) =>
+                                                                            snapshot.data!,
+                                                                        decoratorProps:
+                                                                            const DropDownDecoratorProps(
+                                                                          decoration:
+                                                                              InputDecoration(
+                                                                            labelText:
+                                                                                "Next Follow-up By",
+                                                                            hintText:
+                                                                                "Select a Name",
                                                                           ),
+                                                                        ),
 
-                                                                          onSelected:
-                                                                              (value) {
-                                                                            setstate(() {
-                                                                              _selectedfollowupby = value;
-                                                                            });
-                                                                          },
-                                                                          selectedItem:
-                                                                              _selectedfollowupby,
-                                                                        );
-                                                                      } else {
-                                                                        return const Center(
-                                                                            child:
-                                                                                CircularProgressIndicator());
-                                                                      }
-                                                                    })),
-                                                          ],
-                                                        ),
+                                                                        onSelected:
+                                                                            (value) {
+                                                                          setstate(
+                                                                              () {
+                                                                            _selectedfollowupby =
+                                                                                value;
+                                                                          });
+                                                                        },
+                                                                        selectedItem:
+                                                                            _selectedfollowupby,
+                                                                      );
+                                                                    } else {
+                                                                      return const Center(
+                                                                          child:
+                                                                              CircularProgressIndicator());
+                                                                    }
+                                                                  })),
+                                                        ],
+                                                      ),
 
-                                                      if (_leadstat != 1)
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: InputField(
-                                                              validator: (val) {
-                                                                if (val?.length !=
-                                                                    10) {
-                                                                  return "Enter a valid 10-digit Whatsapp number";
-                                                                }
-                                                                return null;
-                                                              },
-                                                              label: _selectedstatus ==
-                                                                      "Installation Completed"
-                                                                  ? "Site Representative Mobile Number"
-                                                                  : "Mobile Number for OTP",
-                                                              controller:
-                                                                  _mobforotpcontroller,
-                                                              keyboardtype:
-                                                                  TextInputType
-                                                                      .phone,
-                                                              sufficon:
-                                                                  IconButton(
-                                                                      onPressed:
-                                                                          () async {
-                                                                        Contact?
-                                                                            contact =
-                                                                            await _contactPicker.selectPhoneNumber();
-                                                                        setstate(
-                                                                            () {
+                                                    if (_leadstat != 1)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: InputField(
+                                                            validator: (val) {
+                                                              if (val?.length !=
+                                                                  10) {
+                                                                return "Enter a valid 10-digit Whatsapp number";
+                                                              }
+                                                              return null;
+                                                            },
+                                                            label: _selectedstatus ==
+                                                                    "Installation Completed"
+                                                                ? "Site Representative Mobile Number"
+                                                                : "Mobile Number for OTP",
+                                                            controller:
+                                                                _mobforotpcontroller,
+                                                            keyboardtype:
+                                                                TextInputType
+                                                                    .phone,
+                                                            sufficon:
+                                                                IconButton(
+                                                                    onPressed:
+                                                                        () async {
+                                                                      Contact?
+                                                                          contact =
+                                                                          await _contactPicker
+                                                                              .selectPhoneNumber();
+                                                                      setstate(
+                                                                          () {
+                                                                        _selectedPhoneNumber =
+                                                                            contact?.selectedPhoneNumber;
+                                                                        if (_selectedPhoneNumber !=
+                                                                            null) {
+                                                                          var phno = _selectedPhoneNumber!.replaceAll(
+                                                                              " ",
+                                                                              "");
+                                                                          _mobforotpcontroller.text =
+                                                                              phno.substring(phno.length - 10);
                                                                           _selectedPhoneNumber =
-                                                                              contact?.selectedPhoneNumber;
-                                                                          if (_selectedPhoneNumber !=
-                                                                              null) {
-                                                                            var phno =
-                                                                                _selectedPhoneNumber!.replaceAll(" ", "");
-                                                                            _mobforotpcontroller.text =
-                                                                                phno.substring(phno.length - 10);
-                                                                            _selectedPhoneNumber =
-                                                                                null;
-                                                                          }
-                                                                        });
-                                                                      },
-                                                                      icon: const Icon(
-                                                                          Icons
-                                                                              .contacts))),
-                                                        ),
-                                                      if (_leadstat != 1)
-                                                        // image/vedio upload
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: Row(
-                                                            children: [
-                                                              Text(
-                                                                  "Upload Image/Video",
-                                                                  style: TextStyle(
-                                                                      fontSize:
-                                                                          16,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                      color: Colors
-                                                                              .grey[
-                                                                          700])),
-                                                              const Spacer(),
-                                                              // camera iconbutton
-                                                              SpeedDial(
-                                                                icon: Icons
-                                                                    .camera_alt,
-                                                                activeIcon: Icons
-                                                                    .close_rounded,
-                                                                children: [
-                                                                  SpeedDialChild(
-                                                                    child: const Icon(
-                                                                        Icons
-                                                                            .camera_alt),
-                                                                    label:
-                                                                        "Capture Image",
-                                                                    onTap:
-                                                                        () async {
-                                                                      final XFile?
-                                                                          image =
-                                                                          await _picker.pickImage(
-                                                                              source: ImageSource.camera,
-                                                                              imageQuality: 75);
-                                                                      if (image !=
-                                                                          null) {
-                                                                        setstate(
-                                                                            () {
-                                                                          _selectedImage
-                                                                              .add(image.path);
-                                                                        });
-                                                                      }
+                                                                              null;
+                                                                        }
+                                                                      });
                                                                     },
-                                                                  ),
-                                                                  SpeedDialChild(
-                                                                    child: const Icon(
+                                                                    icon: const Icon(
                                                                         Icons
-                                                                            .videocam),
-                                                                    label:
-                                                                        "Capture Video",
-                                                                    onTap:
-                                                                        () async {
-                                                                      final XFile?
-                                                                          video =
-                                                                          await _picker.pickVideo(
-                                                                              source: ImageSource.camera,
-                                                                              maxDuration: const Duration(seconds: 30));
-                                                                      if (video !=
-                                                                          null) {
-                                                                        final mediaInfo =
-                                                                            await VideoCompress.compressVideo(
-                                                                          video
-                                                                              .path,
-                                                                          quality:
-                                                                              VideoQuality.MediumQuality,
-                                                                          includeAudio:
-                                                                              true,
-                                                                          deleteOrigin:
-                                                                              false, // Set to true to delete the original video after compression
-                                                                        );
+                                                                            .contacts))),
+                                                      ),
+                                                    if (_leadstat != 1)
+                                                      // image/vedio upload
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: Row(
+                                                          children: [
+                                                            Text(
+                                                                "Upload Image/Video",
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        700])),
+                                                            const Spacer(),
+                                                            // camera iconbutton
+                                                            SpeedDial(
+                                                              icon: Icons
+                                                                  .camera_alt,
+                                                              activeIcon: Icons
+                                                                  .close_rounded,
+                                                              children: [
+                                                                SpeedDialChild(
+                                                                  child: const Icon(
+                                                                      Icons
+                                                                          .camera_alt),
+                                                                  label:
+                                                                      "Capture Image",
+                                                                  onTap:
+                                                                      () async {
+                                                                    final XFile?
+                                                                        image =
+                                                                        await _picker.pickImage(
+                                                                            source:
+                                                                                ImageSource.camera,
+                                                                            imageQuality: 75);
+                                                                    if (image !=
+                                                                        null) {
+                                                                      setstate(
+                                                                          () {
+                                                                        _selectedImage
+                                                                            .add(image.path);
+                                                                      });
+                                                                    }
+                                                                  },
+                                                                ),
+                                                                SpeedDialChild(
+                                                                  child: const Icon(
+                                                                      Icons
+                                                                          .videocam),
+                                                                  label:
+                                                                      "Capture Video",
+                                                                  onTap:
+                                                                      () async {
+                                                                    final XFile?
+                                                                        video =
+                                                                        await _picker.pickVideo(
+                                                                            source:
+                                                                                ImageSource.camera,
+                                                                            maxDuration: const Duration(seconds: 30));
+                                                                    if (video !=
+                                                                        null) {
+                                                                      final mediaInfo =
+                                                                          await VideoCompress
+                                                                              .compressVideo(
+                                                                        video
+                                                                            .path,
+                                                                        quality:
+                                                                            VideoQuality.MediumQuality,
+                                                                        includeAudio:
+                                                                            true,
+                                                                        deleteOrigin:
+                                                                            false, // Set to true to delete the original video after compression
+                                                                      );
+                                                                      setstate(
+                                                                          () {
+                                                                        _selectedImage.add(mediaInfo!
+                                                                            .file!
+                                                                            .path);
+                                                                      });
+                                                                    }
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                  Icons.photo),
+                                                              onPressed:
+                                                                  () async {
+                                                                final List<
+                                                                        XFile>
+                                                                    images =
+                                                                    await _picker.pickMultipleMedia(
+                                                                        imageQuality:
+                                                                            75);
+                                                                if (images
+                                                                    .isNotEmpty) {
+                                                                  for (var element
+                                                                      in images) {
+                                                                    if (element
+                                                                            .path
+                                                                            .endsWith(
+                                                                                '.mp4') ||
+                                                                        element
+                                                                            .path
+                                                                            .endsWith('.mov')) {
+                                                                      VideoCompress
+                                                                          .compressVideo(
+                                                                        element
+                                                                            .path,
+                                                                        quality:
+                                                                            VideoQuality.MediumQuality,
+                                                                        includeAudio:
+                                                                            true,
+                                                                        deleteOrigin:
+                                                                            false, // Set to true to delete the original video after compression
+                                                                      ).then(
+                                                                          (mediaInfo) {
                                                                         setstate(
                                                                             () {
                                                                           _selectedImage.add(mediaInfo!
                                                                               .file!
                                                                               .path);
                                                                         });
-                                                                      }
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              IconButton(
-                                                                icon: const Icon(
-                                                                    Icons
-                                                                        .photo),
-                                                                onPressed:
-                                                                    () async {
-                                                                  final List<
-                                                                          XFile>
-                                                                      images =
-                                                                      await _picker.pickMultipleMedia(
-                                                                          imageQuality:
-                                                                              75);
-                                                                  if (images
-                                                                      .isNotEmpty) {
-                                                                    for (var element
-                                                                        in images) {
-                                                                      if (element.path.endsWith(
-                                                                              '.mp4') ||
-                                                                          element
-                                                                              .path
-                                                                              .endsWith('.mov')) {
-                                                                        VideoCompress
-                                                                            .compressVideo(
-                                                                          element
-                                                                              .path,
-                                                                          quality:
-                                                                              VideoQuality.MediumQuality,
-                                                                          includeAudio:
-                                                                              true,
-                                                                          deleteOrigin:
-                                                                              false, // Set to true to delete the original video after compression
-                                                                        ).then(
-                                                                            (mediaInfo) {
-                                                                          setstate(
-                                                                              () {
-                                                                            _selectedImage.add(mediaInfo!.file!.path);
-                                                                          });
-                                                                        });
-                                                                      } else {
-                                                                        setstate(
-                                                                            () {
-                                                                          _selectedImage
-                                                                              .add(element.path);
-                                                                        });
-                                                                      }
+                                                                      });
+                                                                    } else {
+                                                                      setstate(
+                                                                          () {
+                                                                        _selectedImage
+                                                                            .add(element.path);
+                                                                      });
                                                                     }
                                                                   }
-                                                                },
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      if (_leadstat != 1)
-                                                        // preview of selected files
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5.0),
-                                                          child: SizedBox(
-                                                            height: 90,
-                                                            child: ListView
-                                                                .builder(
-                                                              scrollDirection:
-                                                                  Axis.horizontal,
-                                                              itemCount:
-                                                                  _selectedImage
-                                                                      .length,
-                                                              itemBuilder:
-                                                                  (context,
-                                                                      index) {
-                                                                final file =
-                                                                    _selectedImage[
-                                                                        index];
-                                                                final isVideo = file
-                                                                        .endsWith(
-                                                                            '.mp4') ||
-                                                                    file.endsWith(
-                                                                        '.mov'); // Quick extension check
-
-                                                                return Padding(
-                                                                  padding: const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          8.0),
-                                                                  child: Stack(
-                                                                    alignment:
-                                                                        Alignment
-                                                                            .topRight,
-                                                                    children: [
-                                                                      // 1. The Media Container
-                                                                      ClipRRect(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(8.0),
-                                                                        child:
-                                                                            Container(
-                                                                          width:
-                                                                              80,
-                                                                          height:
-                                                                              80,
-                                                                          color:
-                                                                              Colors.grey[200],
-                                                                          child:
-                                                                              Stack(
-                                                                            fit:
-                                                                                StackFit.expand,
-                                                                            children: [
-                                                                              // Render based on file type
-                                                                              if (isVideo)
-                                                                                VideoPreviewWidget(file: File(file))
-                                                                              else
-                                                                                Image.file(
-                                                                                  File(file),
-                                                                                  fit: BoxFit.cover,
-                                                                                ),
-
-                                                                              // Overlay a play icon if it's a video so the user knows it's not a photo
-                                                                              // if (isVideo)
-                                                                              //   const Center(
-                                                                              //     child:
-                                                                              //         Icon(
-                                                                              //       Icons.play_circle_fill,
-                                                                              //       size: 30,
-                                                                              //       color: Colors.white70,
-                                                                              //     ),
-                                                                              //   ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                      ),
-
-                                                                      // 2. The Red Cross Button Overlaid on Top
-                                                                      Positioned(
-                                                                        top: 0,
-                                                                        right:
-                                                                            0,
-                                                                        child:
-                                                                            GestureDetector(
-                                                                          onTap:
-                                                                              () {
-                                                                            setstate(() {
-                                                                              _selectedImage.removeAt(index);
-                                                                            });
-                                                                          },
-                                                                          child:
-                                                                              Container(
-                                                                            decoration:
-                                                                                const BoxDecoration(
-                                                                              color: Colors.red,
-                                                                              shape: BoxShape.circle,
-                                                                            ),
-                                                                            padding:
-                                                                                const EdgeInsets.all(4.0),
-                                                                            child: const Icon(Icons.close,
-                                                                                size: 14,
-                                                                                color: Colors.white),
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                );
+                                                                }
                                                               },
                                                             ),
-                                                          ),
+                                                          ],
                                                         ),
-                                                      if (_isLoading)
-                                                        Center(
-                                                            child: Column(
-                                                          children: [
-                                                            if (_leadstat != 1)
-                                                              Container(
-                                                                margin: const EdgeInsets
+                                                      ),
+                                                    if (_leadstat != 1)
+                                                      // preview of selected files
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5.0),
+                                                        child: SizedBox(
+                                                          height: 90,
+                                                          child:
+                                                              ListView.builder(
+                                                            scrollDirection:
+                                                                Axis.horizontal,
+                                                            itemCount:
+                                                                _selectedImage
+                                                                    .length,
+                                                            itemBuilder:
+                                                                (context,
+                                                                    index) {
+                                                              final file =
+                                                                  _selectedImage[
+                                                                      index];
+                                                              final isVideo = file
+                                                                      .endsWith(
+                                                                          '.mp4') ||
+                                                                  file.endsWith(
+                                                                      '.mov'); // Quick extension check
+
+                                                              return Padding(
+                                                                padding: const EdgeInsets
                                                                     .symmetric(
                                                                     horizontal:
-                                                                        24.0,
-                                                                    vertical:
-                                                                        16.0),
-                                                                padding:
-                                                                    const EdgeInsets
-                                                                        .all(
-                                                                        20.0),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              12),
-                                                                  boxShadow: [
-                                                                    BoxShadow(
-                                                                      color: Colors
-                                                                          .black
-                                                                          .withValues(
-                                                                              alpha: 0.05),
-                                                                      blurRadius:
-                                                                          10,
-                                                                      offset:
-                                                                          const Offset(
-                                                                              0,
-                                                                              4),
+                                                                        8.0),
+                                                                child: Stack(
+                                                                  alignment:
+                                                                      Alignment
+                                                                          .topRight,
+                                                                  children: [
+                                                                    // 1. The Media Container
+                                                                    ClipRRect(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              8.0),
+                                                                      child:
+                                                                          Container(
+                                                                        width:
+                                                                            80,
+                                                                        height:
+                                                                            80,
+                                                                        color: Colors
+                                                                            .grey[200],
+                                                                        child:
+                                                                            Stack(
+                                                                          fit: StackFit
+                                                                              .expand,
+                                                                          children: [
+                                                                            // Render based on file type
+                                                                            if (isVideo)
+                                                                              VideoPreviewWidget(file: File(file))
+                                                                            else
+                                                                              Image.file(
+                                                                                File(file),
+                                                                                fit: BoxFit.cover,
+                                                                              ),
+
+                                                                            // Overlay a play icon if it's a video so the user knows it's not a photo
+                                                                            // if (isVideo)
+                                                                            //   const Center(
+                                                                            //     child:
+                                                                            //         Icon(
+                                                                            //       Icons.play_circle_fill,
+                                                                            //       size: 30,
+                                                                            //       color: Colors.white70,
+                                                                            //     ),
+                                                                            //   ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
+
+                                                                    // 2. The Red Cross Button Overlaid on Top
+                                                                    Positioned(
+                                                                      top: 0,
+                                                                      right: 0,
+                                                                      child:
+                                                                          GestureDetector(
+                                                                        onTap:
+                                                                            () {
+                                                                          setstate(
+                                                                              () {
+                                                                            _selectedImage.removeAt(index);
+                                                                          });
+                                                                        },
+                                                                        child:
+                                                                            Container(
+                                                                          decoration:
+                                                                              const BoxDecoration(
+                                                                            color:
+                                                                                Colors.red,
+                                                                            shape:
+                                                                                BoxShape.circle,
+                                                                          ),
+                                                                          padding: const EdgeInsets
+                                                                              .all(
+                                                                              4.0),
+                                                                          child: const Icon(
+                                                                              Icons.close,
+                                                                              size: 14,
+                                                                              color: Colors.white),
+                                                                        ),
+                                                                      ),
                                                                     ),
                                                                   ],
                                                                 ),
-                                                                child: Column(
-                                                                  mainAxisSize:
-                                                                      MainAxisSize
-                                                                          .min, // Wrap tightly around progress items
-                                                                  children: [
-                                                                    Row(
-                                                                      children: [
-                                                                        const Icon(
-                                                                            Icons
-                                                                                .cloud_upload_outlined,
-                                                                            color:
-                                                                                Colors.brown),
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                12),
-                                                                        Expanded(
-                                                                          child:
-                                                                              Text(
-                                                                            _uploadProgress >= 1.0
-                                                                                ? "Processing on server..."
-                                                                                : "Uploading file data...",
-                                                                            style:
-                                                                                const TextStyle(
-                                                                              fontSize: 15,
-                                                                              fontWeight: FontWeight.w600,
-                                                                              color: Colors.black87,
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                        // Shows raw text layout percentage (e.g., 45%)
-                                                                        Text(
-                                                                          "${(_uploadProgress * 100).toStringAsFixed(0)}%",
+                                                              );
+                                                            },
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    if (_isLoading)
+                                                      Center(
+                                                          child: Column(
+                                                        children: [
+                                                          if (_leadstat != 1)
+                                                            Container(
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          24.0,
+                                                                      vertical:
+                                                                          16.0),
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(
+                                                                      20.0),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Colors
+                                                                    .white,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            12),
+                                                                boxShadow: [
+                                                                  BoxShadow(
+                                                                    color: Colors
+                                                                        .black
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.05),
+                                                                    blurRadius:
+                                                                        10,
+                                                                    offset:
+                                                                        const Offset(
+                                                                            0,
+                                                                            4),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              child: Column(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min, // Wrap tightly around progress items
+                                                                children: [
+                                                                  Row(
+                                                                    children: [
+                                                                      const Icon(
+                                                                          Icons
+                                                                              .cloud_upload_outlined,
+                                                                          color:
+                                                                              Colors.brown),
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              12),
+                                                                      Expanded(
+                                                                        child:
+                                                                            Text(
+                                                                          _uploadProgress >= 1.0
+                                                                              ? "Processing on server..."
+                                                                              : "Uploading file data...",
                                                                           style:
                                                                               const TextStyle(
                                                                             fontSize:
                                                                                 15,
                                                                             fontWeight:
-                                                                                FontWeight.bold,
+                                                                                FontWeight.w600,
                                                                             color:
-                                                                                Colors.brown,
+                                                                                Colors.black87,
                                                                           ),
                                                                         ),
-                                                                      ],
-                                                                    ),
-                                                                    const SizedBox(
-                                                                        height:
-                                                                            14),
-
-                                                                    // The actual linear bar displaying state data
-                                                                    ClipRRect(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              4), // Rounds the edges of the bar
-                                                                      child:
-                                                                          LinearProgressIndicator(
-                                                                        value:
-                                                                            _uploadProgress,
-                                                                        color: Colors
-                                                                            .brown,
-                                                                        backgroundColor:
-                                                                            Colors.transparent,
-                                                                        minHeight:
-                                                                            8, // Makes the bar visually easy to track
                                                                       ),
+                                                                      // Shows raw text layout percentage (e.g., 45%)
+                                                                      Text(
+                                                                        "${(_uploadProgress * 100).toStringAsFixed(0)}%",
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
+                                                                          color:
+                                                                              Colors.brown,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      height:
+                                                                          14),
+
+                                                                  // The actual linear bar displaying state data
+                                                                  ClipRRect(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            4), // Rounds the edges of the bar
+                                                                    child:
+                                                                        LinearProgressIndicator(
+                                                                      value:
+                                                                          _uploadProgress,
+                                                                      color: Colors
+                                                                          .brown,
+                                                                      backgroundColor:
+                                                                          Colors
+                                                                              .transparent,
+                                                                      minHeight:
+                                                                          8, // Makes the bar visually easy to track
                                                                     ),
-                                                                  ],
-                                                                ),
+                                                                  ),
+                                                                ],
                                                               ),
-                                                            const CircularProgressIndicator(
-                                                                color: Colors
-                                                                    .brown),
-                                                          ],
-                                                        )),
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(5),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceAround,
-                                                            children: [
-                                                              ElevatedButton(
-                                                                style: ElevatedButton.styleFrom(
-                                                                    backgroundColor:
-                                                                        const Color
-                                                                            .fromRGBO(
-                                                                            252,
-                                                                            101,
-                                                                            8,
-                                                                            1),
-                                                                    foregroundColor:
-                                                                        Colors
-                                                                            .white),
-                                                                onPressed:
-                                                                    _isLoading
-                                                                        ? null
-                                                                        : (() async {
-                                                                            if (_formkey.currentState!.validate()) {
-                                                                              FocusScope.of(context).unfocus();
-                                                                              setstate(() {
-                                                                                _isLoading = true;
-                                                                              });
-                                                                              var respcode = await submitdata("true", _resendotp);
-                                                                              if (respcode == 200 || respcode == 201) {
-                                                                                setstate(() {
-                                                                                  if (_leadstat == 1) {
-                                                                                    _isLoading = false;
-                                                                                  }
-                                                                                  ischeckedin = false;
-                                                                                });
-                                                                                if (_leadstat != 1) {
-                                                                                  var jcc = await openDialog("Job Complete OTP", "Enter OTP");
-                                                                                  // setstate(
-                                                                                  //     () {
-
-                                                                                  //     });
-                                                                                  // List<String>
-                                                                                  //     leadids =
-                                                                                  //     [];
-                                                                                  // print("ino check: $ino");
-
-                                                                                  final resp = await http.post(Uri.parse('$baseuri/api/verify-jcc/'),
-                                                                                      body: jsonEncode({
-                                                                                        "JCC": jcc ?? "",
-                                                                                        "LEAD_ID": _selectedfollowupproduct.map((item) => item.leadid).toList(),
-                                                                                        "PJC": _pjc,
-                                                                                        "ino": ino
-                                                                                      }),
-                                                                                      headers: {
-                                                                                        "Content-Type": "application/json"
-                                                                                      });
-                                                                                  if (resp.statusCode == 200) {
-                                                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP Verified Successfully"), backgroundColor: Colors.green));
-                                                                                  } else {
-                                                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP couldnot be verified. Please try again."), backgroundColor: Colors.red));
-                                                                                  }
-                                                                                }
-
-                                                                                Navigator.of(context).pop("Data saved");
-
-                                                                                setstate(() {
-                                                                                  _isLoading = false;
-                                                                                });
-
-                                                                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved successfully"), backgroundColor: Colors.green[400]));
-                                                                                // if (kDebugMode) {
-                                                                                //   SendNotificationService.sendNotificationUsingApi(
-                                                                                //       token:
-                                                                                //           "test",
-                                                                                //       title: "Lead Follow UP",
-                                                                                //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
-                                                                                //       data: {
-                                                                                //         "screen":
-                                                                                //             "detail",
-                                                                                //         "pjc":
-                                                                                //             _pjc,
-                                                                                //         "pname":
-                                                                                //             _pname
-                                                                                //       });
-                                                                                // } else {
-                                                                                //   SendNotificationService.sendNotificationUsingApi(
-                                                                                //       token:
-                                                                                //           "all",
-                                                                                //       title: "Lead Follow UP",
-                                                                                //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
-                                                                                //       data: {
-                                                                                //         "screen":
-                                                                                //             "detail",
-                                                                                //         "pjc":
-                                                                                //             _pjc,
-                                                                                //         "pname":
-                                                                                //             _pname
-                                                                                //       });
-                                                                                // }
-                                                                              } else {
-                                                                                setstate(() {
-                                                                                  _isLoading = false;
-                                                                                  ischeckedin = false;
-                                                                                });
-                                                                                // Navigator.of(
-                                                                                //         context)
-                                                                                //     .pop(
-                                                                                //         "Data saved");
-                                                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Something went wrong. Please try again."), backgroundColor: Colors.red));
-                                                                              }
-                                                                            }
-                                                                          }),
-                                                                child: _selectedstatus ==
-                                                                        "Installation Completed"
-                                                                    ? const Text(
-                                                                        "Save and Send OTP")
-                                                                    : const Text(
-                                                                        "Save and Send"),
-                                                              ),
-                                                              // _selectedstatus ==
-                                                              //         "Installation Completed"
-                                                              //     ? ElevatedButton(
-                                                              //         style: ElevatedButton.styleFrom(
-                                                              //             backgroundColor: const Color
-                                                              //                 .fromRGBO(
-                                                              //                 252,
-                                                              //                 101,
-                                                              //                 8,
-                                                              //                 1),
-                                                              //             foregroundColor:
-                                                              //                 Colors
-                                                              //                     .white),
-                                                              //         onPressed:
-                                                              //             _isLoading
-                                                              //                 ? null
-                                                              //                 : (() async {
-                                                              //                     setstate(() {
-                                                              //                       _isLoading = true;
-                                                              //                     });
-                                                              //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
-                                                              //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
-                                                              //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
-                                                              //                       setstate(() {
-                                                              //                         _isLoading = false;
-                                                              //                         ischeckedin = false;
-                                                              //                       });
-                                                              //                       Navigator.of(context).pop("Data saved and Report Sent");
-                                                              //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
-                                                              //                     }
-                                                              //                   }),
-                                                              //         child:
-                                                              //             const Text(
-                                                              //           "Send Report",
-                                                              //         ))
-                                                              ElevatedButton(
-                                                                style: ElevatedButton.styleFrom(
-                                                                    backgroundColor:
-                                                                        const Color
-                                                                            .fromRGBO(
-                                                                            252,
-                                                                            101,
-                                                                            8,
-                                                                            1),
-                                                                    foregroundColor:
-                                                                        Colors
-                                                                            .white),
-                                                                onPressed:
-                                                                    _isLoading
-                                                                        ? null
-                                                                        : (() async {
+                                                            ),
+                                                          const CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.brown),
+                                                        ],
+                                                      )),
+                                                    Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceAround,
+                                                          children: [
+                                                            ElevatedButton(
+                                                              style: ElevatedButton.styleFrom(
+                                                                  backgroundColor:
+                                                                      const Color
+                                                                          .fromRGBO(
+                                                                          252,
+                                                                          101,
+                                                                          8,
+                                                                          1),
+                                                                  foregroundColor:
+                                                                      Colors
+                                                                          .white),
+                                                              onPressed:
+                                                                  _isLoading
+                                                                      ? null
+                                                                      : (() async {
+                                                                          if (_formkey
+                                                                              .currentState!
+                                                                              .validate()) {
+                                                                            FocusScope.of(context).unfocus();
                                                                             setstate(() {
                                                                               _isLoading = true;
                                                                             });
                                                                             var respcode =
-                                                                                await submitdata("false", _resendotp);
+                                                                                await submitdata("true", _resendotp);
                                                                             if (respcode == 200 ||
                                                                                 respcode == 201) {
                                                                               setstate(() {
-                                                                                _isLoading = false;
+                                                                                if (_leadstat == 1) {
+                                                                                  _isLoading = false;
+                                                                                }
                                                                                 ischeckedin = false;
                                                                               });
+                                                                              if (_leadstat != 1) {
+                                                                                var jcc = await openDialog("Job Complete OTP", "Enter OTP");
+                                                                                // setstate(
+                                                                                //     () {
+
+                                                                                //     });
+                                                                                // List<String>
+                                                                                //     leadids =
+                                                                                //     [];
+                                                                                // print("ino check: $ino");
+
+                                                                                final resp = await http.post(Uri.parse('$baseuri/api/verify-jcc/'),
+                                                                                    body: jsonEncode({
+                                                                                      "JCC": jcc ?? "",
+                                                                                      "LEAD_ID": _selectedfollowupproduct.map((item) => item.leadid).toList(),
+                                                                                      "PJC": _pjc,
+                                                                                      "ino": ino
+                                                                                    }),
+                                                                                    headers: {
+                                                                                      "Content-Type": "application/json"
+                                                                                    });
+                                                                                if (resp.statusCode == 200) {
+                                                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP Verified Successfully"), backgroundColor: Colors.green));
+                                                                                } else {
+                                                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP couldnot be verified. Please try again."), backgroundColor: Colors.red));
+                                                                                }
+                                                                              }
+
                                                                               Navigator.of(context).pop("Data saved");
+
+                                                                              setstate(() {
+                                                                                _isLoading = false;
+                                                                              });
+
                                                                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved successfully"), backgroundColor: Colors.green[400]));
                                                                               // if (kDebugMode) {
                                                                               //   SendNotificationService.sendNotificationUsingApi(
@@ -3179,6 +3180,7 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                             } else {
                                                                               setstate(() {
                                                                                 _isLoading = false;
+                                                                                ischeckedin = false;
                                                                               });
                                                                               // Navigator.of(
                                                                               //         context)
@@ -3186,430 +3188,349 @@ class _LeadDetailState extends State<LeadDetail> {
                                                                               //         "Data saved");
                                                                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Something went wrong. Please try again."), backgroundColor: Colors.red));
                                                                             }
-                                                                          }),
-                                                                child: const Text(
-                                                                    "Save Details"),
-                                                              ),
-                                                            ],
-                                                          ))
-                                                    ],
-                                                  ),
-                                                ),
-                                              )),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                );
-                              });
-                          if (result != null) {
-                            // assigndata();
-                            Navigator.of(context).pop();
-                            // setState(() {});
-                          }
-                        }
-                      }
-                    : null,
-                child: const Text("Check Out"))
-          ],
-        ),
-        childs: !_isdataLoaded
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
-            : ListView.builder(
-                itemCount: filtermeeting.length,
-                itemBuilder: (context, index) {
-                  var firstidx = filtermeeting.indexWhere(
-                      (meet) => meet.leadid == filtermeeting[index].leadid);
-                  var lastidx = filtermeeting.lastIndexWhere(
-                      (meet) => meet.leadid == filtermeeting[index].leadid);
-                  if (kDebugMode) {
-                    print(
-                      "firstidx: $firstidx, lastidx: $lastidx, index: $index, open: ${filtermeeting[index].open}, reportlink: ${filtermeeting[index].reportlink}, imagelink: ${filtermeeting[index].imagelink}",
-                    );
-                  }
-                  if ((index == firstidx)) {
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Material(
-                            elevation: 4,
-                            borderRadius: BorderRadius.circular(5.0),
-                            child: Container(
-                              // Outer container for the border and background color
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 212, 234, 223),
-                                // A color similar to the image's background
-                                border: Border.all(
-                                  color: Colors.grey, // Border color
-                                  width: 1.0, // Border width
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                    5.0), // Optional: slight rounded corners
-                              ),
-                              padding: const EdgeInsets.all(
-                                  6.0), // Padding inside the container
-                              child: Column(
-                                mainAxisSize: MainAxisSize
-                                    .min, // To make the column only take necessary space
-                                crossAxisAlignment: CrossAxisAlignment
-                                    .start, // Align text to the start
-                                children: [
-                                  _buildInfoRow(
-                                      'Created',
-                                      filtermeeting[index].createddate,
-                                      'By',
-                                      filtermeeting[index].leadbyn,
-                                      "Lead Type",
-                                      "${filtermeeting[index].leadtype} (${filtermeeting[index].leadid})",
-                                      _isAdmin,
-                                      ""),
-                                  const SizedBox(
-                                      height: 8.0), // Space between rows
-                                  _buildInfoRow(
-                                      '',
-                                      "",
-                                      'To',
-                                      filtermeeting[index].leadton,
-                                      "",
-                                      "",
-                                      _isAdmin,
-                                      ""),
-                                  const SizedBox(height: 8.0),
-                                  _buildInfoRow(
-                                      'Scheduled',
-                                      filtermeeting[index].scheduleMeeting,
-                                      'For',
-                                      filtermeeting[index].product,
-                                      "Status",
-                                      "Open",
-                                      _isAdmin,
-                                      ""),
-                                  const SizedBox(
-                                      height:
-                                          16.0), // Space before the "Comments" section
-                                  Container(
-                                    width: double.infinity, // Take full width
-                                    color: const Color.fromARGB(255, 241, 211,
-                                        132), // Yellowish background color
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12.0),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      filtermeeting[index]
-                                          .message
-                                          .replaceAll("(New Lead Created)", ""),
-                                      style: const TextStyle(
-                                        color: Colors
-                                            .black, // Black text for comments
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        if ((filtermeeting[index].visitdate.isNotEmpty))
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: Material(
-                              elevation: 4,
-                              borderRadius: BorderRadius.circular(5.0),
-                              child: Container(
-                                // Outer container for the border and background color
-                                decoration: BoxDecoration(
-                                  color: (index == lastidx) &
-                                          (filtermeeting[index].open == "N")
-                                      ? const Color.fromARGB(255, 243, 180, 180)
-                                      : const Color(
-                                          0xFFF0E5D5), // A color similar to the image's background
-                                  border: Border.all(
-                                    color: Colors.grey, // Border color
-                                    width: 1.0, // Border width
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                      5.0), // Optional: slight rounded corners
-                                ),
-                                padding: const EdgeInsets.all(
-                                    6.0), // Padding inside the container
-                                child: Column(
-                                  mainAxisSize: MainAxisSize
-                                      .min, // To make the column only take necessary space
-                                  crossAxisAlignment: CrossAxisAlignment
-                                      .start, // Align text to the start
-                                  children: [
-                                    _buildInfoRow(
-                                        'Checkin',
-                                        filtermeeting[index].visitdate,
-                                        'By',
-                                        filtermeeting[index].leadbyn,
-                                        "Lead Type",
-                                        "${filtermeeting[index].leadtype} (${filtermeeting[index].leadid})",
-                                        _isAdmin,
-                                        filtermeeting[index].checkinloca),
-                                    const SizedBox(
-                                        height: 8.0), // Space between rows
-                                    _buildInfoRow(
-                                        'Checkout',
-                                        filtermeeting[index].checkout,
-                                        'To',
-                                        filtermeeting[index].leadton,
-                                        "Created",
-                                        filtermeeting[firstidx].createddate,
-                                        _isAdmin,
-                                        filtermeeting[index].checkoutloca),
-                                    const SizedBox(height: 8.0),
-                                    _buildInfoRow(
-                                        'Next Visit',
-                                        filtermeeting[index].nextMeeting,
-                                        'For',
-                                        filtermeeting[index].product,
-                                        "Status",
-                                        (index == lastidx) &
-                                                (filtermeeting[index].open ==
-                                                    "N")
-                                            ? "Closed"
-                                            : "Open",
-                                        _isAdmin,
-                                        ""),
-                                    const SizedBox(
-                                        height:
-                                            16.0), // Space before the "Comments" section
-                                    Container(
-                                      width: double.infinity, // Take full width
-                                      color: const Color.fromARGB(255, 241, 211,
-                                          132), // Yellowish background color
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10.0),
-                                      alignment: Alignment.center,
-                                      child: ((filtermeeting[index]
-                                                      .reportlink !=
-                                                  null) ||
-                                              (filtermeeting[index].imagelink !=
-                                                  null))
-                                          ? Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // Text("link found"),
-                                                Text(
-                                                  filtermeeting[index]
-                                                      .comments
-                                                      .replaceAll(
-                                                          RegExp(
-                                                              r'\(Lead Open\)|\(Lead Closed\)'),
-                                                          ""),
-                                                  style: const TextStyle(
-                                                    color: Colors
-                                                        .black, // Black text for comments
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceAround,
-                                                  children: [
-                                                    if (filtermeeting[index]
-                                                            .reportlink !=
-                                                        null)
-                                                      TextButton(
-                                                        onPressed: () {
-                                                          // Handle report link action
-                                                          openReportOnDemand(
-                                                              filtermeeting[
-                                                                  index]);
-                                                        },
-                                                        child: const Text(
-                                                            "View Report"),
-                                                      ),
-                                                    if (filtermeeting[index]
-                                                            .imagelink ==
-                                                        true)
-                                                      TextButton(
-                                                        onPressed: () {
-                                                          // Handle image link action
-                                                          fetchImagesOnDemand(
-                                                              filtermeeting[
-                                                                  index]);
-                                                        },
-                                                        child: const Text(
-                                                            "View Images"),
-                                                      ),
+                                                                          }
+                                                                        }),
+                                                              child: _selectedstatus ==
+                                                                      "Installation Completed"
+                                                                  ? const Text(
+                                                                      "Save and Send OTP")
+                                                                  : const Text(
+                                                                      "Save and Send"),
+                                                            ),
+                                                            // _selectedstatus ==
+                                                            //         "Installation Completed"
+                                                            //     ? ElevatedButton(
+                                                            //         style: ElevatedButton.styleFrom(
+                                                            //             backgroundColor: const Color
+                                                            //                 .fromRGBO(
+                                                            //                 252,
+                                                            //                 101,
+                                                            //                 8,
+                                                            //                 1),
+                                                            //             foregroundColor:
+                                                            //                 Colors
+                                                            //                     .white),
+                                                            //         onPressed:
+                                                            //             _isLoading
+                                                            //                 ? null
+                                                            //                 : (() async {
+                                                            //                     setstate(() {
+                                                            //                       _isLoading = true;
+                                                            //                     });
+                                                            //                     String queryparam = _selectedfollowupproduct.map((item) => "leadid=${item.leadid}").join("&");
+                                                            //                     var respcode = await http.get(Uri.parse('$baseuri/api/ins_report/?$queryparam'));
+                                                            //                     if (respcode.statusCode == 200 || respcode.statusCode == 201) {
+                                                            //                       setstate(() {
+                                                            //                         _isLoading = false;
+                                                            //                         ischeckedin = false;
+                                                            //                       });
+                                                            //                       Navigator.of(context).pop("Data saved and Report Sent");
+                                                            //                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("Data saved and Report Sent successfully"), backgroundColor: Colors.green[400]));
+                                                            //                     }
+                                                            //                   }),
+                                                            //         child:
+                                                            //             const Text(
+                                                            //           "Send Report",
+                                                            //         ))
+                                                            ElevatedButton(
+                                                              style: ElevatedButton.styleFrom(
+                                                                  backgroundColor:
+                                                                      const Color
+                                                                          .fromRGBO(
+                                                                          252,
+                                                                          101,
+                                                                          8,
+                                                                          1),
+                                                                  foregroundColor:
+                                                                      Colors
+                                                                          .white),
+                                                              onPressed:
+                                                                  _isLoading
+                                                                      ? null
+                                                                      : (() async {
+                                                                          setstate(
+                                                                              () {
+                                                                            _isLoading =
+                                                                                true;
+                                                                          });
+                                                                          var respcode = await submitdata(
+                                                                              "false",
+                                                                              _resendotp);
+                                                                          if (respcode == 200 ||
+                                                                              respcode == 201) {
+                                                                            setstate(() {
+                                                                              _isLoading = false;
+                                                                              ischeckedin = false;
+                                                                            });
+                                                                            Navigator.of(context).pop("Data saved");
+                                                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                                                content: const Text("Data saved successfully"),
+                                                                                backgroundColor: Colors.green[400]));
+                                                                            // if (kDebugMode) {
+                                                                            //   SendNotificationService.sendNotificationUsingApi(
+                                                                            //       token:
+                                                                            //           "test",
+                                                                            //       title: "Lead Follow UP",
+                                                                            //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
+                                                                            //       data: {
+                                                                            //         "screen":
+                                                                            //             "detail",
+                                                                            //         "pjc":
+                                                                            //             _pjc,
+                                                                            //         "pname":
+                                                                            //             _pname
+                                                                            //       });
+                                                                            // } else {
+                                                                            //   SendNotificationService.sendNotificationUsingApi(
+                                                                            //       token:
+                                                                            //           "all",
+                                                                            //       title: "Lead Follow UP",
+                                                                            //       body: "Party: $_pname\nProduct: ${_selectedfollowupproduct.map((item) => item.product).join(", ")}",
+                                                                            //       data: {
+                                                                            //         "screen":
+                                                                            //             "detail",
+                                                                            //         "pjc":
+                                                                            //             _pjc,
+                                                                            //         "pname":
+                                                                            //             _pname
+                                                                            //       });
+                                                                            // }
+                                                                          } else {
+                                                                            setstate(() {
+                                                                              _isLoading = false;
+                                                                            });
+                                                                            // Navigator.of(
+                                                                            //         context)
+                                                                            //     .pop(
+                                                                            //         "Data saved");
+                                                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                                                                content: Text("Something went wrong. Please try again."),
+                                                                                backgroundColor: Colors.red));
+                                                                          }
+                                                                        }),
+                                                              child: const Text(
+                                                                  "Save Details"),
+                                                            ),
+                                                          ],
+                                                        ))
                                                   ],
                                                 ),
-                                                if (index ==
-                                                    filtermeeting.length - 1)
-                                                  const SizedBox(height: 40.0),
-                                              ],
-                                            )
-                                          : Text(
-                                              filtermeeting[index]
-                                                  .comments
-                                                  .replaceAll(
-                                                      RegExp(
-                                                          r'\(Lead Open\)|\(Lead Closed\)'),
-                                                      ""),
-                                              style: const TextStyle(
-                                                color: Colors
-                                                    .black, // Black text for comments
-                                                fontWeight: FontWeight.bold,
                                               ),
-                                            ),
-                                    ),
-                                  ],
+                                            )),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              );
+                            });
+                        if (result != null) {
+                          // assigndata();
+                          Navigator.of(context).pop();
+                          // setState(() {});
+                        }
+                      }
+                    }
+                  : null,
+              child: const Text("Check Out"))
+        ],
+      ),
+      childs: PagingListener<int, Meeting>(
+        controller: _pagingController,
+        builder: (context, state, fetchNextPage) => PagedListView<int, Meeting>(
+          state: state,
+          fetchNextPage: fetchNextPage,
+          builderDelegate: PagedChildBuilderDelegate<Meeting>(
+            itemBuilder: (context, item, index) {
+              // Get all currently loaded items in the paging controller
+              final currentItems = _pagingController.value.items ?? [];
+
+              // Find first and last index for this leadid within the loaded items
+              final firstidx =
+                  currentItems.indexWhere((meet) => meet.leadid == item.leadid);
+              final lastidx = currentItems
+                  .lastIndexWhere((meet) => meet.leadid == item.leadid);
+
+              if (kDebugMode) {
+                print(
+                  "firstidx: $firstidx, lastidx: $lastidx, index: $index, open: ${item.open}, reportlink: ${item.reportlink}, imagelink: ${item.imagelink}",
+                );
+              }
+
+              if (index == firstidx) {
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(5.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 212, 234, 223),
+                            border: Border.all(
+                              color: Colors.grey,
+                              width: 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(5.0),
+                          ),
+                          padding: const EdgeInsets.all(6.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInfoRow(
+                                  'Created',
+                                  item.createddate,
+                                  'By',
+                                  item.leadbyn,
+                                  "Lead Type",
+                                  "${item.leadtype} (${item.leadid})",
+                                  _isAdmin,
+                                  ""),
+                              const SizedBox(height: 8.0),
+                              _buildInfoRow('', "", 'To', item.leadton, "", "",
+                                  _isAdmin, ""),
+                              const SizedBox(height: 8.0),
+                              _buildInfoRow(
+                                  'Scheduled',
+                                  item.scheduleMeeting,
+                                  'For',
+                                  item.product,
+                                  "Status",
+                                  "Open",
+                                  _isAdmin,
+                                  ""),
+                              const SizedBox(height: 16.0),
+                              Container(
+                                width: double.infinity,
+                                color: const Color.fromARGB(255, 241, 211, 132),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12.0),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  item.message
+                                      .replaceAll("(New Lead Created)", ""),
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                          )
-                      ],
-                    );
-                  } else {
-                    if ((filtermeeting[index].visitdate.isNotEmpty) &&
-                        (index != firstidx)) {
-                      // ((filtermeeting[index].visitdate.isNotEmpty))) {
-                      return Padding(
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (item.visitdate.isNotEmpty)
+                      Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: Material(
                           elevation: 4,
                           borderRadius: BorderRadius.circular(5.0),
                           child: Container(
-                            // Outer container for the border and background color
                             decoration: BoxDecoration(
-                              color: (index == firstidx) &
-                                      (filtermeeting[index].open == "Y")
-                                  ? const Color.fromARGB(255, 212, 234, 223)
-                                  : (index == lastidx) &
-                                          (filtermeeting[index].open == "N")
-                                      ? const Color.fromARGB(255, 243, 180, 180)
-                                      : const Color(
-                                          0xFFF0E5D5), // A color similar to the image's background
+                              color: (index == lastidx) && (item.open == "N")
+                                  ? const Color.fromARGB(255, 243, 180, 180)
+                                  : const Color(0xFFF0E5D5),
                               border: Border.all(
-                                color: Colors.grey, // Border color
-                                width: 1.0, // Border width
+                                color: Colors.grey,
+                                width: 1.0,
                               ),
-                              borderRadius: BorderRadius.circular(
-                                  5.0), // Optional: slight rounded corners
+                              borderRadius: BorderRadius.circular(5.0),
                             ),
-                            padding: const EdgeInsets.all(
-                                6.0), // Padding inside the container
+                            padding: const EdgeInsets.all(6.0),
                             child: Column(
-                              mainAxisSize: MainAxisSize
-                                  .min, // To make the column only take necessary space
-                              crossAxisAlignment: CrossAxisAlignment
-                                  .start, // Align text to the start
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildInfoRow(
                                     'Checkin',
-                                    filtermeeting[index].visitdate,
+                                    item.visitdate,
                                     'By',
-                                    filtermeeting[index].leadbyn,
+                                    item.leadbyn,
                                     "Lead Type",
-                                    "${filtermeeting[index].leadtype} (${filtermeeting[index].leadid})",
+                                    "${item.leadtype} (${item.leadid})",
                                     _isAdmin,
-                                    filtermeeting[index].checkinloca),
-                                const SizedBox(
-                                    height: 8.0), // Space between rows
+                                    item.checkinloca),
+                                const SizedBox(height: 8.0),
                                 _buildInfoRow(
                                     'Checkout',
-                                    filtermeeting[index].checkout,
+                                    item.checkout,
                                     'To',
-                                    filtermeeting[index].leadton,
+                                    item.leadton,
                                     "Created",
-                                    filtermeeting[firstidx].createddate,
+                                    currentItems[firstidx].createddate,
                                     _isAdmin,
-                                    filtermeeting[index].checkoutloca),
+                                    item.checkoutloca),
                                 const SizedBox(height: 8.0),
                                 _buildInfoRow(
                                     'Next Visit',
-                                    filtermeeting[index].nextMeeting,
+                                    item.nextMeeting,
                                     'For',
-                                    filtermeeting[index].product,
+                                    item.product,
                                     "Status",
-                                    (index == lastidx) &
-                                            (filtermeeting[index].open == "N")
+                                    (index == lastidx) && (item.open == "N")
                                         ? "Closed"
                                         : "Open",
                                     _isAdmin,
                                     ""),
-                                const SizedBox(
-                                    height:
-                                        16.0), // Space before the "Comments" section
+                                const SizedBox(height: 16.0),
                                 Container(
-                                  width: double.infinity, // Take full width
-                                  color: const Color.fromARGB(255, 241, 211,
-                                      132), // Yellowish background color
+                                  width: double.infinity,
+                                  color:
+                                      const Color.fromARGB(255, 241, 211, 132),
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 10.0),
                                   alignment: Alignment.center,
-                                  child: ((filtermeeting[index].reportlink !=
-                                              null) ||
-                                          (filtermeeting[index].imagelink !=
-                                              null))
+                                  child: (item.reportlink != null ||
+                                          item.imagelink != null)
                                       ? Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            // Text("link found"),
                                             Text(
-                                              filtermeeting[index]
-                                                  .comments
-                                                  .replaceAll(
-                                                      RegExp(
-                                                          r'\(Lead Open\)|\(Lead Closed\)'),
-                                                      ""),
+                                              item.comments.replaceAll(
+                                                  RegExp(
+                                                      r'\(Lead Open\)|\(Lead Closed\)'),
+                                                  ""),
                                               style: const TextStyle(
-                                                color: Colors
-                                                    .black, // Black text for comments
+                                                color: Colors.black,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-
                                             Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.spaceAround,
                                               children: [
-                                                if (filtermeeting[index]
-                                                        .reportlink !=
-                                                    null)
+                                                if (item.reportlink != null)
                                                   TextButton(
-                                                    onPressed: () {
-                                                      // Handle report link action
-                                                      openReportOnDemand(
-                                                          filtermeeting[index]);
-                                                    },
+                                                    onPressed: () =>
+                                                        openReportOnDemand(
+                                                            item),
                                                     child: const Text(
                                                         "View Report"),
                                                   ),
-                                                if (filtermeeting[index]
-                                                        .imagelink ==
-                                                    true)
+                                                if (item.imagelink == true)
                                                   TextButton(
-                                                    onPressed: () {
-                                                      // Handle image link action
-                                                      fetchImagesOnDemand(
-                                                          filtermeeting[index]);
-                                                    },
+                                                    onPressed: () =>
+                                                        fetchImagesOnDemand(
+                                                            item),
                                                     child: const Text(
                                                         "View Images"),
                                                   ),
                                               ],
                                             ),
                                             if (index ==
-                                                filtermeeting.length - 1)
+                                                currentItems.length - 1)
                                               const SizedBox(height: 40.0),
                                           ],
                                         )
                                       : Text(
-                                          filtermeeting[index].comments.replaceAll(
+                                          item.comments.replaceAll(
                                               RegExp(
                                                   r'\(Lead Open\)|\(Lead Closed\)'),
                                               ""),
                                           style: const TextStyle(
-                                            color: Colors
-                                                .black, // Black text for comments
+                                            color: Colors.black,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -3618,12 +3539,139 @@ class _LeadDetailState extends State<LeadDetail> {
                             ),
                           ),
                         ),
-                      );
-                    }
-                  }
-                  return const SizedBox.shrink();
-                },
-              ));
+                      ),
+                  ],
+                );
+              } else if (item.visitdate.isNotEmpty && index != firstidx) {
+                return Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(5.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: (index == firstidx) && (item.open == "Y")
+                            ? const Color.fromARGB(255, 212, 234, 223)
+                            : (index == lastidx) && (item.open == "N")
+                                ? const Color.fromARGB(255, 243, 180, 180)
+                                : const Color(0xFFF0E5D5),
+                        border: Border.all(
+                          color: Colors.grey,
+                          width: 1.0,
+                        ),
+                        borderRadius: BorderRadius.circular(5.0),
+                      ),
+                      padding: const EdgeInsets.all(6.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow(
+                              'Checkin',
+                              item.visitdate,
+                              'By',
+                              item.leadbyn,
+                              "Lead Type",
+                              "${item.leadtype} (${item.leadid})",
+                              _isAdmin,
+                              item.checkinloca),
+                          const SizedBox(height: 8.0),
+                          _buildInfoRow(
+                              'Checkout',
+                              item.checkout,
+                              'To',
+                              item.leadton,
+                              "Created",
+                              currentItems[firstidx].createddate,
+                              _isAdmin,
+                              item.checkoutloca),
+                          const SizedBox(height: 8.0),
+                          _buildInfoRow(
+                              'Next Visit',
+                              item.nextMeeting,
+                              'For',
+                              item.product,
+                              "Status",
+                              (index == lastidx) && (item.open == "N")
+                                  ? "Closed"
+                                  : "Open",
+                              _isAdmin,
+                              ""),
+                          const SizedBox(height: 16.0),
+                          Container(
+                            width: double.infinity,
+                            color: const Color.fromARGB(255, 241, 211, 132),
+                            padding: const EdgeInsets.symmetric(vertical: 10.0),
+                            alignment: Alignment.center,
+                            child: (item.reportlink != null ||
+                                    item.imagelink != null)
+                                ? Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        item.comments.replaceAll(
+                                            RegExp(
+                                                r'\(Lead Open\)|\(Lead Closed\)'),
+                                            ""),
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          if (item.reportlink != null)
+                                            TextButton(
+                                              onPressed: () =>
+                                                  openReportOnDemand(item),
+                                              child: const Text("View Report"),
+                                            ),
+                                          if (item.imagelink == true)
+                                            TextButton(
+                                              onPressed: () =>
+                                                  fetchImagesOnDemand(item),
+                                              child: const Text("View Images"),
+                                            ),
+                                        ],
+                                      ),
+                                      if (index == currentItems.length - 1)
+                                        const SizedBox(height: 40.0),
+                                    ],
+                                  )
+                                : Text(
+                                    item.comments.replaceAll(
+                                        RegExp(
+                                            r'\(Lead Open\)|\(Lead Closed\)'),
+                                        ""),
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            noItemsFoundIndicatorBuilder: (context) => const Center(
+              child: Text('No meetings found.'),
+            ),
+            firstPageErrorIndicatorBuilder: (context) => Center(
+              child: ElevatedButton(
+                onPressed: () => fetchNextPage(),
+                child: const Text('Failed to load. Retry?'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<String?> openDialog(title, lablel) => showDialog(
