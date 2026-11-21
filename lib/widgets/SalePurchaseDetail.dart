@@ -43,13 +43,14 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
   List<InvItem> _selectedhilightitemshighlightitems = [];
   List<Amast> _selectedproject = [];
   List<Amast> _project = [];
+  List<String> _liveTradeTypes = [];
 
   getproject() async {
     http.Response response;
     List<Amast> project = [Amast(ac: "00", name: "ALL")];
 
     response = await http.get(Uri.parse(
-        '$baseuri/api/invprojectsalepurchaselist/?start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}'));
+        '$baseuri/api/invprojectsalepurchaselist/?start=${_filteredDate!.start.toString().split(" ")[0]}&end=${_filteredDate!.end.toString().split(" ")[0]}&tt=${_selectedtradetype.join(",")}'));
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       for (var c in body) {
@@ -141,7 +142,7 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
       _filteredDate = getCurrentFinancialYear();
       _datecontroller.text =
           "${DateFormat("dd/MM/yyyy").format(_filteredDate!.start)}-${DateFormat("dd/MM/yyyy").format(_filteredDate!.end)}";
-      getproject();
+      // getproject();
     }
   }
 
@@ -197,30 +198,73 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
                     // key: _projectkey,
                     compareFn: (item1, item2) => item1 == item2,
                     popupProps: MultiSelectionPopupProps.dialog(
-                        dialogProps: DialogProps(
-                          barrierDismissible: true,
-                          barrierLabel: "Dismiss",
+                      dialogProps: DialogProps(
+                        barrierDismissible: true,
+                        barrierLabel: "Dismiss",
+                      ),
+                      title: Padding(
+                        padding: const EdgeInsets.all(1.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Select Trade Type",
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            IconButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                icon: const Icon(Icons.close))
+                          ],
                         ),
-                        title: Padding(
-                          padding: const EdgeInsets.all(1.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                "Select Trade Type",
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              IconButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  icon: const Icon(Icons.close))
-                            ],
-                          ),
-                        ),
-                        // showSelectedItems: true,
-                        showSearchBox: true),
+                      ),
+                      // showSelectedItems: true,
+                      showSearchBox: true,
+                      // 2. Check against _liveTradeTypes instead of _selectedtradetype
+                      onDisplayed: () {
+                        _liveTradeTypes = List.from(_selectedtradetype);
+                      },
+                      disabledItemFn: (String item) {
+                        final bool hasSaleSelected =
+                            _liveTradeTypes.contains("Sale") ||
+                                _liveTradeTypes.contains("Sales Return");
+
+                        if (hasSaleSelected &&
+                            (item == "Purchase" || item == "Purchase Return")) {
+                          return true;
+                        }
+
+                        final bool hasPurchaseSelected =
+                            _liveTradeTypes.contains("Purchase") ||
+                                _liveTradeTypes.contains("Purchase Return");
+
+                        if (hasPurchaseSelected &&
+                            (item == "Sale" || item == "Sales Return")) {
+                          return true;
+                        }
+
+                        return false;
+                      },
+
+                      // 3. Update _liveTradeTypes the instant a checkbox is checked/unchecked
+                      onItemAdded:
+                          (List<String> selectedItems, String addedItem) {
+                        setState(() {
+                          _liveTradeTypes = List.from(selectedItems);
+                        });
+                      },
+                      onItemRemoved:
+                          (List<String> selectedItems, String removedItem) {
+                        setState(() {
+                          _liveTradeTypes = List.from(selectedItems);
+                        });
+                      },
+
+                      // 4. Reset _liveTradeTypes if user taps outside the dialog to dismiss
+                      
+                    ),
                     filterFn: (item, filter) {
                       return item.toLowerCase().contains(filter.toLowerCase());
                     },
@@ -233,7 +277,7 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
                     // mode: Mode.dialog,
                     // showSelectedItems: true,
                     items: (filter, infiniteScrollProps) =>
-                        ["Sale", "Sales Return", "Purchase", "Purchase Return", "Transfer In", "Transfer Out"],
+                        ["Sale", "Sales Return", "Purchase", "Purchase Return"],
                     itemAsString: (item) {
                       return item;
                     },
@@ -252,12 +296,14 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
                       setState(() {
                         // _projects.clear();
                         _selectedtradetype = value;
+                        _liveTradeTypes = List.from(value);
                         // _pjc = value!.ac;
                         // _filteredDate =
                         //     getCurrentFinancialYear();
                         // _datecontroller.text =
                         //     "${DateFormat("dd/MM/yyyy").format(_filteredDate!.start)}-${DateFormat("dd/MM/yyyy").format(_filteredDate!.end)}";
                       });
+                      getproject();
                     },
                     selectedItems: _selectedtradetype,
                     // showSearchBox: true,
@@ -272,32 +318,32 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
                         // key: _projectkey,
                         compareFn: (item1, item2) => item1.ac == item2.ac,
                         popupProps: MultiSelectionPopupProps.dialog(
-                            dialogProps: DialogProps(
-                              barrierDismissible: true,
-                              barrierLabel: "Dismiss",
+                          dialogProps: DialogProps(
+                            barrierDismissible: true,
+                            barrierLabel: "Dismiss",
+                          ),
+                          title: Padding(
+                            padding: const EdgeInsets.all(1.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Select a Project",
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                IconButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    icon: const Icon(Icons.close))
+                              ],
                             ),
-                            title: Padding(
-                              padding: const EdgeInsets.all(1.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    "Select a Project",
-                                    style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  IconButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      icon: const Icon(Icons.close))
-                                ],
-                              ),
-                            ),
-                            // showSelectedItems: true,
-                            showSearchBox: true),
+                          ),
+                          // showSelectedItems: true,
+                          showSearchBox: true,
+                        ),
                         filterFn: (item, filter) {
                           return item.name == "Add New" ||
                               item.name
@@ -531,11 +577,11 @@ class _SalePurchaseDetailState extends State<SalePurchaseDetail> {
                   child: DropdownSearch<String>(
                     popupProps: PopupProps.dialog(
                       dialogProps: DialogProps(
-                          barrierDismissible: true,
-                          barrierLabel: "Dismiss",
-                        ),
-                        title: const Text("Select Highlight on"),
-                        showSearchBox: true,
+                        barrierDismissible: true,
+                        barrierLabel: "Dismiss",
+                      ),
+                      title: const Text("Select Highlight on"),
+                      showSearchBox: true,
                     ),
                     decoratorProps: const DropDownDecoratorProps(
                       decoration: InputDecoration(
